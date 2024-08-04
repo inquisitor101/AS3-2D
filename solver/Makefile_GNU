@@ -1,0 +1,113 @@
+# Binary exetutable directory.
+BIN_DIR := bin
+# Source file directory.
+SRC_DIR := src
+# Object file directory.
+OBJ_DIR := obj
+# Dependency file directory.
+DEP_DIR := dep
+# AS3 solver directory.
+AS3_DIR := ../solver
+
+
+# Executable name
+EXE := $(BIN_DIR)/AS3
+
+# Compiler and standard.
+CXX = g++ --std=c++20 -fopenmp
+
+# OpenMP flag.
+CXX_OMP = -DHAVE_OPENMP
+
+# MPI flag.
+CXX_MPI = 
+
+
+# Extract source files.
+SRCS0 := $(wildcard $(SRC_DIR)/*.cpp)
+SRCS1 := $(wildcard $(AS3_DIR)/$(SRC_DIR)/*.cpp)
+SRCS  := $(filter-out $(AS3_DIR)/$(SRC_DIR)/AS3.cpp, $(SRCS0), $(SRCS1))
+# Specify object files.
+OBJS0 := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS0))
+OBJS1 := $(patsubst $(AS3_DIR)/$(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS1))
+OBJS2 := $(filter-out $(OBJ_DIR)/AS3.o, $(OBJS1))
+OBJS  := $(OBJS0) $(OBJS2)
+# Dependency files.
+DEPS0 := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS0))
+DEPS1 := $(patsubst $(AS3_DIR)/$(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS1))
+DEPS2 := $(filter-out $(DEP_DIR)/AS3.d, $(DEPS1))
+DEPS  := $(DEPS0) $(DEPS2)
+
+
+# Header files directory.
+INCLUDE = -Iinclude 
+
+# Linker flags.
+LDFLAG = -Llib -flto
+
+# Linker libraries.
+LDLIBS = -llapack -lblas $(CXX_PGOFLAGS)
+
+# Dependency flags.
+DEPFLAGS = -MMD -MT $@ -MP -MF $(DEP_DIR)/$*.d
+
+# Compiler debug flags.
+CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra  #-Wpadded -Werror #-fanalyzer 
+
+# Preprocessor flags.
+CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
+
+# Optimization flags.
+CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG
+
+# Guided-profiling flag.
+CXX_PGOFLAGS = #-pg
+
+# C++ flags.
+CXXFLAGS = $(CXX_OPTFLAGS) $(CXX_PGOFLAGS) $(CXX_OMP) $(CXX_MPI)  
+
+
+# Hey Make, these aren't real directories.
+.PHONY: all clean debug
+default: all
+
+all: $(EXE)
+
+$(EXE): $(OBJS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) $(LDFLAG) $^ -o $@ $(LDLIBS) 
+
+$(OBJ_DIR)/%.o: $(AS3_DIR)/$(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
+	@mkdir -p $(OBJ_DIR)
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $< 
+
+debug: CXXFLAGS = $(CXX_DBGFLAGS)
+debug: $(EXE)
+
+
+$(DEPS):
+
+$(DEP_DIR): ; @mkdir -p $@
+
+.PRECIOUS: $(DEP_DIR)/%.d
+
+
+clean:
+	$(RM) $(OBJ_DIR)/*.o $(DEP_DIR)/*.d $(EXE)
+
+
+
+
+print:
+#	@echo $(AS3_DIR)/$(SRC_DIR)
+#	@echo $(SRCS)
+#	@echo $(OBJS)
+#	@echo $(DEPS)
+	@echo "srcs:"
+	@$(foreach file,$(SRCS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+	@echo "objs:"
+	@$(foreach file,$(OBJS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+	@echo "deps:"
+	@$(foreach file,$(DEPS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+
+-include $(wildcard $(DEPS))
