@@ -27,15 +27,17 @@ extern "C"
 
 void NLinearAlgebra::InverseMatrix
 (
- size_t                 nn, 
  CMatrixAS3<as3double> &A
 )
  /*
 	* Function that computes the inverse of the given matrix (double-precision).
 	*/
 {
+	// Check the matrix is indeed a square matrix.
+	if( A.row() != A.col() ) ERROR("Cannot invert a non-square matrix.");
+
 	// Cast to integer safely.
-	int n = static_cast<int>(nn);
+	int n = static_cast<int>( A.row() );
   
 	// Allocate the memory for the work arrays.
   as3vector1d<int>       ipivVec(n);

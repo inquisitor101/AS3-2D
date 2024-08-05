@@ -43,7 +43,7 @@ void CConfig::PadEntriesVectorData
     message += keyword;
     message += " must be of size: ";
     message += std::to_string(nExpected);
-    Terminate("PadEntriesVectorData", __FILE__, __LINE__, message);
+    ERROR(message);
   }
 }
 
@@ -77,7 +77,7 @@ void CConfig::PadEntriesVectorDefaultData
     message += keyword;
     message += " must be of size: ";
     message += std::to_string(nExpected);
-    Terminate("PadEntriesVectorDefaultData", __FILE__, __LINE__, message);
+    ERROR(message);
   }
 }
 

@@ -24,6 +24,8 @@ ISolver::ISolver
 	// Instantiate a tensor-product object.
 	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get());
 
+	// Instantiate a spatial object.
+	mSpatialContainer = CGenericFactory::CreateSpatialContainer(config_container, geometry_container, iZone);
 
 	// Get a reference to the current zone.
 	auto* zone = geometry_container->GetZoneGeometry(iZone);
@@ -96,7 +98,11 @@ void CEESolver::InitPhysicalElements
 	// Allocate memory for the physical elements in this solver.
 	mPhysicalElementContainer.resize( zone->GetnElem() );
 	
-	// Instantiate physical element objects.
+	// Instantiate physical element objects. The reason this needs a factory is because we might have 
+	// a specialized solver (e.g. EE), but with a buffer zone, such as a PML. Hence, the elements
+	// require additional variables. For now, avoid an interface class, as this object is the most 
+	// performance-reliant data class in the code. Perhaps it is better to keep a single class, but 
+	// instantiate it differently, depending on the type of solver and buffer layer specification.
 	for(size_t i=0; i<mPhysicalElementContainer.size(); i++)
 	{
 		mPhysicalElementContainer[i] = CGenericFactory::CreatePhysicalElement(config_container,

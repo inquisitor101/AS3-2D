@@ -21,6 +21,9 @@ CPhysicalElement::CPhysicalElement
 	* Constructor for the physical element, which initiates an element in physical space.
 	*/
 {
+	// Ensure that the geometry has been imported already, otherwise issue an error and exit.
+	if( element_geometry->GetCoordSolDOFs().size() == 0 ) ERROR("Grid must be imported first.");
+
 	// Deduce the number of points in 1D and 2D.
 	const size_t nSol1D = mNPoly+1;
 	const size_t nSol2D = nSol1D*nSol1D;
@@ -40,6 +43,11 @@ CPhysicalElement::CPhysicalElement
 	ComputeMetricsIntSurfIMAX(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
 	ComputeMetricsIntSurfJMIN(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
 	ComputeMetricsIntSurfJMAX(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
+
+
+	// Compute the inverse of the mass matrix on the physical element. Note, this needs to be computed 
+	// after the metrics, since they are needed during the integration of the basis.
+	ComputeInverseMassMatrix(standard_element, tensor_container);
 }
 
 //-----------------------------------------------------------------------------------
@@ -215,7 +223,7 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 
 	// Compute the derivatives on the standard element.
 	tensor_container->SurfaceIMIN(nDim, coord.data(), nullptr,
-			                     dSolDr.data(), dSolDs.data());
+			                          dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -285,7 +293,7 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
 
 	// Compute the derivatives on the standard element.
 	tensor_container->SurfaceIMAX(nDim, coord.data(), nullptr,
-			                     dSolDr.data(), dSolDs.data());
+			                          dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -355,7 +363,7 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 
 	// Compute the derivatives on the standard element.
 	tensor_container->SurfaceJMIN(nDim, coord.data(), nullptr,
-			                     dSolDr.data(), dSolDs.data());
+			                          dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -425,7 +433,7 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 
 	// Compute the derivatives on the standard element.
 	tensor_container->SurfaceJMAX(nDim, coord.data(), nullptr,
-			                     dSolDr.data(), dSolDs.data());
+			                          dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -462,6 +470,56 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 		mMetricIntJMax1D(6, i) =  Jinv*( dxdr ); // dsdy
 	}
 }
+
+//-----------------------------------------------------------------------------------
+
+void CPhysicalElement::ComputeInverseMassMatrix
+(
+ CStandardElement *standard_element,
+ ITensorProduct   *tensor_container
+)
+ /*
+	* Function that computes the inverse mass matrix on the physical element.
+	*/
+{
+	// Extract the number of solution points in 1D and 2D.
+	const size_t nSol1D = standard_element->GetnSol1D();
+	const size_t nSol2D = standard_element->GetnSol2D();
+	
+	// Extract the number of integration points in 1D and 2D.
+	const size_t nInt1D = standard_element->GetnInt1D();
+	const size_t nInt2D = standard_element->GetnInt2D();
+
+	// Extract the quadrature weights in 2D.
+	CMatrixAS3<as3double> w2D = standard_element->GetwInt2D();
+	// Extract the Lagrange interpolation matrix at the integration points in 1D.
+	CMatrixAS3<as3double> L1D = standard_element->GetLagrangeInt1D();
+
+	// Compute the Lagrange matrix in 2D at the integration points.
+	CMatrixAS3<as3double> A  = NLinearAlgebra::KroneckerProduct( L1D, L1D );
+	// Create the transpose of the 2D Lagrange interpolation matrix.
+	CMatrixAS3<as3double> At = NLinearAlgebra::TransposeAS3Matrix(A);
+
+	// Temporary matrix that stores the product of diag(w2D)*A.
+	CMatrixAS3<as3double> B( nInt2D, nSol2D );
+
+	// Carry out the temporary product of diag(w2D*mMetricInt2D)*A and store it in B.
+	for(size_t i=0; i<nInt2D; i++)
+	{
+		for(size_t j=0; j<nSol2D; j++)
+		{
+			B(i,j) = mMetricInt2D(0,i)*w2D[i]*A(i,j);
+		}
+	}
+
+	// Perform a matrix-matrix multiplication to obtain the mass matrix: At*B.
+	NLinearAlgebra::BLAS_GEMM(At, B, mInvMassMatrix);
+
+	// Invert the mass matrix. 
+	// Note, it might prove useful to investigate preconditioning the matrix.
+	NLinearAlgebra::InverseMatrix(mInvMassMatrix);
+}
+
 
 
 

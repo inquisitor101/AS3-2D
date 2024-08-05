@@ -28,7 +28,7 @@ void NPolynomialUtility::LagrangeBasis1D
 	CMatrixAS3<as3double> V2inv = V2;
 
 	// Compute the inverse of the Vandermonde matrix V2.
-	NLinearAlgebra::InverseMatrix( nCol, V2inv ); 
+	NLinearAlgebra::InverseMatrix( V2inv ); 
 
 	// Compute the Lagrange basis function.
 	NLinearAlgebra::MatrixMatrixMult( V1, V2inv, L1D ); 
@@ -70,7 +70,7 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
 	CMatrixAS3<as3double> V2inv = V2;
 
 	// Compute the inverse of the Vandermonde matrix V2.
-	NLinearAlgebra::InverseMatrix( nCol, V2inv ); 
+	NLinearAlgebra::InverseMatrix( V2inv ); 
 
 	// Compute the derivative of the Lagrange basis function.
 	NLinearAlgebra::MatrixMatrixMult( dV1, V2inv, dL1D ); 

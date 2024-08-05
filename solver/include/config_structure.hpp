@@ -102,6 +102,15 @@ class CConfig
 		ETypeSolver GetTypeSolver(unsigned short iZone)         const {return mTypeSolver[iZone];}
 
 		/*!
+		 * @brief Getter function which returns the value of mTypeBufferLayer, per input zone.
+		 *
+		 * @param[in] iZone zone ID.
+		 *
+		 * @return mTypeBufferLayer[iZone]
+		 */   
+		ETypeBufferLayer GetTypeBufferLayer(unsigned short iZone) const {return mTypeBufferLayer[iZone];}
+
+		/*!
 		 * @brief Getter function which returns the value of mNPolyGrid, per input zone.
 		 *
 		 * @param[in] iZone zone ID.
@@ -151,25 +160,26 @@ class CConfig
 	protected:
 
 	private:
-		EMeshFormat     mMeshFormat;                ///< Mesh format specified.
-		EFormatFile     mInputGridFormat;           ///< Format of input grid file.
-		EVisualFormat   mOutputVisFormat;           ///< Format of output visualization file.
-		ETemporalScheme mTemporalScheme;            ///< Type of temporal scheme.
-		ETypeIC         mTypeIC;                    ///< Type of initial condition.
+		EMeshFormat     mMeshFormat;                    ///< Mesh format specified.
+		EFormatFile     mInputGridFormat;               ///< Format of input grid file.
+		EVisualFormat   mOutputVisFormat;               ///< Format of output visualization file.
+		ETemporalScheme mTemporalScheme;                ///< Type of temporal scheme.
+		ETypeIC         mTypeIC;                        ///< Type of initial condition.
 
-		as3vector1d<as3double>      mDataIC;        ///< Compressed (floating-type) data for the IC.
-    as3vector1d<EWriteVariable> mWriteVisVar;   ///< Vector of visualization variables to write.
+		as3vector1d<as3double>      mDataIC;            ///< Compressed (floating-type) data for the IC.
+    as3vector1d<EWriteVariable> mWriteVisVar;       ///< Vector of visualization variables to write.
 
-		std::string     mOutputSolFilename;         ///< Output solution filename.
-		std::string     mOutputVisFilename;         ///< Output visualization filename.
-		std::string     mZoneConnFilename;          ///< Zone connectivity filename.
-		unsigned short  mNZone;		    		          ///< Total number of zones.
+		std::string     mOutputSolFilename;             ///< Output solution filename.
+		std::string     mOutputVisFilename;             ///< Output visualization filename.
+		std::string     mZoneConnFilename;              ///< Zone connectivity filename.
+		unsigned short  mNZone;		    		              ///< Total number of zones.
 		
-		as3vector1d<unsigned short> mZoneIndex;     ///< Indices for each zone.
-		as3vector1d<ETypeSolver>    mTypeSolver;    ///< Type of PDEs in each zone.
-    as3vector1d<ETypeDOF>       mTypeDOF;       ///< Type of DOFs in each zone.
-    as3vector1d<unsigned short> mNPolyGrid;     ///< Polynomial order per zone based on the grid.
-		as3vector1d<unsigned short> mNPolySol;      ///< Polynomial order per zone based on solution.
+		as3vector1d<unsigned short>   mZoneIndex;       ///< Indices for each zone.
+		as3vector1d<ETypeSolver>      mTypeSolver;      ///< Type of PDEs in each zone.
+    as3vector1d<ETypeBufferLayer> mTypeBufferLayer; ///< Type of buffer layer in each zone.
+		as3vector1d<ETypeDOF>         mTypeDOF;         ///< Type of DOFs in each zone.
+    as3vector1d<unsigned short>   mNPolyGrid;       ///< Polynomial order per zone based on the grid.
+		as3vector1d<unsigned short>   mNPolySol;        ///< Polynomial order per zone based on solution.
 
 		
     /*!

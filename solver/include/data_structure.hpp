@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstring>
-#include "error_log.hpp"
+#include "error_structure.hpp"
 
 
 template<typename T>

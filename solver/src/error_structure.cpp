@@ -1,13 +1,17 @@
-#include "error_log.hpp"
+#include "error_structure.hpp"
 
 
+//-----------------------------------------------------------------------------------
+// NError namespace functions.
+//-----------------------------------------------------------------------------------
 
-void Terminate
+
+void NError::Terminate
 (
-  const char        *functionName,
-  const char        *fileName,
-  const int          lineNumber,
-  const std::string &errorMessage
+ const char        *functionName,
+ const char        *fileName,
+ const int          lineNumber,
+ const std::string &errorMessage
 )
  /*
   * Function which prints an error message and exit from the program.

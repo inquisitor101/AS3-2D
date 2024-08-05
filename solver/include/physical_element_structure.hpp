@@ -15,8 +15,8 @@ class CPhysicalElement
 
 		unsigned short        mNPoly;           ///< Solution polynomial order.
 		CMatrixAS3<as3double> mSol2D;           ///< Solution on the physical element in 2D.
-	
-
+		CMatrixAS3<as3double> mInvMassMatrix;   ///< Inverse of the mass matrix.
+		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
 																				    ///< [0]: |J|, [1]: drdx, [2]: drdy, [3]: dsdx, [4]: dsdy.
 
@@ -133,4 +133,22 @@ class CPhysicalElement
 																   ITensorProduct        *tensor_container,
 				                           CMatrixAS3<as3double> &coord);
 
+	
+		/*!
+		 * @brief Function that computes the inverse mass matrix on the physical element.
+		 * 
+		 * @param[in] standard_element standard element container.
+		 * @param[in] tensor_container tensor product container.
+		 */
+		void ComputeInverseMassMatrix(CStandardElement *standard_element,
+																  ITensorProduct   *tensor_container);
+
+
+
+		// Disable default constructor.
+		CPhysicalElement(void) = delete;
+		// Disable default copy constructor.
+		CPhysicalElement(const CPhysicalElement&) = delete;
+		// Disable default copy operator.
+		CPhysicalElement& operator=(CPhysicalElement&) = delete;
 };

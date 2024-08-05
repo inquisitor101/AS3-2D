@@ -4,6 +4,7 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "tensor_structure.hpp"
+#include "spatial_structure.hpp"
 #include "factory_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
@@ -68,14 +69,18 @@ class ISolver
 
 	protected:
 		const unsigned short                           mZoneID;                    ///< Zone ID of this container.
+		std::unique_ptr<ISpatial>                      mSpatialContainer;          ///< Spatial container.
 		std::unique_ptr<ITensorProduct>                mTensorProductContainer;    ///< Tensor product container.
-		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.
+		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	
 		as3vector1d<std::unique_ptr<CPhysicalElement>> mPhysicalElementContainer;  ///< Physical element container.
 
 	private:
 		// Disable default constructor.
 		ISolver(void) = delete;
-		
+		// Disable default copy constructor.
+		ISolver(const ISolver&) = delete;
+		// Disable default copy operator.
+		ISolver& operator=(ISolver&) = delete;
 };
 
 //-----------------------------------------------------------------------------------
@@ -117,9 +122,6 @@ class CEESolver : public ISolver
 
 	private:
 		unsigned short mNVar = 4; ///< Number of working variables
-
-		// Disable default constructor.
-		CEESolver(void) = delete;
 };
 
 

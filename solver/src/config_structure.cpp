@@ -167,6 +167,15 @@ bool CConfig::ReadZoneConfigurationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeSolver = GenericVectorMap(MapTypeSolver, buffer, "TYPE_SOLVER");
 
+	// Default buffer layer value is: none.
+	as3vector1d<std::string> dvalue = { "NONE" }; 
+	// Read the type of buffer zone in each zone. Default: none.
+	NInputUtility::AddVectorOption(paramfile, "TYPE_BUFFER_LAYER", buffer, dvalue, true);
+  // Pad entries for the buffer vector.
+  PadEntriesVectorData(buffer, "TYPE_BUFFER_LAYER", mNZone, 1, 2);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeBufferLayer = GenericVectorMap(MapTypeBufferLayer, buffer, "TYPE_BUFFER_LAYER");
+
 	// Read the type of DOFs in each zone.
 	NInputUtility::AddVectorOption(paramfile, "TYPE_DOF", buffer, true);
   // Pad entries for the buffer vector.

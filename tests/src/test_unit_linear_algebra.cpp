@@ -59,7 +59,7 @@ namespace
 		NTest_LA::InverseMatrix3x3(A, B);
 		
 		CMatrixAS3<as3double> C = A;
-		NLinearAlgebra::InverseMatrix(A.row(), C);
+		NLinearAlgebra::InverseMatrix(C);
 		
 		NTest_LA::MatrixErrorNormLinf(B, C, 1.0e-14);
 	
@@ -71,7 +71,7 @@ namespace
 		for(size_t k=0; k<A.row(); k++) A(k,k) = (as3double) k+1.0;
 
 		C = A;
-		NLinearAlgebra::InverseMatrix(A.row(), C);
+		NLinearAlgebra::InverseMatrix(C);
 
 		CMatrixAS3<as3double> D;
 		NLinearAlgebra::BLAS_GEMM(C, A, D);

@@ -11,10 +11,9 @@ namespace NLinearAlgebra
 	/*!
 	 * @brief Function that computes the inverse of the given matrix (double-precision).
 	 *
-	 * @param[in] n dimension of the (square) matrix.
-	 * @param[in,out] A inverse of the matrix. 
+	 * @param[in,out] A inverse of the matrix A (over-written). 
 	 */
-	void InverseMatrix(size_t nn, CMatrixAS3<as3double> &A);
+	void InverseMatrix(CMatrixAS3<as3double> &A);
 
 	/*!
 	 * @brief Function that computes a generalized matrix-matrix multiplication via BLAS (double-precision).
@@ -48,6 +47,16 @@ namespace NLinearAlgebra
 	void TransposeAS3Matrix(CMatrixAS3<as3double> &A, CMatrixAS3<as3double> &At);
 
 	/*!
+	 * @brief Function that creates the output of the transpose of an AS3-type matrix.
+	 *
+	 * @param[in] A input matrix A.
+	 *
+	 * @return the transpose of matrix A.
+	 */
+	template<typename T>
+	CMatrixAS3<T> TransposeAS3Matrix(CMatrixAS3<T> &A);
+
+	/*!
 	 * @brief Function the creates an identity matrix of dimension n and type T.
 	 *
 	 * @param[in] n dimension of the (square) matrix.
@@ -57,7 +66,17 @@ namespace NLinearAlgebra
 	template<typename T>
 	CMatrixAS3<T> CreateIdentityMatrix(size_t n);
 
-
+	/*!
+	 * @brief Function the creates the output of a kronecker (outer-)product of two matrices.
+	 *
+	 * @param[in] A reference to the left-hand matrix.
+	 * @param[in] B reference to the right-hand matrix.
+	 *
+	 * @return outer-product matrix: C = kron(A,B).
+	 */
+	template<typename T>
+	CMatrixAS3<T> KroneckerProduct(CMatrixAS3<T> &A, 
+			                           CMatrixAS3<T> &B);
 }
 
 

@@ -7,7 +7,7 @@
 #include <iostream>
 #include <cstdlib>
 #include <vector>
-#include "error_log.hpp"
+#include "error_structure.hpp"
 
 
 // Definition of the class CGaussJacobiQuadrature.

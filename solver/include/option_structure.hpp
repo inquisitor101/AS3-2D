@@ -1,13 +1,13 @@
 #pragma once
 
-#include "error_log.hpp"
 #include <sstream>
 #include <vector>
 #include <memory>
 #include <map>
 #include <cmath>
-
+#include "error_structure.hpp"
 #include "data_structure.hpp"
+#include "log_structure.hpp"
 
 
 /* * * 
@@ -272,6 +272,27 @@ MapWriteVariable =
 	{ "TEMPERATURE",  EWriteVariable::TEMPERATURE },
 	{ "ENTROPY",      EWriteVariable::ENTROPY }
 };
+
+//--------------------------------------
+
+/*!
+ * @brief Enumerated type for type of buffer layer.
+ */
+enum class ETypeBufferLayer
+{
+	NONE
+};
+
+/*!
+ * @brief Map for the type of buffer layer.
+ */
+const std::map<std::string, ETypeBufferLayer>
+MapTypeBufferLayer = 
+{
+	{ "NONE", ETypeBufferLayer::NONE }
+};
+
+
 
 
 
