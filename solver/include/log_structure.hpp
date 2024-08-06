@@ -1,5 +1,8 @@
 #pragma once
 
+#include "option_structure.hpp"
+#include "config_structure.hpp"
+
 
 /*!
  * @brief A namespace used for storing logging functionalities.
@@ -24,4 +27,10 @@ namespace NLogger
 		}
 	}
 
+	/*!
+	 * @brief Function that prints the type of solver in each zone.
+	 *
+	 * @param[in] config_container configuration/dictionary container.
+	 */
+	void PrintInitSolver(CConfig *config_container);
 }

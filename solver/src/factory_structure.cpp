@@ -58,6 +58,8 @@ CGenericFactory::CreateSpatialContainer
 				}
 				default: ERROR("Unknown type of buffer layer.");
 			}
+
+			break;
 		} // End: EE
 
 		default: ERROR("Unknown type of solver.");

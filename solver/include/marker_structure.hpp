@@ -11,8 +11,6 @@
 class CMarker
 {
 	public:
-		// Disable default constructor.
-		CMarker(void) = delete;
 
 		/*!
 		 * @brief Constructor of CMarker, which is responsible for a single marker geometry.
@@ -91,6 +89,14 @@ class CMarker
 		ETypeBCs                  mTypeMarker;     ///< Type of marker region.
     as3vector1d<unsigned int> mElementIndices; ///< Element indices on this marker.
 		as3vector1d<EFaceElement> mElementFaces;   ///< Face indices on each element of this marker.
+
+
+		// Disable default constructor.
+		CMarker(void) = delete;
+		// Disable default copy constructor.
+		CMarker(const CMarker&) = delete;
+		// Disable default copy operator.
+		CMarker& operator=(CMarker&) = delete;
 };
 
 //-----------------------------------------------------------------------------------
@@ -144,24 +150,19 @@ class CInterfaceMarker : public CMarker
 		 */
 		std::weak_ptr<CMarker> GetMatchingMarker(void) const {return mMatchingMarker;}
 
-
-
 		/*!
 		 * @brief Setter function which assigns a value for the pointer mMatchingMarker.
 		 *
 		 * @param[in] mark weak pointer to the matching marker.
 		 */
 		void SetMatchingMarker(std::weak_ptr<CMarker> mark) {mMatchingMarker = mark;}
-
-
 	
 	protected:
 
 	private:
 		unsigned short         mMatchingZoneID;        ///< Matching interface zone index.
 		std::string            mMatchingNameMarkerTag; ///< Name of the matching interface marker tag.
-		std::weak_ptr<CMarker> mMatchingMarker;        ///< Matching interface marker.
-		
+		std::weak_ptr<CMarker> mMatchingMarker;        ///< Matching interface marker.		
 };
 
 

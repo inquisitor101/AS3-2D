@@ -7,7 +7,6 @@
 #include <cmath>
 #include "error_structure.hpp"
 #include "data_structure.hpp"
-#include "log_structure.hpp"
 
 
 /* * * 

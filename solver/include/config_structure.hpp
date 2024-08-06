@@ -11,9 +11,7 @@
 class CConfig
 {
 	public:
-		// Disable default constructor.
-		CConfig(void) = delete;
-		
+
 		/*!
 		 * @brief Constructor of CConfig, which is responsible for the configuration options.
 		 *
@@ -141,6 +139,26 @@ class CConfig
 		as3vector1d<EWriteVariable> GetWriteVisVar(void)        const {return mWriteVisVar;}
 
 		/*!
+		 * @brief Getter function which returns the simulation start time.
+		 */
+		as3double GetStartTime(void)                            const {return mStartTime;}
+
+		/*!
+		 * @brief Getter function which returns the simulation end time.
+		 */
+		as3double GetFinalTime(void)                            const {return mFinalTime;}
+
+		/*!
+		 * @brief Getter function which returns the time step specified.
+		 */
+		as3double GetTimeStep(void)                             const {return mTimeStep;}
+
+		/*!
+		 * @brief Getter function which returns the maximum number of (temporal) iterations.
+		 */
+		size_t GetMaxIterTime(void)                             const {return mMaxIterTime;}
+
+		/*!
 		 * @brief Getter function which returns a specific value in mDataIC, based on the index.
 		 *
 		 * @param[in] index index of the item in the data.
@@ -156,7 +174,6 @@ class CConfig
 			return mDataIC[index];
 		}
 
-
 	protected:
 
 	private:
@@ -165,6 +182,11 @@ class CConfig
 		EVisualFormat   mOutputVisFormat;               ///< Format of output visualization file.
 		ETemporalScheme mTemporalScheme;                ///< Type of temporal scheme.
 		ETypeIC         mTypeIC;                        ///< Type of initial condition.
+
+		as3double       mStartTime;                     ///< Simulation starting time.
+		as3double       mFinalTime;                     ///< Simulation ending time.
+		as3double       mTimeStep;                      ///< Time step.
+		size_t          mMaxIterTime;                   ///< Maximum temporal iterations during the simulation.
 
 		as3vector1d<as3double>      mDataIC;            ///< Compressed (floating-type) data for the IC.
     as3vector1d<EWriteVariable> mWriteVisVar;       ///< Vector of visualization variables to write.
@@ -307,6 +329,13 @@ class CConfig
                                      std::vector<TValueType> &reference,
                                      std::string        			keyword);
 
+
+		// Disable default constructor.
+		CConfig(void) = delete;
+		// Disable default copy constructor.
+		CConfig(const CConfig&) = delete;
+		// Disable default copy operator.
+		CConfig& operator=(CConfig&) = delete;	
 };
 
 

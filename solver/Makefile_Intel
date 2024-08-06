@@ -8,8 +8,6 @@ SRC_DIR := src
 OBJ_DIR := obj
 # Dependency file directory.
 DEP_DIR := dep
-# AS3 solver directory.
-AS3_DIR := ../solver
 
 
 # Executable name
@@ -26,19 +24,11 @@ CXX_MPI =
 
 
 # Extract source files.
-SRCS0 := $(wildcard $(SRC_DIR)/*.cpp)
-SRCS1 := $(wildcard $(AS3_DIR)/$(SRC_DIR)/*.cpp)
-SRCS  := $(filter-out $(AS3_DIR)/$(SRC_DIR)/AS3.cpp, $(SRCS0), $(SRCS1))
+SRCS := $(wildcard $(SRC_DIR)/*.cpp)
 # Specify object files.
-OBJS0 := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS0))
-OBJS1 := $(patsubst $(AS3_DIR)/$(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS1))
-OBJS2 := $(filter-out $(OBJ_DIR)/AS3.o, $(OBJS1))
-OBJS  := $(OBJS0) $(OBJS2)
+OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 # Dependency files.
-DEPS0 := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS0))
-DEPS1 := $(patsubst $(AS3_DIR)/$(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS1))
-DEPS2 := $(filter-out $(DEP_DIR)/AS3.d, $(DEPS1))
-DEPS  := $(DEPS0) $(DEPS2)
+DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
 
 
 # Header files directory.
@@ -79,7 +69,7 @@ $(EXE): $(OBJS)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) $(LDFLAG) $^ -o $@ $(LDLIBS) 
 
-$(OBJ_DIR)/%.o: $(AS3_DIR)/$(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
 	@mkdir -p $(OBJ_DIR)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $< 
 
@@ -101,10 +91,6 @@ clean:
 
 
 print:
-#	@echo $(AS3_DIR)/$(SRC_DIR)
-#	@echo $(SRCS)
-#	@echo $(OBJS)
-#	@echo $(DEPS)
 	@echo "srcs:"
 	@$(foreach file,$(SRCS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
 	@echo "objs:"

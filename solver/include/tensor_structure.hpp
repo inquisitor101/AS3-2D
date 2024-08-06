@@ -210,6 +210,10 @@ class ITensorProduct
 	private:
 		// Disable default constructor.
 		ITensorProduct(void) = delete;
+		// Disable default copy constructor.
+		ITensorProduct(const ITensorProduct&) = delete;
+		// Disable default copy operator.
+		ITensorProduct& operator=(ITensorProduct&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------

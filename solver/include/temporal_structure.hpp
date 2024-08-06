@@ -10,11 +10,11 @@
 class ITemporal
 {
 	public:
-		// Disable default constructor.
-		ITemporal(void) = delete;
-		
+
 		/*!
 		 * @brief Constructor of ITemporal, which serves as an interface for the temporal discretization.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
 		 */
 		ITemporal(CConfig *config_container);
 		
@@ -26,7 +26,12 @@ class ITemporal
 	protected:
 
 	private:
-
+		// Disable default constructor.
+		ITemporal(void) = delete;
+		// Disable default copy constructor.
+		ITemporal(const ITemporal&) = delete;
+		// Disable default copy operator.
+		ITemporal& operator=(ITemporal&) = delete;
 };
 
 //-----------------------------------------------------------------------------------
@@ -37,11 +42,11 @@ class ITemporal
 class CSSPRK3Temporal final : public ITemporal
 {
 	public:
-		// Disable default constructor.
-		CSSPRK3Temporal(void) = delete;
-		
+	
 		/*!
 		 * @brief Constructor of CSSPRK3Temporal, which initializes a SSP-RK3 temporal discretization.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
 		 */
 		CSSPRK3Temporal(CConfig *config_container);
 		
@@ -53,6 +58,10 @@ class CSSPRK3Temporal final : public ITemporal
 	protected:
 
 	private:
+		as3vector1d<as3double> rk3a; ///< SSP-RK3: a-coefficients.
+		as3vector1d<as3double> rk3b; ///< SSP-RK3: b-coefficients.
+		as3vector1d<as3double> rk3c; ///< SSP-RK3: c-coefficients.
+
 
 };
 

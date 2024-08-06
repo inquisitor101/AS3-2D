@@ -239,5 +239,10 @@ class CStandardElement
     unsigned int IntegrationRule(unsigned short npoly);
 
 
-
+		// Disable default constructor.
+		CStandardElement(void) = delete;
+		// Disable default copy constructor.
+		CStandardElement(const CStandardElement&) = delete;
+		// Disable default copy operator.
+		CStandardElement& operator=(CStandardElement&) = delete;	
 };

@@ -1,5 +1,9 @@
 #pragma once
 
+#include <ctime>
+#include <chrono>
+
+#include "log_structure.hpp"
 #include "option_structure.hpp"
 #include "factory_structure.hpp"
 #include "config_structure.hpp"
@@ -8,6 +12,7 @@
 #include "output_structure.hpp"
 #include "temporal_structure.hpp"
 #include "solver_structure.hpp"
+#include "iteration_structure.hpp"
 #include "initial_condition_structure.hpp"
 
 
@@ -17,11 +22,11 @@
 class CDriver
 {
 	public:
-		// Disable default constructor.
-		CDriver(void) = delete;
-		
+
 		/*!
 		 * @brief Constructor of CDriver, which is responsible for the entire solver set-up.
+		 *
+		 * @param[in] filename input configuration filename.
 		 */
 		CDriver(const char *filename);
 		
@@ -31,17 +36,42 @@ class CDriver
 		~CDriver(void);
 
 		/*!
+		 * @brief Function that is responsible for the entire simulation, from start to end.
+		 */
+		void StartSolver(void);
+
+
+	protected:
+
+	private:
+		std::unique_ptr<CConfig>              mConfigContainer;    ///< Container for the configuration options. 
+		std::unique_ptr<CGeometry>            mGeometryContainer;  ///< Container for the geometry information. 
+		std::unique_ptr<COutput>              mOutputContainer;    ///< Container for the output functionalities.
+    std::unique_ptr<ITemporal>            mTemporalContainer;  ///< Container for the temporal discretization.
+		std::unique_ptr<CIteration>           mIterationContainer; ///< Container for a single grid-sweep iteration.
+		as3vector1d<std::unique_ptr<ISolver>> mSolverContainer;	   ///< Vector of containers for the solver, per each zone.
+
+		/*!
+		 * @brief Function that marches the solution in time.
+		 */
+		void Run(void);
+
+		/*!
+		 * @brief Function that preprocesses the data, prior to starting the simulation.
+		 */
+		void PreProcess(void);
+
+		/*!
 		 * @brief Function that initializes the data for the simulation.
 		 */
 		void InitializeData(void);
 
-	protected:
 
+		// Disable default constructor.
+		CDriver(void) = delete;
+		// Disable default copy constructor.
+		CDriver(const CDriver&) = delete;
+		// Disable default copy operator.
+		CDriver& operator=(CDriver&) = delete;
 
-	private:
-		std::unique_ptr<CConfig>              mConfigContainer;   ///< Container for the configuration options. 
-		std::unique_ptr<CGeometry>            mGeometryContainer; ///< Container for the geometry information. 
-		std::unique_ptr<COutput>              mOutputContainer;   ///< Container for the output functionalities.
-    std::unique_ptr<ITemporal>            mTemporalContainer; ///< Container for the temporal discretization.
-		as3vector1d<std::unique_ptr<ISolver>> mSolverContainer;	  ///< Vector of containers for the solver, per each zone.
 };

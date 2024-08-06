@@ -1,7 +1,6 @@
 #include "driver_structure.hpp"
 
 
-
 //-----------------------------------------------------------------------------------
 // CDriver member functions.
 //-----------------------------------------------------------------------------------
@@ -16,21 +15,24 @@ CDriver::CDriver
 	*/
 {
 	// Initialize a config container.
-	mConfigContainer   = std::make_unique<CConfig>(filename);
+	mConfigContainer    = std::make_unique<CConfig>(filename);
 
 	// Initialize the geometry container.
-	mGeometryContainer = std::make_unique<CGeometry>(mConfigContainer.get());
+	mGeometryContainer  = std::make_unique<CGeometry>(mConfigContainer.get());
 
 	// Initialize the temporal container.
-	mTemporalContainer = CGenericFactory::CreateTemporalContainer(mConfigContainer.get());
+	mTemporalContainer  = CGenericFactory::CreateTemporalContainer(mConfigContainer.get());
 
 	// Initialize the solver containers.
-	mSolverContainer   = CGenericFactory::CreateMultizoneSolverContainer(mConfigContainer.get(), 
-			                                                                 mGeometryContainer.get());
+	mSolverContainer    = CGenericFactory::CreateMultizoneSolverContainer(mConfigContainer.get(), 
+			                                                                  mGeometryContainer.get());
 
 	// Initialize the output container.
-	mOutputContainer   = std::make_unique<COutput>(mConfigContainer.get(), 
-			                                           mGeometryContainer.get());
+	mOutputContainer    = std::make_unique<COutput>(mConfigContainer.get(), 
+			                                            mGeometryContainer.get());
+
+	// Initialize the iteration container.
+	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get()); 
 }
 
 //-----------------------------------------------------------------------------------
@@ -44,6 +46,112 @@ CDriver::~CDriver
 	*/
 {
 
+}
+
+//-----------------------------------------------------------------------------------
+
+void CDriver::StartSolver
+(
+ void
+)
+ /*
+	* Function that runs the entire simulation. 
+	*/
+{
+	// Record start time, based on processor time (not physical time).
+	const as3double proc_t0 = as3double( std::clock() )/as3double( CLOCKS_PER_SEC );
+	// Record start time, based on the actual physical time.
+	const auto phys_t0 = std::chrono::high_resolution_clock::now();
+
+
+	// Preprocess the data once, prior to starting the simulation. 
+	PreProcess();
+
+	// Fire up the actual solver.
+	Run();
+
+
+	// Record the end time used by the processor (not physical time).
+	const as3double proc_t1 = as3double( std::clock() )/as3double( CLOCKS_PER_SEC );
+	// Record the end time, based on the actual physical time.
+	const auto phys_t1 = std::chrono::high_resolution_clock::now();
+
+	// Lapse time used by the entire solver, in processor time (not physical time).
+	const as3double lapsedtime_proc = proc_t1 - proc_t0;
+	// Lapse time used by the entire solver, in physical time.
+	const auto lapsedtime_phys = std::chrono::duration_cast<std::chrono::milliseconds>(phys_t1-phys_t0);
+
+	// Report lapsed time.
+	std::cout << "\n% % % % % % % % % % % % % % % % % % % % % % % % %" << std::endl;
+	std::cout << std::scientific << std::setprecision(10) << std::setw(10)
+	          << "lapsed (processor) time [sec]: " << lapsedtime_proc                << " %" << "\n"
+	          << "lapsed (physical ) time [sec]: " << lapsedtime_phys.count()*1.0e-3 << " %" << std::endl;
+}
+
+//-----------------------------------------------------------------------------------
+
+void CDriver::Run
+(
+ void
+)
+ /*
+	* Function that runs the simulation in time. 
+	*/
+{
+	// Report output.
+	std::cout << "----------------------------------------------"
+							 "----------------------------------------------\n";
+	
+	// Report specific information about solver type and buffer layer, per zone.
+	std::cout << "Initiating simulation... " << std::endl;
+	NLogger::PrintInitSolver(mConfigContainer.get());
+
+
+	// Extract starting time, ending time and time step.
+	const as3double t0 = mConfigContainer->GetStartTime();
+	const as3double tf = mConfigContainer->GetFinalTime();
+	const as3double dt = mConfigContainer->GetTimeStep();
+	
+	// Extract the total number of temporal iterations.
+	const size_t nIter = mConfigContainer->GetMaxIterTime();
+
+
+	// Initialize the starting time and iteration count.
+	as3double t = t0; size_t i = 0;
+
+	// March in time until either the max iterations or the final time is reached.
+	while( (t<tf) && (i<nIter) )
+	{
+	
+		// TODO: call temporal_container, which calls iteration_container to do a full grid sweep.
+		//mTemporalContainer->UpdateTime();
+
+		std::cout << std::setw(6) << std::fixed << "  time: " << t << ", iter: " << i << std::endl;
+
+		// Update physical time.
+		t += dt;
+
+		// Update iteration count.
+		i++;
+
+
+		// Extra processing steps go here.
+
+	}
+}
+
+//-----------------------------------------------------------------------------------
+
+void CDriver::PreProcess
+(
+ void
+)
+ /*
+	* Function that preprocesses the data, prior to starting the simulation.
+	*/
+{
+	// First, initialize the solution and physical elements.
+	InitializeData();
 }
 
 //-----------------------------------------------------------------------------------
@@ -85,16 +193,11 @@ void CDriver::InitializeData
 																					mSolverContainer[iSolver].get());
 	}
 
-
-	// DEBUGGING
+	// Save initial state, before time-marching.
 	mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
 			                              mGeometryContainer.get(),
 																		mSolverContainer);
-
 }
-
-
-
 
 
 

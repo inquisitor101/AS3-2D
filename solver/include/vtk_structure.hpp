@@ -56,7 +56,10 @@ class IFileVTK
 	private:
 		// Disable default constructor.
 		IFileVTK(void) = delete;
-	
+		// Disable default copy constructor.
+		IFileVTK(const IFileVTK&) = delete;
+		// Disable default copy operator.
+		IFileVTK& operator=(IFileVTK&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------

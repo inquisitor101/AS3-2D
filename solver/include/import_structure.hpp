@@ -44,8 +44,6 @@ namespace NImportFile
 		return swap;
 	}
 
-
-
 }
 
 

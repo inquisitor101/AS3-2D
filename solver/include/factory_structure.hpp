@@ -139,9 +139,12 @@ class CGenericFactory
 
 	private:
 		// Disable default constructor.
-		CGenericFactory(void)  = delete;
-		
+		CGenericFactory(void)  = delete;		
 		// Disable default destructor.
 		~CGenericFactory(void) = delete;
+		// Disable default copy constructor.
+		CGenericFactory(const CGenericFactory&) = delete;
+		// Disable default copy operator.
+		CGenericFactory& operator=(CGenericFactory&) = delete;	
 };
 

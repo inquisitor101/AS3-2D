@@ -271,12 +271,19 @@ bool CConfig::ReadTemporalOptions
   // Buffer for storing temporary strings.
 	std::string buffer;
 
-
 	// Read the temporal discretization specified.
 	NInputUtility::AddScalarOption(paramfile, "TEMPORAL_SCHEME", buffer, true);
 	// Deduce the type from the buffer, based on the mapping.
 	mTemporalScheme = GenericScalarMap(MapTemporalScheme, buffer, "TEMPORAL_SCHEME");
 
+	// Read the simulation starting time.
+	NInputUtility::AddScalarOption(paramfile, "START_TIME", mStartTime, true);
+	// Read the simulation ending time.
+	NInputUtility::AddScalarOption(paramfile, "FINAL_TIME", mFinalTime, true);
+	// Read the temporal step specified.
+	NInputUtility::AddScalarOption(paramfile, "TIME_STEP", mTimeStep, true);
+	// Read the maximum number of temporal iterations.
+	NInputUtility::AddScalarOption(paramfile, "MAX_ITER_TIME", mMaxIterTime, true);
 
 	// Close file.
   paramfile.close();

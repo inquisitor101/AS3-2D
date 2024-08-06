@@ -44,6 +44,12 @@ class IInitialCondition
 
 	private:
 
+		// Disable default constructor.
+		IInitialCondition(void) = delete;
+		// Disable default copy constructor.
+		IInitialCondition(const IInitialCondition&) = delete;
+		// Disable default copy operator.
+		IInitialCondition& operator=(IInitialCondition&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------

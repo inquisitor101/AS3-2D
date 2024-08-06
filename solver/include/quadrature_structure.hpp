@@ -33,9 +33,13 @@ class CGaussJacobiQuadrature
 
 	private:
   	// Constructor of the class, disabled.
-  	CGaussJacobiQuadrature()  = delete;
+  	CGaussJacobiQuadrature(void)  = delete;
   	// Destructor of the class, disabled.
-  	~CGaussJacobiQuadrature() = delete;
+  	~CGaussJacobiQuadrature(void) = delete;
+		// Disable default copy constructor.
+		CGaussJacobiQuadrature(const CGaussJacobiQuadrature&) = delete;
+		// Disable default copy operator.
+		CGaussJacobiQuadrature& operator=(CGaussJacobiQuadrature&) = delete;
 
 		/*!
   	 * \brief Function in the original implementation of John Burkardt to compute

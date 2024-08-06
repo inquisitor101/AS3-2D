@@ -16,8 +16,6 @@ class CElementGeometry;
 class CGeometry
 {
 	public:
-		// Disable default constructor.
-		CGeometry(void) = delete;
 
 		/*!
 		 * @brief Constructor of CGeometry, which is responsible for the entire grid geometry.
@@ -66,6 +64,14 @@ class CGeometry
 		 * @param[in] config_container pointer to the configuration container.
 		 */
     void MatchInterfaceMarkers(CConfig *config_container);
+
+		
+		// Disable default constructor.
+		CGeometry(void) = delete;
+		// Disable default copy constructor.
+		CGeometry(const CGeometry&) = delete;
+		// Disable default copy operator.
+		CGeometry& operator=(CGeometry&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------
@@ -76,8 +82,6 @@ class CGeometry
 class CZoneGeometry
 {
 	public:
-		// Disable default constructor.
-		CZoneGeometry(void) = delete;
 
 		/*!
 		 * @brief Constructor of CZoneGeometry, which is responsible for a single grid geometry.
@@ -194,6 +198,14 @@ class CZoneGeometry
 		 * @param[in] config_container pointer to the configuration container.
 		 */
 		void ReadMarkerInterfaceZone(CConfig *config_container);
+
+
+		// Disable default constructor.
+		CZoneGeometry(void) = delete;
+		// Disable default copy constructor.
+		CZoneGeometry(const CZoneGeometry&) = delete;
+		// Disable default copy operator.
+		CZoneGeometry& operator=(CZoneGeometry&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------
@@ -204,8 +216,6 @@ class CZoneGeometry
 class CElementGeometry
 {
 	public:
-		// Disable default constructor.
-		CElementGeometry(void) = delete;
 
 		/*!
 		 * @brief Constructor of CElementGeometry, which is responsible for a single element geometry.
@@ -230,6 +240,14 @@ class CElementGeometry
 
 	private:
 		CMatrixAS3<as3double> mCoordSolDOFs;  ///< Coordinates at the solution DOFs.
+
+
+		// Disable default constructor.
+		CElementGeometry(void) = delete;
+		// Disable default copy constructor.
+		CElementGeometry(const CElementGeometry&) = delete;
+		// Disable default copy operator.
+		CElementGeometry& operator=(CElementGeometry&) = delete;	
 };
 
 

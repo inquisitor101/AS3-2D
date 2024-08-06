@@ -18,8 +18,8 @@ int main(int argc, char **argv)
 	// Instantiate a driver class and provide it with the configuration file.
 	std::unique_ptr<CDriver> driver_container = std::make_unique<CDriver>( argv[1] );
 
-	// Initialize the entire data for the simulation.
-	driver_container->InitializeData();
+	// Run the simulation.
+	driver_container->StartSolver();
 
 	// Exit happily.
 	return 0;

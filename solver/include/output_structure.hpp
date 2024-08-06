@@ -14,9 +14,7 @@
 class COutput
 {
 	public:
-		// Disable default constructor.
-		COutput(void) = delete;
-		
+	
 		/*!
 		 * @brief Constructor of COutput, which is responsible for the entire output routines.
 		 */
@@ -43,4 +41,10 @@ class COutput
 	private:
 		std::unique_ptr<IFileVTK> mVTKContainer;  ///< Container for a VTK file format.
 
+		// Disable default constructor.
+		COutput(void) = delete;
+		// Disable default copy constructor.
+		COutput(const COutput&) = delete;
+		// Disable default copy operator.
+		COutput& operator=(COutput&) = delete;	
 };
