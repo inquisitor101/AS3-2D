@@ -4,7 +4,6 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "tensor_structure.hpp"
-#include "spatial_structure.hpp"
 #include "factory_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
@@ -16,6 +15,7 @@
 class ISolver
 {
 	public:
+		
 		/*!
 		 * @brief Constructor of ISolver, which serves as an interface for the solver.
 		 *
@@ -33,7 +33,7 @@ class ISolver
 		virtual ~ISolver(void);
 
 
-		/*
+		/*!
 		 * @brief Pure virtual function that initializes the physical elements. Must be implemented in a derived class.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -41,7 +41,24 @@ class ISolver
 		 */
 		virtual void InitPhysicalElements(CConfig   *config_container,
 				                              CGeometry *geometry_container) = 0;
-		
+
+		/*!
+		 * @brief Pure virtual function that computes the volume terms over a single element.
+		 * 
+		 * @param[in] iElem element index.
+		 * @param[in] localtime current physical time.
+		 * @param[out] monitordata vector of parameters to monitor.
+		 */
+		virtual void ComputeVolumeResidual(size_t                     iElem,
+				                               as3double                  localtime,
+																			 as3vector1d<as3double>    &monitordata,
+																			 CPoolMatrixAS3<as3double> &workarray) = 0;
+
+		/*!
+		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
+		 */
+		virtual unsigned short GetnVar(void) const = 0;
+
 		/*!
 		 * @brief Getter function which returns the tensor-product container of this zone.
 		 *
@@ -65,11 +82,8 @@ class ISolver
 		 */
 		CPhysicalElement *GetPhysicalElement(size_t index) const {return mPhysicalElementContainer[index].get();}
 
-
-
 	protected:
 		const unsigned short                           mZoneID;                    ///< Zone ID of this container.
-		std::unique_ptr<ISpatial>                      mSpatialContainer;          ///< Spatial container.
 		std::unique_ptr<ITensorProduct>                mTensorProductContainer;    ///< Tensor product container.
 		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	
 		as3vector1d<std::unique_ptr<CPhysicalElement>> mPhysicalElementContainer;  ///< Physical element container.
@@ -108,7 +122,7 @@ class CEESolver : public ISolver
 		 */
 		~CEESolver(void) override;
 
-		/*
+		/*!
 		 * @brief Function that initializes the physical elements.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -117,6 +131,24 @@ class CEESolver : public ISolver
 		void InitPhysicalElements(CConfig   *config_container,
 				                      CGeometry *geometry_container) override;
 
+		/*!
+		 * @brief Function that computes the volume terms over a single element, based on the EE equations.
+		 * 
+		 * @param[in] iElem element index.
+		 * @param[in] localtime current physical time.
+		 * @param[out] monitordata vector of parameters to monitor.
+		 */
+		void ComputeVolumeResidual(size_t                     iElem,
+		                           as3double                  localtime,
+															 as3vector1d<as3double>    &monitordata,
+															 CPoolMatrixAS3<as3double> &workarray) override;
+
+		/*!
+		 * @brief Getter function which returns the number of working variables.
+		 *
+		 * @return mNVar.
+		 */
+		unsigned short GetnVar(void) const override {return mNVar;}
 
 	protected:
 

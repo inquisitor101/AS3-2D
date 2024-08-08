@@ -33,44 +33,6 @@ CGenericFactory::CreateTemporalContainer
 
 //-----------------------------------------------------------------------------------
 
-std::unique_ptr<ISpatial> 
-CGenericFactory::CreateSpatialContainer
-(
- CConfig        *config_container,
- CGeometry      *geometry_container,
- unsigned short  iZone
-)
- /*
-	* Function that creates a specialized instance of a spatial container.
-	*/
-{
-	// Check what type of container is specified.
-	switch( config_container->GetTypeSolver(iZone) )
-	{
-		case(ETypeSolver::EE):
-		{
-			switch( config_container->GetTypeBufferLayer(iZone) )
-			{
-				case(ETypeBufferLayer::NONE): 
-				{
-					return std::make_unique<CEESpatial>(config_container, geometry_container);
-					break;
-				}
-				default: ERROR("Unknown type of buffer layer.");
-			}
-
-			break;
-		} // End: EE
-
-		default: ERROR("Unknown type of solver.");
-	}	
-
-	// To avoid a compiler warning.
-	return nullptr; 
-}
-
-//-----------------------------------------------------------------------------------
-
 std::unique_ptr<IFileVTK> 
 CGenericFactory::CreateVTKContainer
 (

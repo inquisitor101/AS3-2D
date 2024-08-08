@@ -24,9 +24,6 @@ ISolver::ISolver
 	// Instantiate a tensor-product object.
 	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get());
 
-	// Instantiate a spatial object.
-	mSpatialContainer = CGenericFactory::CreateSpatialContainer(config_container, geometry_container, iZone);
-
 	// Get a reference to the current zone.
 	auto* zone = geometry_container->GetZoneGeometry(iZone);
 
@@ -112,6 +109,39 @@ void CEESolver::InitPhysicalElements
 																																					mZoneID, mNVar);
 	}
 }
+
+//-----------------------------------------------------------------------------------
+
+void CEESolver::ComputeVolumeResidual
+(
+ size_t                    iElem,
+ as3double                 localtime,
+ as3vector1d<as3double>   &monitordata,
+ CPoolMatrixAS3<as3double> &workarray
+)
+ /*
+	* Function that computes the volume terms in a EE-type PDE. 
+	*/
+{
+	// Extract the number of integration points in 2D.
+	const size_t nInt2D = mStandardElementContainer->GetnInt2D();
+
+	// Reference to the current element solution.
+	CMatrixAS3<as3double> &sol = mPhysicalElementContainer[iElem]->mSol2D;
+
+	// Borrow memory for the solution and its gradient.
+	CWorkMatrixAS3<as3double> Var    = workarray.GetWorkMatrixAS3(mNVar, nInt2D);
+	CWorkMatrixAS3<as3double> dVarDx = workarray.GetWorkMatrixAS3(mNVar, nInt2D);
+	CWorkMatrixAS3<as3double> dVarDy = workarray.GetWorkMatrixAS3(mNVar, nInt2D);
+
+
+	// Compute the solution and its (parametric) gradient at the volume integration points.
+	mTensorProductContainer->Volume(mNVar, sol.data(),
+			                            Var.data(), dVarDx.data(), dVarDy.data());
+
+}
+
+
 
 
 

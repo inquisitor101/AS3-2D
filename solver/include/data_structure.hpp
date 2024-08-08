@@ -4,10 +4,14 @@
 #include "error_structure.hpp"
 
 
+/*!
+ * @brief A class for a matrix data structure. 
+ */
 template<typename T>
 class CMatrixAS3
 {
 	public:
+		
 		// Default constructor.
 		CMatrixAS3(void) = default;
 
@@ -84,8 +88,6 @@ class CMatrixAS3
 			}
 			return *this;
 		}
-
-
 
 
 		// Resize the data and initializes all data to zero (always).
@@ -175,7 +177,165 @@ class CMatrixAS3
 	private:
 		size_t mNRow = 0;
 		size_t mNCol = 0;
-		T*     mData = nullptr;
+		T     *mData = nullptr;
 };
+
+
+//-----------------------------------------------------------------------------------
+
+
+/*!
+ * @brief A class that shares existing contiguous memory, as a matrix. 
+ */
+template<typename T>
+class CWorkMatrixAS3
+{
+	public:
+
+		// Explicit constructor.
+		explicit CWorkMatrixAS3(T *data, size_t *inuse, size_t *ninst, const size_t r, const size_t c) 
+			: mData(data), mInUse(inuse), mNInst(ninst), mNRow(r), mNCol(c) { mID = *ninst; }
+
+		// Default destructor.
+		~CWorkMatrixAS3(void) 
+		{
+			// This check ensures that the last-in first-out (LIFO) memory model is respected.
+			if( mID != *mNInst ) ERROR("Object creation/deletion needs to abide by the LIFO convention.");
+			*mInUse -= mNRow*mNCol; (*mNInst)--;
+		}
+
+		// Return the pointer to mData.
+		T* data(void) 
+		{
+			return mData;
+		}
+
+		// Return value by 1D index [].
+		T& operator[](const size_t index)
+		{
+#if DEBUG
+			if( index >= mNRow*mNCol ) ERROR("Index exceeds maximum data size.");
+#endif
+			return mData[index];
+		}
+
+		// Return constant value by 1D index [].
+		const T& operator[](const size_t index) const
+		{
+#if DEBUG
+			if( index >= mNRow*mNCol ) ERROR("Index exceeds maximum data size.");
+#endif
+			return mData[index];
+		}
+
+		// Return value by 2D index ().
+		T& operator()(const size_t r, const size_t c)
+		{
+#if DEBUG
+			if( (r >= mNRow) || (c >= mNCol) ) ERROR("Index exceeds maximum data size.");
+#endif
+			return mData[r*mNCol+c];
+		}
+
+		// Return constant value by 2D index ().
+		const T& operator()(const size_t r, const size_t c) const
+		{
+#if DEBUG
+			if( (r >= mNRow) || (c >= mNCol) ) ERROR("Index exceeds maximum data size.");
+#endif
+			return mData[r*mNCol+c];
+		}
+
+	private:
+		size_t  mID;
+		size_t  mNRow  = 0;
+		size_t  mNCol  = 0;	
+		size_t *mInUse = nullptr;
+		size_t *mNInst = nullptr;
+		T      *mData  = nullptr;
+
+		// Disable default constructor.
+		CWorkMatrixAS3(void) = delete;
+		// Disable default copy constructor.
+		CWorkMatrixAS3(const CWorkMatrixAS3&) = delete;
+		// Disable default copy operator.
+		CWorkMatrixAS3& operator=(CWorkMatrixAS3&) = delete;
+};
+
+
+//-----------------------------------------------------------------------------------
+
+
+/*!
+ * @brief A class that creates one contiguous memory block, and issues chunks of this block as separate matrices. 
+ */
+template<typename T>
+class CPoolMatrixAS3
+{
+	public:
+
+		// Constructor, based on data size. Default is 1D array.
+		explicit CPoolMatrixAS3(size_t nsize) 
+			: mNSize(nsize), mInUse(new size_t(0)), mNInst(new size_t(0)), mData(nullptr)
+		{
+			mData = new T[nsize];
+			if( !mData ) ERROR("Allocation failed.");
+			std::fill_n(mData, nsize, static_cast<T>(0.0));
+		}
+
+		// Destructor, which frees memory.
+		~CPoolMatrixAS3(void)
+		{
+			if( mData )
+			{
+				if( *mNInst )            ERROR("Some shared pointer instances still exist.");
+				if( !mInUse || !mNInst ) ERROR("Unexcpected behavior encountered.");	
+				delete[] mData;  mData  = nullptr;
+				delete   mInUse; mInUse = nullptr;
+				delete   mNInst; mNInst = nullptr;
+			}
+		}
+
+		// Return a sepecific memory block, wrapped as a matrix.
+		CWorkMatrixAS3<T> GetWorkMatrixAS3(const size_t r, const size_t c) 
+		{
+			const size_t n  =  r*c;    // overall size.
+			const size_t I0 = *mInUse; // address of starting index.
+			const size_t I1 =  I0 + n; // address of last index.
+			
+			if( I1 > mNSize ) ERROR("Requested size exceeds allocated memory.");
+			*mInUse = I1;              // Update used memory so far.
+			(*mNInst)++;               // Update the number of instances in use.
+
+			// Issue (via RVO) a work matrix, based on the specified dimensions.
+			return CWorkMatrixAS3<T>( &mData[I0], mInUse, mNInst, r, c ); 
+		}
+
+		// Return the total size of the memory pool.
+		size_t size(void)      const {return  mNSize;}
+		// Return the number of object instantances in use.
+		size_t ninst(void)     const {return *mNInst;}
+		// Return the currently used memory of the memory pool.
+		size_t inuse(void)     const {return *mInUse;}
+		// Return the available memory for usage.
+		size_t available(void) const {return (mNSize - *mInUse);}
+
+
+	private:
+		size_t  mNSize = 0;
+		size_t *mInUse = nullptr;
+		size_t *mNInst = nullptr;
+		T      *mData  = nullptr;
+
+		// Disable default constructor.
+		CPoolMatrixAS3(void) = delete;
+		// Disable default copy constructor.
+		CPoolMatrixAS3(const CPoolMatrixAS3&) = delete;
+		// Disable default copy operator.
+		CPoolMatrixAS3& operator=(CPoolMatrixAS3&) = delete;
+};
+
+
+
 
 

@@ -31,8 +31,9 @@ CDriver::CDriver
 	mOutputContainer    = std::make_unique<COutput>(mConfigContainer.get(), 
 			                                            mGeometryContainer.get());
 
-	// Initialize the iteration container.
-	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get()); 
+	// Initialize the iteration container, must be initialized after the solver container.
+	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get(),
+			                                               mSolverContainer); 
 }
 
 //-----------------------------------------------------------------------------------
@@ -116,15 +117,24 @@ void CDriver::Run
 	const size_t nIter = mConfigContainer->GetMaxIterTime();
 
 
+	// Allocate vector for data to monitor.
+	as3vector1d<as3double> monitordata(2);
+
+
 	// Initialize the starting time and iteration count.
 	as3double t = t0; size_t i = 0;
 
 	// March in time until either the max iterations or the final time is reached.
 	while( (t<tf) && (i<nIter) )
 	{
-	
-		// TODO: call temporal_container, which calls iteration_container to do a full grid sweep.
-		//mTemporalContainer->UpdateTime();
+
+		// Update the solution in time.
+		mTemporalContainer->UpdateTime(mConfigContainer.get(),
+				                           mGeometryContainer.get(),
+																	 mIterationContainer.get(),
+																	 mSolverContainer,
+																	 t, dt,
+																	 monitordata);
 
 		std::cout << std::setw(6) << std::fixed << "  time: " << t << ", iter: " << i << std::endl;
 
@@ -133,7 +143,6 @@ void CDriver::Run
 
 		// Update iteration count.
 		i++;
-
 
 		// Extra processing steps go here.
 

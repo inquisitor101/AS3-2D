@@ -8,7 +8,6 @@
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
 #include "solver_structure.hpp"
-#include "spatial_structure.hpp"
 #include "tensor_structure.hpp"
 #include "initial_condition_structure.hpp"
 
@@ -16,6 +15,7 @@
 // Forward declaration to avoid compiler issues.
 class ISolver;
 class IFileVTK;
+class ITemporal;
 class IInitialCondition;
 
 /*!
@@ -35,20 +35,6 @@ class CGenericFactory
 		static std::unique_ptr<ITemporal> CreateTemporalContainer(CConfig *config_container);
 
 		/*!
-		 * @brief Function that creates a specialized instance of a spatial container.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 *
-		 * @return unique pointer to the specific spatial class.
-		 */
-		static std::unique_ptr<ISpatial> CreateSpatialContainer(CConfig        *config_container,
-				                                                    CGeometry      *geometry_container,
-																														unsigned short  iZone);
-
-
-
-		/*!
 		 * @brief Function that creates a specialized instance of a vtk container.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -59,7 +45,6 @@ class CGenericFactory
 		static std::unique_ptr<IFileVTK> CreateVTKContainer(CConfig   *config_container,
 				                                                CGeometry *geometry_container);
 
-
 		/*!
 		 * @brief Function that creates a specialized instance of an initial condition container.
 		 *
@@ -68,8 +53,6 @@ class CGenericFactory
 		 * @return unique pointer to the specific initial condition class.
 		 */
 		static std::unique_ptr<IInitialCondition> CreateInitialConditionContainer(CConfig *config_container);
-
-
 
 		/*!
 		 * @brief Function that creates a specialized instance of a standard element container.
@@ -81,7 +64,6 @@ class CGenericFactory
 		 */
 		static std::unique_ptr<CStandardElement> CreateStandardElement(CConfig       *config_container,
 				                                                           unsigned short iZone);
-
 
 		/*!
 		 * @brief Function that creates a specialized instance of a physical element container.
@@ -134,8 +116,6 @@ class CGenericFactory
 		 */
 		static as3vector1d<std::unique_ptr<ISolver>> CreateMultizoneSolverContainer(CConfig   *config_container,
 				                                                                        CGeometry *geometry_container);
-
-		
 
 	private:
 		// Disable default constructor.

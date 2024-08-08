@@ -81,4 +81,72 @@ CSSPRK3Temporal::~CSSPRK3Temporal
 
 }
 
+//-----------------------------------------------------------------------------------
+
+void CSSPRK3Temporal::UpdateTime
+(
+ CConfig                               *config_container,
+ CGeometry                             *geometry_container,
+ CIteration                            *iteration_container,
+ as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+ as3double                              physicaltime,
+ as3double                              timestep,
+ as3vector1d<as3double>                &monitordata
+)
+ /*
+	* Function that computes the upcoming solution in time, based on a SSP-RK3.
+	*/
+{
+	// Extract number of RK stages in a SSP-RK3.
+	const size_t nStageRK = rk3a.size();
+
+	// Loop over all Runge-Kutta stages.
+	for(size_t iStageRK=0; iStageRK<nStageRK; iStageRK++)
+	{
+		// Local physical time.
+		const as3double localtime = physicaltime + rk3c[iStageRK]*timestep;
+
+		// Local RK coefficients.
+		const as3double alpha = rk3a[iStageRK];
+		const as3double beta  = rk3b[iStageRK];
+
+    // Perform a single stage evaluation, based on a SSP-RK3 .
+    EvaluateSSPRK3(config_container,
+				            geometry_container,
+               			iteration_container,
+               			solver_container,
+               			localtime, timestep,
+               			alpha, beta,
+               			monitordata);
+	}
+}
+
+//-----------------------------------------------------------------------------------
+
+void CSSPRK3Temporal::EvaluateSSPRK3
+(
+ CConfig                               *config_container,
+ CGeometry                             *geometry_container,
+ CIteration                            *iteration_container,
+ as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+ as3double                              localtime,
+ as3double                              timestep,
+ as3double                              alpha,
+ as3double                              beta,
+ as3vector1d<as3double>                &monitordata
+)
+ /*
+	* Function that does a single stage SSP-RK3 evaluation.
+	*/
+{
+	// First, compute the residual.
+	iteration_container->GridSweep(config_container,
+			                           geometry_container,
+																 solver_container,
+																 localtime,
+																 monitordata);
+}
+
+
+
 
