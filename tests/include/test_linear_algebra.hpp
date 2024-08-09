@@ -11,7 +11,9 @@ namespace NTest_LA
 	void InitMatrixSeq(CMatrixAS3<as3double> &A);
 
 	// Function that initializes a matrix randomly.
-	void InitMatrixRand(CMatrixAS3<as3double> &A);
+	void InitMatrixRand(CMatrixAS3<as3double> &A,
+			                as3double              v0 = -10.0,
+											as3double              v1 =  50.0);
 
 	// Function that computes the correct matrix transpose.
 	void MatrixTranspose(CMatrixAS3<as3double> &A, 

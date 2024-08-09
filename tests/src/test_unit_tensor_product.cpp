@@ -36,4 +36,16 @@ namespace
 		}
 	}
 
+	TEST_F(CTest_TP, ResidualVolume)
+	{
+		for(auto& d: mElement)
+		{
+			CTest_TP::CheckResidualVolumeSource(d.get());
+			CTest_TP::CheckResidualVolumeDerSolR(d.get());
+			CTest_TP::CheckResidualVolumeDerSolS(d.get());
+			CTest_TP::CheckResidualVolumeTotal(d.get());
+		}
+
+	}
+
 }

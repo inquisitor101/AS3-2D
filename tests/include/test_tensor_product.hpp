@@ -37,6 +37,12 @@ class CTest_TP : public ::testing::Test
 		void CheckSurface_dSolDsJMIN(CStandardElement *element);
 		void CheckSurface_dSolDsJMAX(CStandardElement *element);
 
+		void CheckResidualVolumeSource(CStandardElement  *element);
+		void CheckResidualVolumeDerSolR(CStandardElement *element);
+		void CheckResidualVolumeDerSolS(CStandardElement *element);
+		void CheckResidualVolumeTotal(CStandardElement   *element);
+
+
 		static void KroneckerProduct(CMatrixAS3<as3double> &A, 
 				                         CMatrixAS3<as3double> &B,
 													       CMatrixAS3<as3double> &C);

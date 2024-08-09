@@ -1086,5 +1086,248 @@ void CTest_TP::CheckSurface_dSolDsJMAX
 	NTest_LA::MatrixErrorNormLinf(C, Bt, tol);
 }
 
+//-----------------------------------------------------------------------------------
+
+void CTest_TP::CheckResidualVolumeSource
+(
+ CStandardElement *element
+)
+ /*
+	* Function that checks the residual volume tensor-product for source terms.
+	*/
+{
+	// Relative error tolerance.
+	const as3double tol = 1.0e-12;
+	
+	CMatrixAS3<as3double> A;    // input solution.
+	CMatrixAS3<as3double> At;   // its tranpose.
+	CMatrixAS3<as3double> B;    // benchmark result.
+	CMatrixAS3<as3double> Bt;   // benchmark result transposed.
+	CMatrixAS3<as3double> C;    // tensor-product result.
+	CMatrixAS3<as3double> L2Dt; // transpose of interpolation matrix in 2D.
+
+	// Number of integration and solution points in 1D.
+	const size_t c  = 3;
+	const size_t n  = element->GetnSol1D();
+	const size_t m  = element->GetnInt1D();
+	const size_t n2 = element->GetnSol2D();
+	const size_t m2 = element->GetnInt2D();
+
+	// Initialize the matrix A randomly.
+	A.resize(c, m2);
+	NTest_LA::InitMatrixRand(A);
+	NTest_LA::MatrixTranspose(A, At);
+
+	// Form the benchmark values.
+	CMatrixAS3<as3double> L1Dt = element->GetLagrangeInt1DTrans();
+	KroneckerProduct(L1Dt, L1Dt, L2Dt);
+	NTest_LA::MatrixMult(L2Dt, At, B);
+	NTest_LA::MatrixTranspose(B, Bt);
+
+	// Create a tensor product object.
+	std::unique_ptr<ITensorProduct> tensor = CGenericFactory::CreateTensorContainer(element);
+
+	// Initialize the dimensions of C.
+	C.resize(c, n2);
+	
+	// Compile-time tensor-product implementation.
+	tensor->ResidualVolume(c, A.data(), nullptr, nullptr, C.data());
+	NTest_LA::MatrixErrorNormLinf(C, Bt, tol);
+}
+
+//-----------------------------------------------------------------------------------
+
+void CTest_TP::CheckResidualVolumeDerSolR
+(
+ CStandardElement *element
+)
+ /*
+	* Function that checks the residual volume tensor-product for r-differentiated terms.
+	*/
+{
+	// Relative error tolerance.
+	const as3double tol = 1.0e-12;
+	
+	CMatrixAS3<as3double> A;      // input solution.
+	CMatrixAS3<as3double> At;     // its tranpose.
+	CMatrixAS3<as3double> B;      // benchmark result.
+	CMatrixAS3<as3double> Bt;     // benchmark result transposed.
+	CMatrixAS3<as3double> C;      // tensor-product result.
+	CMatrixAS3<as3double> drL2D;  // r-differentiation matrix in 2D.
+	CMatrixAS3<as3double> drL2Dt; // transpose of r-differentiation matrix in 2D.
+
+	// Number of integration and solution points in 1D.
+	const size_t c  = 3;
+	const size_t n  = element->GetnSol1D();
+	const size_t m  = element->GetnInt1D();
+	const size_t n2 = element->GetnSol2D();
+	const size_t m2 = element->GetnInt2D();
+
+	// Initialize the matrix A randomly.
+	A.resize(c, m2);
+	NTest_LA::InitMatrixRand(A);
+	NTest_LA::MatrixTranspose(A, At);
+
+	// Form the benchmark values.
+	CMatrixAS3<as3double>  L1D = element->GetLagrangeInt1D();
+	CMatrixAS3<as3double> dL1D = element->GetDerLagrangeInt1D();
+	KroneckerProduct(L1D, dL1D, drL2D);
+	NTest_LA::MatrixTranspose(drL2D, drL2Dt);
+
+	NTest_LA::MatrixMult(drL2Dt, At, B);
+	NTest_LA::MatrixTranspose(B, Bt);
+
+	// Create a tensor product object.
+	std::unique_ptr<ITensorProduct> tensor = CGenericFactory::CreateTensorContainer(element);
+
+	// Initialize the dimensions of C.
+	C.resize(c, n2);
+	
+	// Compile-time tensor-product implementation.
+	tensor->ResidualVolume(c, nullptr, A.data(), nullptr, C.data());
+	NTest_LA::MatrixErrorNormLinf(C, Bt, tol);
+}
+
+//-----------------------------------------------------------------------------------
+
+void CTest_TP::CheckResidualVolumeDerSolS
+(
+ CStandardElement *element
+)
+ /*
+	* Function that checks the residual volume tensor-product for s-differentiated terms.
+	*/
+{
+	// Relative error tolerance.
+	const as3double tol = 1.0e-12;
+	
+	CMatrixAS3<as3double> A;      // input solution.
+	CMatrixAS3<as3double> At;     // its tranpose.
+	CMatrixAS3<as3double> B;      // benchmark result.
+	CMatrixAS3<as3double> Bt;     // benchmark result transposed.
+	CMatrixAS3<as3double> C;      // tensor-product result.
+	CMatrixAS3<as3double> dsL2D;  // s-differentiation matrix in 2D.
+	CMatrixAS3<as3double> dsL2Dt; // transpose of s-differentiation matrix in 2D.
+
+	// Number of integration and solution points in 1D.
+	const size_t c  = 3;
+	const size_t n  = element->GetnSol1D();
+	const size_t m  = element->GetnInt1D();
+	const size_t n2 = element->GetnSol2D();
+	const size_t m2 = element->GetnInt2D();
+
+	// Initialize the matrix A randomly.
+	A.resize(c, m2);
+	NTest_LA::InitMatrixRand(A);
+	NTest_LA::MatrixTranspose(A, At);
+
+	// Form the benchmark values.
+	CMatrixAS3<as3double>  L1D = element->GetLagrangeInt1D();
+	CMatrixAS3<as3double> dL1D = element->GetDerLagrangeInt1D();
+	KroneckerProduct(dL1D, L1D, dsL2D);
+	NTest_LA::MatrixTranspose(dsL2D, dsL2Dt);
+
+	NTest_LA::MatrixMult(dsL2Dt, At, B);
+	NTest_LA::MatrixTranspose(B, Bt);
+
+	// Create a tensor product object.
+	std::unique_ptr<ITensorProduct> tensor = CGenericFactory::CreateTensorContainer(element);
+
+	// Initialize the dimensions of C.
+	C.resize(c, n2);
+	
+	// Compile-time tensor-product implementation.
+	tensor->ResidualVolume(c, nullptr, nullptr, A.data(), C.data());
+	NTest_LA::MatrixErrorNormLinf(C, Bt, tol);
+}
+
+//-----------------------------------------------------------------------------------
+
+void CTest_TP::CheckResidualVolumeTotal
+(
+ CStandardElement *element
+)
+ /*
+	* Function that checks the residual volume tensor-product for source and rs-differentiated terms.
+	*/
+{
+	// Relative error tolerance.
+	const as3double tol = 1.0e-12;
+	
+	CMatrixAS3<as3double> A1;     // input solution: source terms.
+	CMatrixAS3<as3double> A2;     // input solution: r-diff terms.
+	CMatrixAS3<as3double> A3;     // input solution: s-diff terms.
+	CMatrixAS3<as3double> At1;    // input solution tranpose: source terms.
+	CMatrixAS3<as3double> At2;    // input solution tranpose: r-diff terms.
+	CMatrixAS3<as3double> At3;    // input solution tranpose: s-diff terms.
+	CMatrixAS3<as3double> B;      // benchmark result.
+	CMatrixAS3<as3double> Bt;     // benchmark result transposed: containing all terms.
+	CMatrixAS3<as3double> Bt1;    // benchmark result transposed: source terms.
+	CMatrixAS3<as3double> Bt2;    // benchmark result transposed: r-diff terms.
+	CMatrixAS3<as3double> Bt3;    // benchmark result transposed: s-diff terms.
+	CMatrixAS3<as3double> C;      // tensor-product result.
+	CMatrixAS3<as3double> L2Dt;   // transpose of interpolation matrix in 2D.
+	CMatrixAS3<as3double> drL2D;  // r-differentiation matrix in 2D.
+	CMatrixAS3<as3double> drL2Dt; // transpose of r-differentiation matrix in 2D.
+	CMatrixAS3<as3double> dsL2D;  // s-differentiation matrix in 2D.
+	CMatrixAS3<as3double> dsL2Dt; // transpose of s-differentiation matrix in 2D.
+
+
+	// Number of integration and solution points in 1D.
+	const size_t c  = 3;
+	const size_t n  = element->GetnSol1D();
+	const size_t m  = element->GetnInt1D();
+	const size_t n2 = element->GetnSol2D();
+	const size_t m2 = element->GetnInt2D();
+
+	// Initialize the matrix A randomly.
+	A1.resize(c, m2);
+	NTest_LA::InitMatrixRand(A1);
+	NTest_LA::MatrixTranspose(A1, At1);
+
+	// Initialize arbitrarily its transpose for the rs-differentiation terms.
+	A2 = A1; NTest_LA::InitMatrixRand(A2, -5.0, 5.0);
+	A3 = A1; NTest_LA::InitMatrixRand(A3,  0.0, 3.0);
+	NTest_LA::MatrixTranspose(A2, At2);
+	NTest_LA::MatrixTranspose(A3, At3);
+
+
+	// Required basis functions for the benchmark values.
+	CMatrixAS3<as3double>  L1D = element->GetLagrangeInt1D();
+	CMatrixAS3<as3double> L1Dt = element->GetLagrangeInt1DTrans();
+	CMatrixAS3<as3double> dL1D = element->GetDerLagrangeInt1D();
+
+	// Form the benchmark values for the source terms.
+	KroneckerProduct(L1Dt, L1Dt, L2Dt);
+	NTest_LA::MatrixMult(L2Dt, At1, B);
+	NTest_LA::MatrixTranspose(B, Bt1);
+
+	// Form the benchmark values for the r-differentiated terms.
+	KroneckerProduct(L1D, dL1D, drL2D);
+	NTest_LA::MatrixTranspose(drL2D, drL2Dt);
+	NTest_LA::MatrixMult(drL2Dt, At2, B);
+	NTest_LA::MatrixTranspose(B, Bt2);
+
+	// Form the benchmark values for the s-differentiated terms.
+	KroneckerProduct(dL1D, L1D, dsL2D);
+	NTest_LA::MatrixTranspose(dsL2D, dsL2Dt);
+	NTest_LA::MatrixMult(dsL2Dt, At3, B);
+	NTest_LA::MatrixTranspose(B, Bt3);
+
+	// Accumulate all the term contributions in Bt.
+	Bt.resize( Bt1.row(), Bt1.col() );
+	for(size_t i=0; i<Bt.size(); i++) Bt[i] = Bt1[i] + Bt2[i] + Bt3[i];
+
+
+	// Create a tensor product object.
+	std::unique_ptr<ITensorProduct> tensor = CGenericFactory::CreateTensorContainer(element);
+
+	// Initialize the dimensions of C.
+	C.resize(c, n2);
+	
+	// Compile-time tensor-product implementation.
+	tensor->ResidualVolume(c, A1.data(), A2.data(), A3.data(), C.data());
+	NTest_LA::MatrixErrorNormLinf(C, Bt, tol);
+}
 
 

@@ -11,6 +11,10 @@
 class ITensorProduct
 {
 	public:
+		// Public member variables.
+		const size_t mK; // Number of solution points in 1D.
+		const size_t mM; // Number of integration points in 1D.
+
 		/*!
 		 * @brief Constructor of ITensorProduct, which serves as an interface for the tensor product.
 		 */
@@ -199,9 +203,15 @@ class ITensorProduct
 								             as3double       *CDerR,
 								             as3double       *CDerS) = 0;
 
-		// Public member variables.
-		const size_t mK;
-		const size_t mM;
+		/*!
+		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the volume terms. 
+		 */
+		virtual void ResidualVolume(const size_t     N,
+				                        const as3double *B,
+																const as3double *BDerR,
+																const as3double *BDerS,
+																as3double       *C) = 0;
+
 
 	protected:
 		// Pointer to the standard element of this specialization.
@@ -222,7 +232,7 @@ class ITensorProduct
  * @brief A templated implementation for different tensor-product functions, based on a fixed (K,M).
  */
 template<size_t K, size_t M>
-class CTensorProduct : public ITensorProduct
+class CTensorProduct final: public ITensorProduct
 {
 	public:
 		// Default constructor.
@@ -306,6 +316,17 @@ class CTensorProduct : public ITensorProduct
 								     as3double       *C,
 								     as3double       *CDerR,
 								     as3double       *CDerS) final;
+
+		/*!
+		 * @brief Function for a (compile-time) tensor product that computes the residual from the volume terms. 
+		 */
+		void ResidualVolume(const size_t     N,
+		                    const as3double *B,
+												const as3double *BDerR,
+												const as3double *BDerS,
+												as3double       *C) final;
+
+
 };
 
 // Definitions of the templated functions.
@@ -314,3 +335,4 @@ class CTensorProduct : public ITensorProduct
 #include "tensor/tensor_surface_imax.inl"
 #include "tensor/tensor_surface_jmin.inl"
 #include "tensor/tensor_surface_jmax.inl"
+#include "tensor/tensor_residual_volume.inl"

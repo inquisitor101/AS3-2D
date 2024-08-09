@@ -114,9 +114,9 @@ void CEESolver::InitPhysicalElements
 
 void CEESolver::ComputeVolumeResidual
 (
- size_t                    iElem,
- as3double                 localtime,
- as3vector1d<as3double>   &monitordata,
+ size_t                     iElem,
+ as3double                  localtime,
+ as3vector1d<as3double>    &monitordata,
  CPoolMatrixAS3<as3double> &workarray
 )
  /*
@@ -139,6 +139,21 @@ void CEESolver::ComputeVolumeResidual
 	mTensorProductContainer->Volume(mNVar, sol.data(),
 			                            Var.data(), dVarDx.data(), dVarDy.data());
 
+
+
+
+	
+	// DEBUGGING: scattering the solution back to the residual. Note, instead of explicitly 
+	// resetting the residual, we can assume that ResidualVolume resets it by default, by 
+	// simply writing to the residual array, instead of accumulating the values.
+	CMatrixAS3<as3double> res( mNVar, mStandardElementContainer->GetnSol2D() );
+	mTensorProductContainer->ResidualVolume(mNVar, 
+			                                    Var.data(), 
+																					dVarDx.data(), 
+																					dVarDy.data(), 
+																					res.data());
+
+	ERROR("Read comment: this function needs continuation.");
 }
 
 

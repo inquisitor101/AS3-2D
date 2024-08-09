@@ -24,13 +24,16 @@ void NTest_LA::InitMatrixSeq
 
 void NTest_LA::InitMatrixRand
 (
- CMatrixAS3<as3double> &A
+ CMatrixAS3<as3double> &A,
+ as3double              v0,
+ as3double              v1
 )
 	/*
 	 * Generate a random set of values in a matrix.
 	 */
 {
-	std::uniform_real_distribution<as3double> dist(-10,50);	
+	if(v0 >= v1 ) ERROR("Input valid interval for the distribution.");
+	std::uniform_real_distribution<as3double> dist(v0,v1);	
 	std::default_random_engine re;
 		
 	for(size_t i=0; i<A.size(); i++) A[i] = dist(re);
