@@ -30,6 +30,8 @@ CPhysicalElement::CPhysicalElement
 
 	// Allocate memory for the solution in 2D.
 	mSol2D.resize( nVar, nSol2D );
+	// Allocate memory for the residual in 2D.
+	mRes2D.resize( nVar, nSol2D );
 
 	
 	// Compute the metrics at the volume solution points.
@@ -520,7 +522,7 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	NLinearAlgebra::InverseMatrix(mInvMassMatrix);
 }
 
-
+//-----------------------------------------------------------------------------------
 
 
 

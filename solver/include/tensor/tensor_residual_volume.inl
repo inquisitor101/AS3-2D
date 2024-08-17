@@ -16,6 +16,7 @@ void CTensorProduct<K, M>::ResidualVolume
 )
  /*
 	* Function that computes the residual via a tensor product on the volume integration points.
+	* NOTE, this also resets the residual.
 	*/
 {
  	// Unpack the information needed, based on the standard element.
@@ -136,10 +137,9 @@ void CTensorProduct<K, M>::ResidualVolume
 			}
 		}
 
-		// Copy values to C.
+		// Copy values to C. Notice, this overrides the existing data in C.
 		for(unsigned short j=0; j<K; j++)
 			for(unsigned short i=0; i<K; i++)
-				c[j][i] += tmpI[j][i];
-
+				c[j][i] = tmpI[j][i];
 	}
 }

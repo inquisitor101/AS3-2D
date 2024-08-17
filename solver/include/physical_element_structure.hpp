@@ -15,6 +15,7 @@ class CPhysicalElement
 
 		unsigned short        mNPoly;           ///< Solution polynomial order.
 		CMatrixAS3<as3double> mSol2D;           ///< Solution on the physical element in 2D.
+		CMatrixAS3<as3double> mRes2D;           ///< Residual of the solution on the physical element in 2D.
 		CMatrixAS3<as3double> mInvMassMatrix;   ///< Inverse of the mass matrix.
 		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
@@ -54,6 +55,16 @@ class CPhysicalElement
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		~CPhysicalElement(void);
+
+
+		/*!
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the volume integration points.
+		 *
+		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
+		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
+		 */
+		inline void ConvertGradParamToCartVolInt(CWorkMatrixAS3<as3double> &dVarDr,
+				                                     CWorkMatrixAS3<as3double> &dVarDs);
 
 
 		/*!
@@ -152,3 +163,6 @@ class CPhysicalElement
 		// Disable default copy operator.
 		CPhysicalElement& operator=(CPhysicalElement&) = delete;
 };
+
+// Definitions of the templated/inlined functions.
+#include "physical_element_structure.inl"

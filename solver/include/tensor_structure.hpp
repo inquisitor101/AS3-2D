@@ -319,6 +319,7 @@ class CTensorProduct final: public ITensorProduct
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the volume terms. 
+		 *        Note, this also resets the residual.
 		 */
 		void ResidualVolume(const size_t     N,
 		                    const as3double *B,

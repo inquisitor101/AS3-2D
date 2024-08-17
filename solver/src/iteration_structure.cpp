@@ -142,7 +142,7 @@ void CIteration::ComputeResidual
 		// Loop over the elements and compute the residuals.
 		for(size_t iElem=0; iElem<nElem; iElem++)
 		{
-			// Compute volume terms.
+			// Compute volume terms. Note, this step also initializes the residual.
 			solver->ComputeVolumeResidual(iElem, localtime, monitordata, workarray);
 
 			// Compute surface terms.

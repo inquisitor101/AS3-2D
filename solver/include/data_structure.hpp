@@ -204,6 +204,13 @@ class CWorkMatrixAS3
 			*mInUse -= mNRow*mNCol; (*mNInst)--;
 		}
 
+		// Return the total  size of the matrix.
+		size_t size(void) const {return mNRow*mNCol;}
+		// Return the row    size of the matrix.
+		size_t row(void)  const {return mNRow;}
+		// Return the column size of the matrix.
+		size_t col(void)  const {return mNCol;}
+
 		// Return the pointer to mData.
 		T* data(void) 
 		{
