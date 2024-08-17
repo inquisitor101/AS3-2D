@@ -43,7 +43,7 @@ void CTensorProduct<K, M>::ResidualVolume
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage and ensure tmpI is initialized to zero.
-		as3double tmpI[K][K] = {0.0}; 
+		as3double tmpI[K][K] = {}; 
 		as3double tmpJ[M][K];
 
     // Cast array C from 1D to 2D.
