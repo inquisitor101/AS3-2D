@@ -8,7 +8,7 @@ This project, code-named **AS3-2D**, stands for: A Simple Structured Solver (AS3
 
 AS3-2D uses a nodal discontinuous Galerkin finite element method (DG-FEM) as its spatial discretization strategy. It is restricted to quadrilateral-type elements, utilizing a tensor-product formulation of their 1D counterparts. The temporal discretization uses explicit time-marching schemes only. The solver is capable of handling curvilinear grids with multizone or multiblock configurations.
 
-# Planned Objectives
+# Project Roadmap 
 
 1. Have an inviscid flow solver, which solves the non-linear Euler equations (EEs).
 2. Propose a shared memory parallelization strategy (OpenMP) and implement it. 
