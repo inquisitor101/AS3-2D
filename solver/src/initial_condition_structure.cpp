@@ -96,6 +96,9 @@ void CGaussianPressureIC::InitializeSolution
 	* Function that initializes a Gaussian pressure pulse in a zone.
 	*/
 {
+	// Report output.
+	std::cout << "    initial condition.... ";
+	
 	// Extract the total number of elements in this zone.
 	const size_t nElem = zone_geometry->GetnElem();
 
@@ -154,6 +157,8 @@ void CGaussianPressureIC::InitializeSolution
 			sol(3, l) = rhoE;
 		}
 	}
+	// Report output.
+	std::cout << "Done." << std::endl;
 }
 
 
@@ -223,6 +228,9 @@ void CIsentropicVortexIC::InitializeSolution
 	* Function that initializes an isentropic vortex in a zone.
 	*/
 {
+	// Report output.
+	std::cout << "    initial condition.... ";
+	
 	// Extract the total number of elements in this zone.
 	const size_t nElem = zone_geometry->GetnElem();
 
@@ -286,6 +294,9 @@ void CIsentropicVortexIC::InitializeSolution
 			sol(3, l) = rhoE;
 		}
 	}
+
+	// Report output.
+	std::cout << "Done." << std::endl;
 }
 
 

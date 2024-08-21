@@ -5,6 +5,7 @@
 #include "geometry_structure.hpp"
 #include "tensor_structure.hpp"
 #include "factory_structure.hpp"
+#include "boundary_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
 
@@ -43,6 +44,15 @@ class ISolver
 				                              CGeometry *geometry_container) = 0;
 
 		/*!
+		 * @brief Pure virtual function that initializes the boundary conditions. Must be implemented in a derived class.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] geometry_container input geometry container.
+		 */
+		virtual void InitBoundaryConditions(CConfig   *config_container,
+				                                CGeometry *geometry_container) = 0;
+
+		/*!
 		 * @brief Pure virtual function that computes the volume terms over a single element.
 		 * 
 		 * @param[in] iElem element index.
@@ -58,6 +68,13 @@ class ISolver
 		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
 		 */
 		virtual unsigned short GetnVar(void) const = 0;
+
+		/*!
+		 * @brief Getter function which returns the value of mZoneID.
+		 *
+		 * @return mZoneID.
+		 */
+		unsigned short GetZoneID(void) const {return mZoneID;}
 
 		/*!
 		 * @brief Getter function which returns the tensor-product container of this zone.
@@ -82,11 +99,20 @@ class ISolver
 		 */
 		CPhysicalElement *GetPhysicalElement(size_t index) const {return mPhysicalElementContainer[index].get();}
 
+		/*!
+		 * @brief Getter function which returns the entire boundary container.
+		 *
+		 * @return mBoundaryContainer.
+		 */
+		as3vector1d<std::unique_ptr<IBoundary>> &GetBoundaryContainer(void) {return mBoundaryContainer;}
+
 	protected:
 		const unsigned short                           mZoneID;                    ///< Zone ID of this container.
+	
 		std::unique_ptr<ITensorProduct>                mTensorProductContainer;    ///< Tensor product container.
 		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	
 		as3vector1d<std::unique_ptr<CPhysicalElement>> mPhysicalElementContainer;  ///< Physical element container.
+		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryContainer;         ///< Boundary condition container.
 
 	private:
 		// Disable default constructor.
@@ -130,6 +156,15 @@ class CEESolver : public ISolver
 		 */
 		void InitPhysicalElements(CConfig   *config_container,
 				                      CGeometry *geometry_container) override;
+
+		/*!
+		 * @brief Function that initializes the boundary conditions. 
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] geometry_container input geometry container.
+		 */
+		void InitBoundaryConditions(CConfig   *config_container,
+		                            CGeometry *geometry_container) override;
 
 		/*!
 		 * @brief Function that computes the volume terms over a single element, based on the EE equations.

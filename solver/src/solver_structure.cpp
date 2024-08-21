@@ -88,7 +88,10 @@ void CEESolver::InitPhysicalElements
  /*
 	* Function that initializes the physical elements. 
 	*/
-{
+{	
+	// Report output.
+	std::cout << "    physical elements.... "; 
+
 	// Get a reference to the current zone.
 	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
 
@@ -108,6 +111,39 @@ void CEESolver::InitPhysicalElements
 				                                                                  zone->GetElementGeometry(i),
 																																					mZoneID, mNVar);
 	}
+
+	// Report output.
+	std::cout << "Done." << std::endl;
+}
+
+//-----------------------------------------------------------------------------------
+
+void CEESolver::InitBoundaryConditions
+(
+ CConfig   *config_container,
+ CGeometry *geometry_container
+)
+ /*
+	* Function that initializes the boundary conditions. 
+	*/
+{
+	// Report output.
+	std::cout << "    boundary conditions.. ";
+
+	// Get a reference to the current zone.
+	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
+
+	// Loop over each marker and instantiate it.
+	for( auto& marker: zone->GetMarker() )
+	{
+		mBoundaryContainer.push_back
+		( 
+		 CGenericFactory::CreateBoundaryContainer( config_container, geometry_container, marker.get() )
+		);
+	}
+
+	// Report output.
+	std::cout << "Done." << std::endl;
 }
 
 //-----------------------------------------------------------------------------------

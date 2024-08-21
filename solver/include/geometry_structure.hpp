@@ -49,22 +49,13 @@ class CGeometry
 	private:
 		const unsigned short                        mNZone;            ///< Total number of zones.
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
-    as3vector1d<std::string>                    mZoneGridFilename; ///< Grid filename per each zone.
 
 		/*!
-		 * @brief Function that extracts the grid zone connectivity information.
+		 * @brief Function that checks the existance of the grid files and reports the output.
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 */
-    void ExtractZoneConnectivity(CConfig *config_container);
-
-		/*!
-		 * @brief Function that maps each interface to its assigned neighbor.
-		 *
-		 * @param[in] config_container pointer to the configuration container.
-		 */
-    void MatchInterfaceMarkers(CConfig *config_container);
-
+		void CheckExistanceGridFiles(CConfig *config_container);
 		
 		// Disable default constructor.
 		CGeometry(void) = delete;
@@ -100,7 +91,6 @@ class CZoneGeometry
 		~CZoneGeometry(void);
 
 
-
 		/*!
 		 * @brief Function that initializes and defines all the element geometry in this zone.
 		 */
@@ -112,10 +102,10 @@ class CZoneGeometry
 		/*!
 		 * @brief Function that defines all the interface markers in this zone.
 		 */
-		void InitializeMarkers(as3vector2d<unsigned int> &mark,
+		void InitializeMarkers(CConfig                   *config_container,
+				                   as3vector2d<unsigned int> &mark,
 				                   as3vector2d<EFaceElement> &face,
 				                   as3vector1d<std::string>  &name);
-
 
 		/*!
 		 * @brief Getter function which returns the value of mZoneID.
@@ -132,11 +122,11 @@ class CZoneGeometry
 		const std::string &GetGridFile(void) const {return mGridFile;}
 
 		/*!
-		 * @brief Getter function which returns the mMarkerInterface.
+		 * @brief Getter function which returns the mMarker.
 		 *
-		 * @return mMarkerInterface.
+		 * @return mMarker.
 		 */
-		as3vector1d<std::shared_ptr<CInterfaceMarker>> &GetMarkerInterface(void) {return mMarkerInterface;}
+		as3vector1d<std::unique_ptr<CMarker>> &GetMarker(void) {return mMarker;}
 
 		/*!
 		 * @brief Getter function which returns the element of the specified index.
@@ -180,7 +170,6 @@ class CZoneGeometry
 		 */
 		unsigned short GetnPolyGrid(void) const {return mNPolyGrid;}
 
-
 	protected:
 
 	private:
@@ -189,15 +178,9 @@ class CZoneGeometry
 		unsigned short                                 mNPolyGrid;       ///< Polynomial order of the grid element.
 		unsigned int                                   mNxElem;          ///< Number of elements in x-direction.
 		unsigned int                                   mNyElem;          ///< Number of elements in y-direction.	
-		as3vector1d<std::shared_ptr<CInterfaceMarker>> mMarkerInterface; ///< Container with the marker data.
+		
+		as3vector1d<std::unique_ptr<CMarker>>          mMarker;          ///< Container with the marker data.
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry; ///< Container with the element geometry.
-
-		/*!
-		 * @brief Function that reads the marker interface for this zone.
-		 * 
-		 * @param[in] config_container pointer to the configuration container.
-		 */
-		void ReadMarkerInterfaceZone(CConfig *config_container);
 
 
 		// Disable default constructor.
@@ -234,7 +217,6 @@ class CElementGeometry
 		 * @return mCoordSolDOFs.
 		 */
 		CMatrixAS3<as3double> &GetCoordSolDOFs(void) {return mCoordSolDOFs;}
-
 
 	protected:
 

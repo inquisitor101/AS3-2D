@@ -194,7 +194,7 @@ class CWorkMatrixAS3
 
 		// Explicit constructor.
 		explicit CWorkMatrixAS3(T *data, size_t *inuse, size_t *ninst, const size_t r, const size_t c) 
-			: mData(data), mInUse(inuse), mNInst(ninst), mNRow(r), mNCol(c) { mID = *ninst; }
+			: mData(data), mInUse(inuse), mNInst(ninst), mNRow(r), mNCol(c), mID(*ninst) { }
 
 		// Default destructor.
 		~CWorkMatrixAS3(void) 
@@ -254,12 +254,15 @@ class CWorkMatrixAS3
 		}
 
 	private:
-		size_t  mID;
-		size_t  mNRow  = 0;
-		size_t  mNCol  = 0;	
-		size_t *mInUse = nullptr;
-		size_t *mNInst = nullptr;
 		T      *mData  = nullptr;
+		size_t *mInUse = nullptr;
+		size_t *mNInst = nullptr;	
+		size_t  mNRow  = 0;
+		size_t  mNCol  = 0;
+		size_t  mID;
+		
+		
+		
 
 		// Disable default constructor.
 		CWorkMatrixAS3(void) = delete;

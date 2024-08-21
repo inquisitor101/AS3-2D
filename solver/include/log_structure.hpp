@@ -2,6 +2,7 @@
 
 #include "option_structure.hpp"
 #include "config_structure.hpp"
+#include "solver_structure.hpp"
 
 
 /*!
@@ -33,4 +34,13 @@ namespace NLogger
 	 * @param[in] config_container configuration/dictionary container.
 	 */
 	void PrintInitSolver(CConfig *config_container);
+
+	/*!
+	 * @brief Function that displays the boundary condition information over all zones.
+	 *
+	 * @param[in] config_container configuration/dictionary container.
+	 * @param[in] solver_container input vector of solver containers.
+	 */
+	void DisplayBoundaryConditions(CConfig                               *config_container,
+			                           as3vector1d<std::unique_ptr<ISolver>> &solver_container);
 }

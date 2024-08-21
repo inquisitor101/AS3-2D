@@ -220,6 +220,35 @@ CGenericFactory::CreateTensorContainer
 
 //-----------------------------------------------------------------------------------
 
+std::unique_ptr<IBoundary> 
+CGenericFactory::CreateBoundaryContainer
+(
+ CConfig   *config_container,
+ CGeometry *geometry_container,
+ CMarker   *marker_container
+)
+ /*
+	* Function that creates a specialized instance of a boundary container.
+	*/
+{
+	// Check what type of container is specified.
+	switch( marker_container->GetMarkerBC() )
+	{
+		case(ETypeBC::PERIODIC):
+		{
+			return std::make_unique<CPeriodicBoundary>( config_container, geometry_container, marker_container );
+			break;
+		}
+
+		default: ERROR("Unknown type of boundary container.");
+	}
+
+	// To avoid a compiler warning.
+	return nullptr; 
+}
+
+//-----------------------------------------------------------------------------------
+
 std::unique_ptr<ISolver> 
 CGenericFactory::CreateSolverContainer
 (
@@ -264,7 +293,10 @@ CGenericFactory::CreateMultizoneSolverContainer
 	// Check what type of container is specified.
 	for(unsigned short iZone=0; iZone<config_container->GetnZone(); iZone++)
 	{
-		solver.push_back( CreateSolverContainer(config_container, geometry_container, iZone) );
+		solver.push_back
+		( 
+		 CreateSolverContainer(config_container, geometry_container, iZone) 
+		);
 	}
 
 	// To avoid a compiler warning.

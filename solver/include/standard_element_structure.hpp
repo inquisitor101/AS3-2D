@@ -132,7 +132,7 @@ class CStandardElement
 		 *
 		 * @return mTypeDOFsSol.
 		 */
-		const ETypeDOF GetTypeDOFsSol(void) const {return mTypeDOFsSol;}
+		ETypeDOF GetTypeDOFsSol(void) const {return mTypeDOFsSol;}
 
 		/*!
 		 * @brief Getter function which returns the integration points in 1D, over the reference element.

@@ -8,14 +8,18 @@
 
 CMarker::CMarker
 (
- unsigned short iZone,
- std::string    tagname,
- ETypeBCs       markertype
+ unsigned short            iZone,
+ std::string               tagname,
+ ETypeBC                   typemarker,
+ as3vector1d<unsigned int> elements,
+ as3vector1d<EFaceElement> faces 
 )
 	:
 		mZoneID(iZone),
 		mNameMarkerTag(tagname),
-		mTypeMarker(markertype)
+	  mMarkerBC(typemarker),
+		mElementIndices(elements),
+		mElementFaces(faces)	
  /*
 	* Constructor for the marker geometry, which contains a single marker region.
 	*/
@@ -26,43 +30,6 @@ CMarker::CMarker
 //-----------------------------------------------------------------------------------
 
 CMarker::~CMarker
-(
- void
-)
- /*
-	* Destructor, which cleans up after the driver class.
-	*/
-{
-
-}
-
-
-//-----------------------------------------------------------------------------------
-// CInterfaceMarker member functions.
-//-----------------------------------------------------------------------------------
-
-
-CInterfaceMarker::CInterfaceMarker
-(
- unsigned short iZone,
- std::string    tagnameI,
- unsigned short jZone,
- std::string    tagnameJ,
- ETypeBCs       markertype
-)
-	:
-		CMarker(iZone, tagnameI, markertype),
-		mMatchingZoneID(jZone), mMatchingNameMarkerTag(tagnameJ)
- /*
-	* Constructor for the interface-type marker.
-	*/
-{
-	
-}
-
-//-----------------------------------------------------------------------------------
-
-CInterfaceMarker::~CInterfaceMarker
 (
  void
 )

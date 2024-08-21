@@ -97,20 +97,18 @@ MapTypeDOF =
 /*!
  * @brief Enumerated type for the available BCs.
  */
-enum class ETypeBCs
+enum class ETypeBC
 {
-	PERIODIC,
-	INTERFACE
+	PERIODIC
 };
 
 /*!
  * @brief Map for the type of boundary conditions.
  */
-const std::map<std::string, ETypeBCs>
+const std::map<std::string, ETypeBC>
 MapTypeBCs = 
 {
-	{ "PERIODIC",  ETypeBCs::PERIODIC  },
-	{ "INTERFACE", ETypeBCs::INTERFACE }
+	{ "PERIODIC",  ETypeBC::PERIODIC  }
 };
 
 //--------------------------------------

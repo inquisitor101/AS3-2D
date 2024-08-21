@@ -9,6 +9,7 @@
 #include "physical_element_structure.hpp"
 #include "solver_structure.hpp"
 #include "tensor_structure.hpp"
+#include "boundary_structure.hpp"
 #include "initial_condition_structure.hpp"
 
 
@@ -92,6 +93,21 @@ class CGenericFactory
 		 * @return unique pointer to specialized template tensor-product class.
 		 */
 		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element);
+
+		/*!
+		 * @brief Function that creates a specialized instance of a boundary container.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] geometry_container input geometry container.
+		 * @param[in] marker_container input marker container.
+		 *
+		 * @return unique pointer to the specific boundary class.
+		 */
+		static std::unique_ptr<IBoundary> CreateBoundaryContainer(CConfig   *config_container,
+				                                                      CGeometry *geometry_container,
+																													    CMarker   *marker_container);
+
+
 
 		/*!
 		 * @brief Function that creates a specialized instance of a solver container.

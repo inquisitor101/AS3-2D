@@ -5,6 +5,7 @@
 // CConfig member functions.
 //-----------------------------------------------------------------------------------
 
+
 CConfig::CConfig
 (
  const char *filename
@@ -64,6 +65,13 @@ CConfig::CConfig
 		ERROR(message.str());
 	}
 	
+	// Read the boundary condition options.
+	if( !ReadBoundaryConditionOptions(filename) )
+	{
+		message << "Failed to extract boundary condition options from " << filename;
+		ERROR(message.str());
+	}
+	
 
 
 	// Report output.
@@ -110,22 +118,16 @@ bool CConfig::ReadZoneConnectivityOptions
 	// Read the total number of zones expected.
 	NInputUtility::AddScalarOption(paramfile, "NUMBER_ZONE", mNZone, true);
 
-	// Read the zone connectivity filename.
-	NInputUtility::AddScalarOption(paramfile, "ZONE_CONNECTIVITY_FILENAME", mZoneConnFilename, true);
-
 	// Read the format of the input grid files.
 	NInputUtility::AddScalarOption(paramfile, "INPUT_GRID_FORMAT", buffer, true);
 	// Deduce the type from the buffer, based on the mapping.
 	mInputGridFormat = GenericScalarMap(MapFormatFile, buffer, "INPUT_GRID_FORMAT");
 
-	// Check if the extension is provided to the connectivity file, otherwise add it.
-	if( ( NInputUtility::GetFileExtension(mZoneConnFilename) ).empty() )
-	{
-		mZoneConnFilename += ".cfg";
-	}
+	// Close the file, since it will be opened later.
+	paramfile.close();
 
-	// Close file.
-  paramfile.close();
+	// Extract the information in the zone connectivity file.
+	ExtractZoneGridFiles(filename);
 
 	// Report output.
 	std::cout << " Done." << std::endl;
@@ -319,6 +321,9 @@ bool CConfig::ReadInitialConditionOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeIC = GenericScalarMap(MapTypeIC, buffer, "TYPE_IC");
 
+	// Close the file, since it is being opened during the processing of the ICs.
+  paramfile.close();
+
 	// Check what else to extract, based on the type of IC.
 	switch(mTypeIC)
 	{
@@ -328,14 +333,124 @@ bool CConfig::ReadInitialConditionOptions
 	}
 
 
-	// Close file.
-  paramfile.close();
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadBoundaryConditionOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the boundary condition options.
+	*/
+{
+	// Report output.
+  std::cout << "  reading boundary condition information.. ";
+	
+	// Check for and extract periodic boundary condition information, if present.
+	ExtractInfoPeriodicBC(filename);
+
+
+	// Check that all the markers are indeed unique. 
+	if( mBoundaryMarkers.size() )
+	{
+		// Loop over the elements and ensure uniqueness.
+		for(size_t i=0; i<mBoundaryMarkers.size(); i++)
+			for(size_t j=i+1; j<mBoundaryMarkers.size(); j++)
+				if( mBoundaryMarkers[i].first == mBoundaryMarkers[j].first ) ERROR("Markers are not unique."); 
+	}
+	else
+	{
+		ERROR("No boundary conditions have been deteced.");
+	}
+
 
 	// Report output.
 	std::cout << " Done." << std::endl;
 
   // Return happily.
 	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::ExtractInfoPeriodicBC
+(
+ const char *filename
+)
+ /*
+	* Function that reads the periodic BC information, if present.
+	*/
+{
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+	// Default value, needed to check if/when this BC is not found in the file.
+	as3vector1d<std::string> defval = { "ERROR404" };
+
+	// Condition for when to stop searching for periodic BCs.
+	bool condition = true;
+
+	// Loop over the file and search for any periodic BC markers.
+	while(condition)
+	{
+		// Buffers for storing temporary strings.
+		as3vector1d<std::string> buffer;
+		
+		// Read the information of the periodic marker, if specified.
+		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_PERIODIC", buffer, defval, false);
+
+		// Check if any new values are found.
+		if( buffer != defval )
+		{
+			// Ensure the values are a pair.
+			if( buffer.size() != 2 ) ERROR("Periodic BCs must specify two markers.");
+
+			// Accumulate the information: iMarker, jMarker.
+			mMarkerNamePeriodic.push_back( buffer );
+
+			// The periodic markers are a pair: iMarker, jMarker. Also, include their reverse 
+			// order: jMarker, iMarker. This is not strictly needed, but helps in the processing.
+			std::reverse( buffer.begin(), buffer.end() );
+			// Include the reversed order: jMarker, iMarker.
+			mMarkerNamePeriodic.push_back( buffer );
+		}
+		else
+		{
+			// Prepare to exit from this loop.
+			condition = false;
+		}
+	}
+
+
+	// Check that all the markers are indeed unique. This can be done more elegantly, but this
+	// is fine for now, at the preprocessing stage.
+	if( mMarkerNamePeriodic.size() )
+	{
+		// Abbreviation, for readability.
+		auto& m = mMarkerNamePeriodic;
+		
+		// Loop over the elements and ensure uniqueness.
+		for(size_t i=0; i<m.size(); i++)
+			for(size_t j=i+1; j<m.size(); j++)
+				if( (m[i][0] == m[j][0]) || (m[i][1] == m[j][1]) ) ERROR("Periodic markers are not unique."); 
+	}
+
+	// Accumulate the marker name and type for book-keeping purposes.
+	for(size_t i=0; i<mMarkerNamePeriodic.size(); i++)
+	{
+		mBoundaryMarkers.push_back( {mMarkerNamePeriodic[i][0], ETypeBC::PERIODIC} );
+	}
+
+
+	// Close file.
+  paramfile.close();
 }
 
 //-----------------------------------------------------------------------------------
@@ -464,6 +579,117 @@ void CConfig::ConsistencyCheckZoneConfiguration
 }
 
 //-----------------------------------------------------------------------------------
+
+void CConfig::ExtractZoneGridFiles
+(
+ const char *filename
+)
+ /*
+	* Function that extracts the grid zone connectivity information.
+	*/
+{
+	// Message stream.
+	std::ostringstream message;
+
+  // Check if file exists.
+  std::ifstream paramfile(filename);
+
+	// Reserve memory for the grid filenames.
+	mZoneGridFilename.resize(mNZone);
+
+	// Loop over all the expected zones and read their grid filenames.
+	for(unsigned short i=0; i<mNZone; i++)
+	{
+		// Current zone filename.
+		std::string ifile = "GRID_FILENAME_ZONE_" + std::to_string(i);
+		NInputUtility::AddScalarOption(paramfile, ifile.c_str(), mZoneGridFilename[i], true);
+
+		// Ensure that the grid extension is correct.
+		switch( mMeshFormat )
+		{
+			// Ensure a Plot3D grid is supplied.
+			case( EMeshFormat::PLOT3D ): 
+			{
+				if( NInputUtility::GetFileExtension(mZoneGridFilename[i]) != "xyz" ) 
+				{
+					ERROR("Wrong mesh format detected. AS3 expects a Plot3D grid."); 
+				}
+
+				// This is not supported for now, issue an error.
+				ERROR("PLOT3D is not (yet) supported.");
+				break;
+			}
+
+			// Ensure an AS3 grid is supplied.
+			case( EMeshFormat::AS3 ): 
+			{
+				if( NInputUtility::GetFileExtension(mZoneGridFilename[i]) != "as3" ) 
+				{
+					ERROR("Wrong mesh format detected. AS3 expects a native (AS3) grid."); 
+				}
+				break;
+			}
+
+			// Issue an error if format is unknown.
+			default: ERROR("Unknown mesh format found.");
+		}
+
+		// Check if the file exists.
+		std::ifstream file(mZoneGridFilename[i]);
+		if( !file.good() )
+		{
+			std::ostringstream message;
+			message << "Could not open file: "
+				      << "'" << mZoneGridFilename[i] << "'";
+			ERROR(message.str());
+		}
+	}
+
+	// Close file.
+  paramfile.close();
+}
+
+//-----------------------------------------------------------------------------------
+
+ETypeBC CConfig::DetermineMarkerBC
+(
+ std::string &marker
+)
+ /*
+	* Function that determines the boundary condition for a given marker.
+	*/
+{
+	// Search for the relevant marker name.
+	for( auto& bm: mBoundaryMarkers )
+		if( bm.first == marker ) return bm.second;
+
+	// If the code reaches this far, the marker has not been found.
+	ERROR("Could not detect marker: " + marker);
+
+	// The program should not reach this far. Return something to avoid a compiler error.
+	return ETypeBC::PERIODIC;
+}
+
+//-----------------------------------------------------------------------------------
+	
+std::string CConfig::FindMatchingPeriodicMarker
+(
+ const std::string &imarker
+)
+ /*
+	* Function that finds the name of the matching periodic boundary marker.
+	*/
+{
+	// Search for the relevant marker name.
+	for( auto& mp: mMarkerNamePeriodic )
+		if( mp[0] == imarker ) return mp[1];
+
+	// If the code reaches this far, the marker has not been found.
+	ERROR("Could not find the matching marker for: " + imarker);
+
+	// The program should not reach this far. Return something to avoid a compiler error.
+	return "";
+}
 
 
 

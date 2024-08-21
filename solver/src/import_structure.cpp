@@ -215,7 +215,7 @@ void NImportFile::ImportAS3GridBinary
 		zone->InitializeElements(buf_x, buf_y, nelem[0], nelem[1]);
 
 		// Initialize markers in this zone.
-		zone->InitializeMarkers(buf_mark, buf_face, buf_name);
+		zone->InitializeMarkers(config_container, buf_mark, buf_face, buf_name);
 
 		// Close the file.
 		std::fclose(fh);
