@@ -55,7 +55,7 @@ If you're reading this, you're likely looking for guidance on how to submit a pu
 4. Create a new branch for your changes.
 5. Commit your changes locally and push them to your forked repository.
 6. Once your feature is complete, open a PR using the [template](./pull_request_template.md).
-7. If your PR needs adjustments, repeat steps 4 and 5 until it is approved.
+7. If your PR needs adjustments, repeat steps 5 and 6 until it is approved.
 8. (Optional) Delete your branch after your PR is approved.
 
 ## Example Walkthrough: Contributing to the Repository
