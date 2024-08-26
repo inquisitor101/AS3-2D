@@ -17,7 +17,7 @@ The general rule we follow is:
 12. Source files use the extension `.cpp` and are situated in the directory `src/`.
 13. Header files are documented in line with doxygen-supported comments (see below).
 14. Functions in source files are documented between their input arguments and the implementation (i.e. between `)` and `{`). See below.
-15. Pay close attention to the vertical alignment of the input arguments to functions, as it will complicated readability. 
+15. Pay close attention to the vertical alignment of the input arguments to functions, as it will complicate readability. 
 16. In the root directory of **AS3-2D**, there exists a `.editorconfig` file, which sets the relevant editor-related conventions. For instance, tab indentation uses 2 characters.
 
 
