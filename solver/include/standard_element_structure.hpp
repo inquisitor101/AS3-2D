@@ -13,14 +13,17 @@
 class CStandardElement 
 {
 	public:
+
 		/*!
-		 * @brief Default constructor of CStandardElement, which initializes a CStandardElement class.
+		 * @brief Constructor of CStandardElement, which initializes a CStandardElement class for an interface.
 		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] iZone current zone ID.
+		 * @param[in] typeDOFs type of DOFs used.
+		 * @param[in] nPoly polynomial order of the solution DOFs in 1D.
+		 * @param[in] nInt number of integration points in 1D. 
 		 */
-		CStandardElement(CConfig        *config_container,
-						         unsigned short  iZone);
+		CStandardElement(ETypeDOF       typeDOFs,
+				             unsigned short nPoly,
+				             unsigned short nInt);
 
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -28,41 +31,40 @@ class CStandardElement
 		~CStandardElement(void);
 
 
-
 		/*!
 		 * @brief Getter function which returns the solution polynomial order.
 		 *
 		 * @return mNPolySol.
 		 */
-		size_t GetnPolySol(void) const {return static_cast<size_t>(mNPolySol);}
+		unsigned short GetnPolySol(void) const {return mNPolySol;}
 
 		/*!
 		 * @brief Getter function which returns the number of integration points in 1D.
 		 *
 		 * @return mNInt1D.
 		 */
-		size_t GetnInt1D(void) const {return static_cast<size_t>(mNInt1D);}
+		unsigned short GetnInt1D(void) const {return mNInt1D;}
 
 		/*!
 		 * @brief Getter function which returns the number of solution points in 1D.
 		 *
 		 * @return mNSol1D.
 		 */
-		size_t GetnSol1D(void) const {return static_cast<size_t>(mNSol1D);}
+		unsigned short GetnSol1D(void) const {return mNSol1D;}
 
 		/*!
 		 * @brief Getter function which returns the number of integration points in 2D.
 		 *
 		 * @return mNInt2D.
 		 */
-		size_t GetnInt2D(void) const {return static_cast<size_t>(mNInt2D);}
+		unsigned short GetnInt2D(void) const {return mNInt2D;}
 
 		/*!
 		 * @brief Getter function which returns the number of solution points in 2D.
 		 *
 		 * @return mNSol2D.
 		 */
-		size_t GetnSol2D(void) const {return static_cast<size_t>(mNSol2D);}
+		unsigned short GetnSol2D(void) const {return mNSol2D;}
 
 		/*!
 		 * @brief Getter function which returns the Lagrange interpolation matrix in 1D, at the integration points.
@@ -160,14 +162,13 @@ class CStandardElement
 	protected:
 
 	private:
-		unsigned short        mNPolySol;    ///< Solution polynomial order.
-		unsigned short        mNPolyGrid;   ///< Grid element polynomial order.
 		ETypeDOF              mTypeDOFsSol; ///< Type of solution DOFs.
-		unsigned int          mNSol1D;      ///< Number of solution nodes in 1D.
-		unsigned int          mNSol2D;      ///< Number of solution nodes in 2D.
-		unsigned int          mNInt1D;      ///< Number of integration nodes in 1D.
-		unsigned int          mNInt2D;      ///< Number of integration nodes in 2D.
-		
+		unsigned short        mNPolySol;    ///< Solution polynomial order.
+		unsigned short        mNInt1D;      ///< Number of integration nodes in 1D.
+		unsigned short        mNInt2D;      ///< Number of integration nodes in 2D.
+		unsigned short        mNSol1D;      ///< Number of solution nodes in 1D.
+		unsigned short        mNSol2D;      ///< Number of solution nodes in 2D.
+	
 		CMatrixAS3<as3double> mRSol1D;      ///< Solution points on the reference element in 1D.
     CMatrixAS3<as3double> mRInt1D;      ///< Integration nodes on the reference element in 1D.
     CMatrixAS3<as3double> mWInt1D;      ///< Integration weights on the reference element in 1D.
@@ -227,16 +228,6 @@ class CStandardElement
                               CMatrixAS3<as3double> &rInt1D,
                               CMatrixAS3<as3double> &wInt1D,
                               CMatrixAS3<as3double> &wInt2D);
-
-
-   /*!
-		 * @brief Function that computes the integration rule.
-		 *
-		 * @param[in] npoly input polynomial order.
-		 *
-		 * @return number of integration nodes in 1D.
-		 */
-    unsigned int IntegrationRule(unsigned short npoly);
 
 
 		// Disable default constructor.

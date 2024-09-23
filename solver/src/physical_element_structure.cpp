@@ -16,7 +16,7 @@ CPhysicalElement::CPhysicalElement
  unsigned short    nVar
 )
 	:
-		mNPoly( config_container->GetnPolySol(iZone) )
+		mNPoly( config_container->GetnPoly(iZone) )
  /*
 	* Constructor for the physical element, which initiates an element in physical space.
 	*/

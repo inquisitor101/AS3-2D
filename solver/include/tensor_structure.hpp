@@ -11,27 +11,16 @@
 class ITensorProduct
 {
 	public:
-		// Public member variables.
-		const size_t mK; // Number of solution points in 1D.
-		const size_t mM; // Number of integration points in 1D.
 
 		/*!
 		 * @brief Constructor of ITensorProduct, which serves as an interface for the tensor product.
 		 */
-		ITensorProduct(size_t k, size_t m) : mK(k), mM(m) { }
+		ITensorProduct(void) = default;
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		virtual ~ITensorProduct(void) = default;
-
-
-		/*!
-		 * @brief Setter function which assigns the pointer to the relevant standard element container.
-		 *
-		 * @param[in] standard_element pointer to the standard element container.
-		 */
-		void SetStandardElement(CStandardElement *standard_element) {mStandardElementContainer = standard_element;}
 
 
 		/*!
@@ -212,14 +201,45 @@ class ITensorProduct
 																const as3double *BDerS,
 																as3double       *C) = 0;
 
+		/*!
+		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the IMIN surface terms. 
+		 */
+		virtual void ResidualSurfaceIMIN(const size_t     N,
+				                             const as3double *B,
+																     const as3double *BDerR,
+																     const as3double *BDerS,
+																     as3double       *C) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the IMAX surface terms. 
+		 */
+		virtual void ResidualSurfaceIMAX(const size_t     N,
+				                             const as3double *B,
+																     const as3double *BDerR,
+																     const as3double *BDerS,
+																     as3double       *C) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the JMIN surface terms. 
+		 */
+		virtual void ResidualSurfaceJMIN(const size_t     N,
+				                             const as3double *B,
+																     const as3double *BDerR,
+																     const as3double *BDerS,
+																     as3double       *C) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the JMAX surface terms. 
+		 */
+		virtual void ResidualSurfaceJMAX(const size_t     N,
+				                             const as3double *B,
+																     const as3double *BDerR,
+																     const as3double *BDerS,
+																     as3double       *C) = 0;
 
 	protected:
-		// Pointer to the standard element of this specialization.
-		CStandardElement *mStandardElementContainer = nullptr;
 
 	private:
-		// Disable default constructor.
-		ITensorProduct(void) = delete;
 		// Disable default copy constructor.
 		ITensorProduct(const ITensorProduct&) = delete;
 		// Disable default copy operator.
@@ -235,11 +255,22 @@ template<size_t K, size_t M>
 class CTensorProduct final: public ITensorProduct
 {
 	public:
-		// Default constructor.
-		CTensorProduct(void): ITensorProduct(K,M) { }
+		
+		/*!
+		 * @brief Constructor which initializes this specialized tensor-product class.
+		 *
+		 * @param[in] standard_element pointer to the standard element of this specialization.
+		 */
+		CTensorProduct(CStandardElement *standard_element) :
+				mLagrangeInt1D        ( standard_element->GetLagrangeInt1D()         ),
+				mLagrangeInt1DTrans   ( standard_element->GetLagrangeInt1DTrans()    ),
+				mDerLagrangeInt1D     ( standard_element->GetDerLagrangeInt1D()      ),
+				mDerLagrangeInt1DTrans( standard_element->GetDerLagrangeInt1DTrans() ),
+				mDerLagrangeMinFace1D ( standard_element->GetDerLagrangeMinFace1D()  ),
+				mDerLagrangeMaxFace1D ( standard_element->GetDerLagrangeMaxFace1D()  ) {} 
 
 		// Default destructor.
-		~CTensorProduct(void) override = default;
+		~CTensorProduct(void) final = default;
 
 
 		/*!
@@ -327,7 +358,49 @@ class CTensorProduct final: public ITensorProduct
 												const as3double *BDerS,
 												as3double       *C) final;
 
+		/*!
+		 * @brief Function for a (compile-time) tensor product that computes the residual from the IMIN surface terms. 
+		 */
+		void ResidualSurfaceIMIN(const size_t     N,
+		                         const as3double *B,
+												     const as3double *BDerR,
+												     const as3double *BDerS,
+												     as3double       *C) final;
 
+		/*!
+		 * @brief Function for a (compile-time) tensor product that computes the residual from the IMAX surface terms. 
+		 */
+		void ResidualSurfaceIMAX(const size_t     N,
+		                         const as3double *B,
+												     const as3double *BDerR,
+												     const as3double *BDerS,
+												     as3double       *C) final;
+
+		/*!
+		 * @brief Function for a (compile-time) tensor product that computes the residual from the JMIN surface terms. 
+		 */
+		void ResidualSurfaceJMIN(const size_t     N,
+		                         const as3double *B,
+												     const as3double *BDerR,
+												     const as3double *BDerS,
+												     as3double       *C) final;
+
+		/*!
+		 * @brief Function for a (compile-time) tensor product that computes the residual from the JMAX surface terms. 
+		 */
+		void ResidualSurfaceJMAX(const size_t     N,
+		                         const as3double *B,
+												     const as3double *BDerR,
+												     const as3double *BDerS,
+												     as3double       *C) final;
+
+	private:
+		CMatrixAS3<as3double> mLagrangeInt1D;         ///< 1D Lagrange matrix evaluated at mRInt1D, 
+		CMatrixAS3<as3double> mLagrangeInt1DTrans;    ///< Transpose of the 1D Lagrange matrix evaluated at mRInt1D, 
+		CMatrixAS3<as3double> mDerLagrangeInt1D;      ///< 1D Derivative of the Lagrange matrix evaluated at mRInt1D,
+		CMatrixAS3<as3double> mDerLagrangeInt1DTrans; ///< Transpose of the 1D derivative of the Lagrange matrix evaluated at mRInt1D,
+		CMatrixAS3<as3double> mDerLagrangeMinFace1D;  ///< 1D Derivative of the Lagrange matrix evaluated at: r = -1.0,
+		CMatrixAS3<as3double> mDerLagrangeMaxFace1D;  ///< 1D Derivative of the Lagrange matrix evaluated at: r = +1.0,
 };
 
 // Definitions of the templated functions.
@@ -337,3 +410,8 @@ class CTensorProduct final: public ITensorProduct
 #include "tensor/tensor_surface_jmin.inl"
 #include "tensor/tensor_surface_jmax.inl"
 #include "tensor/tensor_residual_volume.inl"
+#include "tensor/tensor_residual_surface_imin.inl"
+#include "tensor/tensor_residual_surface_imax.inl"
+#include "tensor/tensor_residual_surface_jmin.inl"
+#include "tensor/tensor_residual_surface_jmax.inl"
+

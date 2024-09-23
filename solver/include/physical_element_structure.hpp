@@ -66,6 +66,41 @@ class CPhysicalElement
 		inline void ConvertGradParamToCartVolInt(CWorkMatrixAS3<as3double> &dVarDr,
 				                                     CWorkMatrixAS3<as3double> &dVarDs);
 
+		/*!
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMIN surface integration points.
+		 *
+		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
+		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
+		 */
+		inline void ConvertGradParamToCartSurfIMinInt(CWorkMatrixAS3<as3double> &dVarDr,
+				                                          CWorkMatrixAS3<as3double> &dVarDs);
+
+		/*!
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMAX surface integration points.
+		 *
+		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
+		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
+		 */
+		inline void ConvertGradParamToCartSurfIMaxInt(CWorkMatrixAS3<as3double> &dVarDr,
+				                                          CWorkMatrixAS3<as3double> &dVarDs);
+
+		/*!
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMIN surface integration points.
+		 *
+		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
+		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
+		 */
+		inline void ConvertGradParamToCartSurfJMinInt(CWorkMatrixAS3<as3double> &dVarDr,
+				                                          CWorkMatrixAS3<as3double> &dVarDs);
+
+		/*!
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMAX surface integration points.
+		 *
+		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
+		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
+		 */
+		inline void ConvertGradParamToCartSurfJMaxInt(CWorkMatrixAS3<as3double> &dVarDr,
+				                                          CWorkMatrixAS3<as3double> &dVarDs);
 
 		/*!
 		 * @brief Function that returns the number of working variables in the solution.
@@ -73,6 +108,27 @@ class CPhysicalElement
 		 * @return number of working variables.
 		 */
 		size_t GetnWorkingVar(void) const {return mSol2D.row();}
+
+		/*!
+		 * @brief Function that returns the metrics on the integration points of a surface, based on the face type.
+		 *
+		 * @param[in] face type of face.
+		 *
+		 * @return corresponding surface metrics.
+		 */
+		const CMatrixAS3<as3double> &GetSurfaceMetricInt(EFaceElement face) const
+		{
+			switch(face)
+			{
+				case(EFaceElement::IMIN): {return mMetricIntIMin1D; break;}
+				case(EFaceElement::IMAX): {return mMetricIntIMax1D; break;}
+				case(EFaceElement::JMIN): {return mMetricIntJMin1D; break;}
+				case(EFaceElement::JMAX): {return mMetricIntJMax1D; break;}
+				default: ERROR("Unknown face.");
+			}
+			// The program never reaches here, throw to avoid compiler issues.
+			throw std::exception();
+		}
 
 	protected:
 

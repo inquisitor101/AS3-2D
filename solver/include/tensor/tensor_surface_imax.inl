@@ -19,9 +19,9 @@ void CTensorProduct<K, M>::SurfaceIMAX
 	*/
 {
 	// Unpack the information needed, based on the standard element.
-	const as3double *A        = mStandardElementContainer->GetLagrangeInt1DTrans().data();
-	const as3double *ADer     = mStandardElementContainer->GetDerLagrangeInt1DTrans().data();
-	const as3double *aDerFace = mStandardElementContainer->GetDerLagrangeMaxFace1D().data();
+	const as3double *A        = mLagrangeInt1DTrans.data();
+	const as3double *ADer     = mDerLagrangeInt1DTrans.data();
+	const as3double *aDerFace = mDerLagrangeMaxFace1D.data();
 
 	// Cast the arrays from 1D to 2D.
 	const as3double (*a)[M]    = (const as3double (*)[M]) A;
@@ -57,7 +57,7 @@ void CTensorProduct<K, M>::SurfaceIMAX
 			// Get a pointer to the current variable address in C.
 			as3double *c = &C[l*M];
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
 				for(size_t jj=0; jj<K; jj++)
@@ -75,7 +75,7 @@ void CTensorProduct<K, M>::SurfaceIMAX
 			// Get a pointer to the current variable address in CDerS.
 			as3double *cDerS = &CDerS[l*M];
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
         for(size_t jj=0; jj<K; jj++)
@@ -96,14 +96,14 @@ void CTensorProduct<K, M>::SurfaceIMAX
 			// Cast array B from 1D to 2D.
 			const as3double (*b)[K] = (const as3double (*)[K]) &B[l*K2];
 
-			for(size_t s=0; s<K; s++) tmpJ[s] = 0.0;
+			for(size_t s=0; s<K; s++) tmpJ[s] = static_cast<as3double>(0.0);
 			for(size_t j=0; j<K; j++)
 			{
         for(size_t ii=0; ii<K; ii++)
 					tmpJ[j] += aDerFace[ii] * b[j][ii];
 			}
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
         for(size_t jj=0; jj<K; jj++)

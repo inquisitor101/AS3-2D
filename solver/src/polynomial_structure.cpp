@@ -6,6 +6,23 @@
 //-----------------------------------------------------------------------------------
 
 
+unsigned short NPolynomialUtility::IntegrationRule1D
+(
+ unsigned short npoly
+)
+ /*
+	* Function that estimates the number of integration points in 1D.
+	*/
+{
+	// The (over-)integration rule specified.
+	const unsigned short nd = 3; 	
+	
+	// Cast the value of the number of integration points, then return it.
+	return static_cast<unsigned short>(nd*npoly/2 + 1);
+}
+
+//-----------------------------------------------------------------------------------
+
 void NPolynomialUtility::LagrangeBasis1D
 (
  CMatrixAS3<as3double> &V1,
@@ -135,7 +152,7 @@ void NPolynomialUtility::DerivativeLagrangeBasisFace1D
 
 void NPolynomialUtility::OrthonormalLegendreBasis1D
 (
- const int                    nCol,
+ const unsigned int           nCol,
  const CMatrixAS3<as3double> &rDOFs1D,
  CMatrixAS3<as3double>       &rBasis1D
 )
@@ -144,21 +161,22 @@ void NPolynomialUtility::OrthonormalLegendreBasis1D
 	*/
 {
 	// Determine the number of rows.
-	const int nRow = static_cast<int>( rDOFs1D.size() );
+	const size_t nRow = rDOFs1D.size();
 
 	// Allocate memory for the output basis.
 	rBasis1D.resize(nRow, nCol);
 
-	for(int iRow=0; iRow<nRow; iRow++)
-		for(int iCol=0; iCol<nCol; iCol++)
-			rBasis1D(iRow,iCol) = NormalizedLegendrePolynomial(iCol, rDOFs1D[iRow]);
+	for(unsigned int iRow=0; iRow<nRow; iRow++)
+		for(unsigned int iCol=0; iCol<nCol; iCol++)
+			rBasis1D(iRow,iCol) = 
+				NormalizedLegendrePolynomial(static_cast<int>(iCol), rDOFs1D[iRow]);
 }
 
 //-----------------------------------------------------------------------------------
 
 void NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D
 (
- const int                    nCol,
+ const unsigned int           nCol,
  const CMatrixAS3<as3double> &rDOFs1D,
  CMatrixAS3<as3double>       &rDerBasis1D
 )
@@ -167,14 +185,15 @@ void NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D
 	*/
 {
 	// Determine the number of rows.
-	const int nRow = static_cast<int>( rDOFs1D.size() );
+	const size_t nRow = rDOFs1D.size();
 
 	// Allocate memory for the output basis.
 	rDerBasis1D.resize(nRow, nCol);
 
-	for(int iRow=0; iRow<nRow; iRow++)
-		for(int iCol=0; iCol<nCol; iCol++)
-			rDerBasis1D(iRow,iCol) = DerivativeNormalizedLegendrePolynomial(iCol, rDOFs1D[iRow]);
+	for(unsigned int iRow=0; iRow<nRow; iRow++)
+		for(unsigned int iCol=0; iCol<nCol; iCol++)
+			rDerBasis1D(iRow,iCol) = 
+				DerivativeNormalizedLegendrePolynomial(static_cast<int>(iCol), rDOFs1D[iRow]);
 }
 
 //-----------------------------------------------------------------------------------

@@ -85,13 +85,14 @@ CSSPRK3Temporal::~CSSPRK3Temporal
 
 void CSSPRK3Temporal::UpdateTime
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CIteration                            *iteration_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              physicaltime,
- as3double                              timestep,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CIteration                               *iteration_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ as3double                                 physicaltime,
+ as3double                                 timestep,
+ as3vector1d<as3double>                   &monitordata
 )
  /*
 	* Function that computes the upcoming solution in time, based on a SSP-RK3.
@@ -112,12 +113,13 @@ void CSSPRK3Temporal::UpdateTime
 
     // Perform a single stage evaluation, based on a SSP-RK3 .
     EvaluateSSPRK3(config_container,
-				            geometry_container,
-               			iteration_container,
-               			solver_container,
-               			localtime, timestep,
-               			alpha, beta,
-               			monitordata);
+				           geometry_container,
+               		 iteration_container,
+               		 solver_container,
+									 interface_container,
+               		 localtime, timestep,
+               		 alpha, beta,
+               		 monitordata);
 	}
 }
 
@@ -125,15 +127,16 @@ void CSSPRK3Temporal::UpdateTime
 
 void CSSPRK3Temporal::EvaluateSSPRK3
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CIteration                            *iteration_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime,
- as3double                              timestep,
- as3double                              alpha,
- as3double                              beta,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CIteration                               *iteration_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ as3double                                 localtime,
+ as3double                                 timestep,
+ as3double                                 alpha,
+ as3double                                 beta,
+ as3vector1d<as3double>                   &monitordata
 )
  /*
 	* Function that does a single stage SSP-RK3 evaluation.
@@ -143,8 +146,9 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 	iteration_container->GridSweep(config_container,
 			                           geometry_container,
 																 solver_container,
-																 localtime,
-																 monitordata);
+																 interface_container,
+																 monitordata,
+																 localtime);
 }
 
 

@@ -12,32 +12,49 @@
 class IBoundary
 {
 	public:
-		
+	
 		/*!
 		 * @brief Constructor of IBoundary, which serves as an interface for the boundary condition.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] marker_container input marker container.
+		 * @param[in] index index of the element.
 		 */
-		IBoundary(CConfig   *config_container,
-				      CGeometry *geometry_container,
-						  CMarker   *marker_container);
-		
+		IBoundary(CConfig      *config_container,
+				      CGeometry    *geometry_container,
+						  CMarker      *marker_container,
+							unsigned int  index);
+	
+		/*!
+		 * @brief Function that returns the element index of this boundary.
+		 */
+		unsigned int GetIndex(void) const {return mIndex;}
+
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		virtual ~IBoundary(void);
 
+
 		/*!
-		 * @brief Function that returns a pointer to the current marker.
-		 *
-		 * @return pointer to mMarker
+		 * @brief Pure virtual function that returns the type of BC. Must be overridden.
 		 */
-		CMarker *GetMarker(void) const {return mMarker;}
+		virtual ETypeBC GetTypeBC(void) const = 0;
+
+		/*!
+		 * @brief Pure virtual function that computes a boundary state. Must be overridden.
+		 */
+		virtual void ComputeBoundaryState(CMatrixAS3<as3double>     &metric, 
+				                              CWorkMatrixAS3<as3double> &varI,
+																			CWorkMatrixAS3<as3double> &dVarDxI,
+																			CWorkMatrixAS3<as3double> &dVarDyI,
+																			CWorkMatrixAS3<as3double> &varJ,
+																			CWorkMatrixAS3<as3double> &dVarDxJ,
+																			CWorkMatrixAS3<as3double> &dVarDyJ) = 0;
 
 	protected:
-		CMarker *mMarker;   ///< Pointer to the current marker container.
+		unsigned int mIndex; ///< Index of the owner element.
 
 	private:
 		// Disable default constructor.
@@ -49,51 +66,6 @@ class IBoundary
 };
 
 //-----------------------------------------------------------------------------------
-
-/*!
- * @brief A class for a boundary specification based on periodic BCs. 
- */
-class CPeriodicBoundary : public IBoundary
-{
-	public:
-
-		/*!
-		 * @brief Constructor of CPeriodicBoundary, which initializes a periodic boundary condition.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] marker_container input marker container.
-		 */
-		CPeriodicBoundary(CConfig   *config_container,
-				              CGeometry *geometry_container,
-							        CMarker   *marker_container);
-		
-		/*!
-		 * @brief Destructor, which frees any allocated memory.
-		 */
-		~CPeriodicBoundary(void) override;
-
-		/*!
-		 * @brief Function that returns a pointer to the matching marker.
-		 *
-		 * @return pointer to mMatchingMarker
-		 */
-		CMarker *GetMatchingMarker(void) const {return mMatchingMarker;}
-
-	protected:
-
-	private:
-		CMarker *mMatchingMarker;   ///< Pointer to the matching marker container.
-
-		/*!
-		 * @brief Function that finds the matching marker for this periodic boundary.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container. 
-		 */
-		void FindMatchingMarker(CConfig   *config_container,
-				                    CGeometry *geometry_container);
-};
 
 
 

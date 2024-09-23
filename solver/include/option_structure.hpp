@@ -13,20 +13,20 @@
  * Global name-aliasing definitions.
  * */
 
-typedef double as3double;                                                  ///< Type definition of double precision.
+typedef double as3double;                                                  ///< Type definition of the floating precision.
 
 
 template<typename T>
-using as3vector1d = std::vector<T>;                                        ///< Vector of data type: 1D.
+using as3vector1d = std::vector<T>;                                        ///< Vector of a data type: 1D.
 
 template<typename T>
-using as3vector2d = std::vector<std::vector<T>>;                           ///< Vector of data type: 2D.
+using as3vector2d = std::vector<std::vector<T>>;                           ///< Vector of a data type: 2D.
 
 template<typename T>
-using as3vector3d = std::vector<std::vector<std::vector<T>>>;              ///< Vector of data type: 3D.
+using as3vector3d = std::vector<std::vector<std::vector<T>>>;              ///< Vector of a data type: 3D.
 
 template<typename T>
-using as3vector4d = std::vector<std::vector<std::vector<std::vector<T>>>>; ///< Vector of data type: 4D.
+using as3vector4d = std::vector<std::vector<std::vector<std::vector<T>>>>; ///< Vector of a data type: 4D.
 
 
 
@@ -35,15 +35,24 @@ using as3vector4d = std::vector<std::vector<std::vector<std::vector<T>>>>; ///< 
  * Global variable definitions.
  * */
 
-const unsigned int AS3_MAGIC_NUMBER = 3735929054;                   ///< AS3 file magic number.
-const int          CGNS_STRING_SIZE = 33;                           ///< CGNS string length.
-const as3double PI_CONSTANT         = 4.0*std::atan(1.0);                ///< Value of the constant \pi.
-const as3double GAMMA               = 1.4;                          ///< Ratio of specific heats.
-const as3double GAMMA_MINUS_ONE     = GAMMA-1.0;                    ///< Abbreviation for: gamma - 1.
-const as3double GAS_CONSTANT        = 287.058;                      ///< Gas constant: R.
-const as3double CV_CONSTANT         = GAS_CONSTANT/GAMMA_MINUS_ONE; ///< Specific heat at constant volume.
-const as3double CP_CONSTANT         = GAMMA*CV_CONSTANT;            ///< Specific heat at constant pressure.
+// Abbreviation for specific AS3 convention values.
+const unsigned int AS3_MAGIC_NUMBER = 3735929054; ///< AS3 file magic number.
+const int          CGNS_STRING_SIZE = 33;         ///< CGNS string length.
 
+// Abbreviation of common floating values used in the code.
+const as3double C_PI   = static_cast<as3double>( 3.14159265358979323846264338327950288419 ); ///< Value of pi. 
+const as3double C_ZERO = static_cast<as3double>( 0.0 );                                      ///< Value of 0.
+const as3double C_HALF = static_cast<as3double>( 0.5 );                                      ///< Value of 0.5.
+const as3double C_ONE  = static_cast<as3double>( 1.0 );                                      ///< Value of 1.
+const as3double C_TWO  = static_cast<as3double>( 2.0 );                                      ///< Value of 2.
+const as3double C_180  = static_cast<as3double>( 180.0 );                                    ///< Value of 180.
+
+// Abbreviation for constant physical values.
+const as3double C_GMA  = static_cast<as3double>(1.4);     ///< Ratio of specific heats.
+const as3double C_GM1  = C_GMA - C_ONE;                   ///< Abbreviation for: gamma - 1.
+const as3double C_RGAS = static_cast<as3double>(287.058); ///< Gas constant: R.
+const as3double C_CV   = C_RGAS/C_GM1;                    ///< Specific heat at constant volume.
+const as3double C_CP   = C_GMA*C_CV;                      ///< Specific heat at constant pressure.
 
 
 
@@ -99,7 +108,7 @@ MapTypeDOF =
  */
 enum class ETypeBC
 {
-	PERIODIC
+	INTERFACE
 };
 
 /*!
@@ -108,7 +117,7 @@ enum class ETypeBC
 const std::map<std::string, ETypeBC>
 MapTypeBCs = 
 {
-	{ "PERIODIC",  ETypeBC::PERIODIC  }
+	{ "INTERFACE",  ETypeBC::INTERFACE  }
 };
 
 //--------------------------------------
@@ -198,7 +207,7 @@ MapTemporalScheme =
 //--------------------------------------
 
 /*!
- * @brief Enumerated type for type of solver.
+ * @brief Enumerated type for the solver.
  */
 enum class ETypeSolver
 {
@@ -206,7 +215,7 @@ enum class ETypeSolver
 };
 
 /*!
- * @brief Map for the type of solver.
+ * @brief Map for the solvers.
  */
 const std::map<std::string, ETypeSolver>
 MapTypeSolver = 
@@ -217,7 +226,7 @@ MapTypeSolver =
 //--------------------------------------
 
 /*!
- * @brief Enumerated type for type of IC.
+ * @brief Enumerated type for the initial condition.
  */
 enum class ETypeIC
 {
@@ -226,7 +235,7 @@ enum class ETypeIC
 };
 
 /*!
- * @brief Map for the type of IC.
+ * @brief Map for the initial conditions.
  */
 const std::map<std::string, ETypeIC>
 MapTypeIC = 
@@ -273,7 +282,7 @@ MapWriteVariable =
 //--------------------------------------
 
 /*!
- * @brief Enumerated type for type of buffer layer.
+ * @brief Enumerated type for the buffer layer.
  */
 enum class ETypeBufferLayer
 {
@@ -281,12 +290,31 @@ enum class ETypeBufferLayer
 };
 
 /*!
- * @brief Map for the type of buffer layer.
+ * @brief Map for the buffer layer.
  */
 const std::map<std::string, ETypeBufferLayer>
 MapTypeBufferLayer = 
 {
 	{ "NONE", ETypeBufferLayer::NONE }
+};
+
+//--------------------------------------
+
+/*!
+ * @brief Enumerated type for the Riemann solver.
+ */
+enum class ETypeRiemannSolver
+{
+	ROE
+};
+
+/*!
+ * @brief Map for the Riemann solvers.
+ */
+const std::map<std::string, ETypeRiemannSolver>
+MapTypeRiemannSolver = 
+{
+	{ "ROE", ETypeRiemannSolver::ROE }
 };
 
 

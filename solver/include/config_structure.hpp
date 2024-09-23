@@ -2,7 +2,7 @@
 
 #include "option_structure.hpp"
 #include "input_structure.hpp"
-#include <algorithm>
+#include "param_structure.hpp"
 
 
 /*!
@@ -24,23 +24,6 @@ class CConfig
 		 */
 		~CConfig(void);
 
-		/*!
-		 * @brief Function that determines the boundary condition for a given marker.
-		 * 
-		 * @param[in] marker marker name.
-		 *
-		 * @return boundary condition
-		 */
-		ETypeBC DetermineMarkerBC(std::string &marker);
-
-		/*!
-		 * @brief Function that finds the name of the matching periodic boundary marker.
-		 *
-		 * @param[in] imarker name of the current marker.
-		 * 
-		 * @return name of the matching marker
-		 */
-		std::string FindMatchingPeriodicMarker(const std::string &imarker);
 
 		/*!
 		 * @brief Getter function which returns the value of nZone.
@@ -98,7 +81,16 @@ class CConfig
 		 *
 		 * @return mTypeDOF[iZone]
 		 */   
-		ETypeDOF GetTypeDOF(unsigned short iZone)                   const {return mTypeDOF[iZone];}
+		ETypeDOF GetTypeDOF(size_t iZone)                           const {return mTypeDOF[iZone];}
+
+		/*!
+		 * @brief Getter function which returns the value of mTypeRiemannSolver, per input zone.
+		 *
+		 * @param[in] iZone zone ID.
+		 *
+		 * @return mTypeRiemannSolver[iZone]
+		 */   
+		ETypeRiemannSolver GetTypeRiemannSolver(size_t iZone)       const {return mTypeRiemannSolver[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the value of mTypeSolver, per input zone.
@@ -107,7 +99,7 @@ class CConfig
 		 *
 		 * @return mTypeSolver[iZone]
 		 */   
-		ETypeSolver GetTypeSolver(unsigned short iZone)             const {return mTypeSolver[iZone];}
+		ETypeSolver GetTypeSolver(size_t iZone)                     const {return mTypeSolver[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the value of mTypeBufferLayer, per input zone.
@@ -116,25 +108,16 @@ class CConfig
 		 *
 		 * @return mTypeBufferLayer[iZone]
 		 */   
-		ETypeBufferLayer GetTypeBufferLayer(unsigned short iZone)   const {return mTypeBufferLayer[iZone];}
+		ETypeBufferLayer GetTypeBufferLayer(size_t iZone)           const {return mTypeBufferLayer[iZone];}
 
 		/*!
-		 * @brief Getter function which returns the value of mNPolyGrid, per input zone.
+		 * @brief Getter function which returns the value of mNPoly, per input zone.
 		 *
 		 * @param[in] iZone zone ID.
 		 *
-		 * @return mNPolyGrid[iZone]
+		 * @return mNPoly[iZone]
 		 */   
-		unsigned short GetnPolyGrid(unsigned short iZone)           const {return mNPolyGrid[iZone];}
-
-		/*!
-		 * @brief Getter function which returns the value of mNPolySol, per input zone.
-		 *
-		 * @param[in] iZone zone ID.
-		 *
-		 * @return mNPolySol[iZone]
-		 */   
-		unsigned short GetnPolySol(unsigned short iZone)            const {return mNPolySol[iZone];}
+		unsigned short GetnPoly(size_t iZone)                       const {return mNPoly[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the value of mTypeIC.
@@ -185,14 +168,14 @@ class CConfig
 		 *
 		 * @return mZoneGridFilename[iZone]
 		 */
-		std::string GetZoneGridFilename(unsigned short iZone)       const {return mZoneGridFilename[iZone];}
+		std::string GetZoneGridFilename(size_t iZone)               const {return mZoneGridFilename[iZone];}
 
 		/*!
-		 * @brief Getter function which returns the periodic marker names.
-		 *
-		 * @return mMarkerNamePeriodic
+		 * @brief Getter function which returns the vector of marker tags.
+		 * 
+		 * @return mMarkerTag
 		 */
-		const as3vector2d<std::string> &GetMarkerNamePeriodic(void) const {return mMarkerNamePeriodic;}
+		const as3vector1d<std::pair<std::string, ETypeBC>> &GetMarkerTag(void) const {return mMarkerTag;}
 
 		/*!
 		 * @brief Getter function which returns a specific value in mDataIC, based on the index.
@@ -210,46 +193,68 @@ class CConfig
 			return mDataIC[index];
 		}
 
+		/*!
+		 * @brief Getter function which returns the vector of interface parameter markers.
+		 * 
+		 * @return mInterfaceParamMarker
+		 */
+		const as3vector1d<std::unique_ptr<CInterfaceParamMarker>> &GetInterfaceParamMarker(void) const {return mInterfaceParamMarker;}
+
+		/*!
+		 * @brief Getter function which returns the vector of boundary parameter markers.
+		 * 
+		 * @return mBoundaryParamMarker
+		 */
+		const as3vector1d<std::unique_ptr<IBoundaryParamMarker>> &GetBoundaryParamMarker(void)  const {return mBoundaryParamMarker;}
+
+		/*!
+		 * @brief Getter function which returns a pointer to the specified boundary marker, if found.
+		 * 
+		 * @param[in] imarker name of the marker to look for. 
+		 *
+		 * @return pointer for the relevant mBoundaryParamMarker element 
+		 */
+		IBoundaryParamMarker *GetBoundaryParamMarker(const std::string &imarker) const
+		{
+			// Search for the marker by name.
+			for( auto& m: mBoundaryParamMarker )
+			{
+				if( m->mName == imarker ) return m.get();
+			}
+			// The marker could not be found, issue an error and exit.
+			ERROR("Could not find the boundary marker: " + imarker);
+
+			// Return a nullptr, to avoid a compiler issue.
+			return nullptr;
+		}
+
 	protected:
 
 	private:
-		EMeshFormat     mMeshFormat;                    ///< Mesh format specified.
-		EFormatFile     mInputGridFormat;               ///< Format of input grid file.
-		EVisualFormat   mOutputVisFormat;               ///< Format of output visualization file.
-		ETemporalScheme mTemporalScheme;                ///< Type of temporal scheme.
-		ETypeIC         mTypeIC;                        ///< Type of initial condition.
+		EMeshFormat                     mMeshFormat;             ///< Mesh format specified.
+		EFormatFile                     mInputGridFormat;        ///< Format of input grid file.
+		EVisualFormat                   mOutputVisFormat;        ///< Format of output visualization file.
+		ETemporalScheme                 mTemporalScheme;         ///< Type of temporal scheme.
+		ETypeIC                         mTypeIC;                 ///< Type of initial condition.
+		as3double                       mStartTime;              ///< Simulation starting time.
+		as3double                       mFinalTime;              ///< Simulation ending time.
+		as3double                       mTimeStep;               ///< Time step.
+		size_t                          mMaxIterTime;            ///< Maximum temporal iterations during the simulation.
+		std::string                     mOutputSolFilename;      ///< Output solution filename.
+		std::string                     mOutputVisFilename;      ///< Output visualization filename.
+		unsigned short                  mNZone;		    		       ///< Total number of zones.
+		as3vector1d<as3double>          mDataIC;                 ///< Compressed (floating-type) data for the IC.
+    as3vector1d<EWriteVariable>     mWriteVisVar;            ///< Vector of visualization variables to write.
+		as3vector1d<ETypeSolver>        mTypeSolver;             ///< Type of PDEs in each zone.
+    as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;        ///< Type of buffer layer in each zone.
+		as3vector1d<ETypeDOF>           mTypeDOF;                ///< Type of DOFs in each zone.
+		as3vector1d<unsigned short>     mNPoly;                  ///< Polynomial order per zone based on solution/grid.
+		as3vector1d<std::string>        mZoneGridFilename;       ///< Grid filename per each zone.
+		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;      ///< Type of Riemann solver per each zone.
 
-		as3double       mStartTime;                     ///< Simulation starting time.
-		as3double       mFinalTime;                     ///< Simulation ending time.
-		as3double       mTimeStep;                      ///< Time step.
-		size_t          mMaxIterTime;                   ///< Maximum temporal iterations during the simulation.
-
-		as3vector1d<as3double>      mDataIC;            ///< Compressed (floating-type) data for the IC.
-    as3vector1d<EWriteVariable> mWriteVisVar;       ///< Vector of visualization variables to write.
-
-		std::string     mOutputSolFilename;             ///< Output solution filename.
-		std::string     mOutputVisFilename;             ///< Output visualization filename.
-		unsigned short  mNZone;		    		              ///< Total number of zones.
-		
-		as3vector1d<unsigned short>   mZoneIndex;       ///< Indices for each zone.
-		as3vector1d<ETypeSolver>      mTypeSolver;      ///< Type of PDEs in each zone.
-    as3vector1d<ETypeBufferLayer> mTypeBufferLayer; ///< Type of buffer layer in each zone.
-		as3vector1d<ETypeDOF>         mTypeDOF;         ///< Type of DOFs in each zone.
-    as3vector1d<unsigned short>   mNPolyGrid;       ///< Polynomial order per zone based on the grid.
-		as3vector1d<unsigned short>   mNPolySol;        ///< Polynomial order per zone based on solution.
-
-		as3vector1d<std::string>                      mZoneGridFilename;    ///< Grid filename per each zone.
-		as3vector2d<std::string>                      mMarkerNamePeriodic;  ///< Container of marker names for periodic BCs.
-		as3vector1d<std::pair<std::string, ETypeBC>>  mBoundaryMarkers;     ///< Container of pairs of boundary markers: name and type.
-
-    /*!
-		 * @brief Function that reads the zone connectivity options.
-		 *
-		 * @param[in] filename input configuration file.
-		 *
-		 * @return bool whether the operation succeedeed.
-		 */
-    bool ReadZoneConnectivityOptions(const char *filename);
+		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.
+		as3vector1d<std::unique_ptr<CInterfaceParamMarker>> mInterfaceParamMarker; ///< Container of interface marker parameters.
+		as3vector1d<std::unique_ptr<IBoundaryParamMarker>>  mBoundaryParamMarker;  ///< Container of boundary marker parameters.
 
     /*!
 		 * @brief Function that reads the zone configuration options.
@@ -318,11 +323,11 @@ class CConfig
 		void IC_IsentropicVortex(const char *filename);
 
 		/*!
-		 * @brief Function that checks for and extracts the necessary periodic BC information.
+		 * @brief Function that checks for and extracts the necessary interface/periodic BC information.
 		 *
 		 * @param[in] filename input configuration file.
 		 */
-		void ExtractInfoPeriodicBC(const char *filename);
+		void ExtractInfoInterfaceBC(const char *filename);
 
 		/*!
 		 * @brief Function that maps a single string to an enum.
@@ -353,11 +358,6 @@ class CConfig
 										                    std::string                         msg = "Keyword");
 
     /*!
-     * @brief Function that does a consistency check for zone configuration.
-     */
-		void ConsistencyCheckZoneConfiguration(void);
-
-    /*!
      * @brief Function that pads remaining entries in a vector.
      *
      * @param[in,out] data reference to data that is padded.
@@ -374,7 +374,6 @@ class CConfig
                               unsigned short           nCondition1 = 0,
                               unsigned short           nCondition2 = 0,
                               unsigned short           nCondition3 = 0);
-    
     
     /*!
      * @brief Function that pads remaining entries in a vector based on default reference data.
@@ -397,9 +396,7 @@ class CConfig
 		CConfig& operator=(CConfig&) = delete;	
 };
 
-
 //-----------------------------------------------------------------------------------
-
 
 // Definitions of the templated functions.
 #include "config_structure.inl"

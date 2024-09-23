@@ -9,23 +9,21 @@
 
 CStandardElement::CStandardElement
 (
- CConfig        *config_container,
- unsigned short  iZone
+ ETypeDOF       typeDOFs,
+ unsigned short nPoly,
+ unsigned short nInt 
 )
+	:
+		mTypeDOFsSol(typeDOFs), mNPolySol(nPoly), mNInt1D(nInt)
  /*
-	* Constructor for the standard element, which initiates an element in parametric space.
+	* Constructor for the standard element, which initiates an element in parametric
+	* space for an interface boundary.
 	*/
 {
-	// Assign the member variables.
-	mNPolySol    = config_container->GetnPolySol(iZone);
-	mNPolyGrid   = config_container->GetnPolyGrid(iZone);
-	mTypeDOFsSol = config_container->GetTypeDOF(iZone);
-
-	mNSol1D  = mNPolySol+1;
-	mNSol2D  = mNSol1D*mNSol1D;
-
-	mNInt1D  = IntegrationRule(mNPolySol);
-	mNInt2D  = mNInt1D*mNInt1D;
+	// Deduce the number os solution and integration points.
+	mNSol1D = mNPolySol+1;
+	mNSol2D = mNSol1D*mNSol1D;
+	mNInt2D = mNInt1D*mNInt1D;
 
 	// Compute the solution DOFs in 1D and in parametric space.
 	ComputeLocationDOFs1D(mTypeDOFsSol, mNSol1D, mRSol1D);
@@ -70,22 +68,6 @@ CStandardElement::~CStandardElement
 	*/
 {
 
-}
-
-//-----------------------------------------------------------------------------------
-
-unsigned int CStandardElement::IntegrationRule
-(
- unsigned short npoly
-)
- /*
-	* Function that computes the number of (over-)integration nodes required.
-	*/
-{
-	// The over-integration rule.
-	const unsigned int nd = 3;
-
-	return static_cast<unsigned int>(nd*npoly/2 + 1);
 }
 
 //-----------------------------------------------------------------------------------

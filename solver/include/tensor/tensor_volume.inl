@@ -19,8 +19,8 @@ void CTensorProduct<K, M>::Volume
 	*/
 {
 	// Unpack the information needed, based on the standard element.
-	const as3double *A    = mStandardElementContainer->GetLagrangeInt1DTrans().data();
-	const as3double *ADer = mStandardElementContainer->GetDerLagrangeInt1DTrans().data();
+	const as3double *A    = mLagrangeInt1DTrans.data();
+	const as3double *ADer = mDerLagrangeInt1DTrans.data();
 
 	// Cast the arrays from 1D to 2D, for convenience.
 	const as3double (*a)[M]    = (const as3double (*)[M]) A;
@@ -50,7 +50,7 @@ void CTensorProduct<K, M>::Volume
 
 		for(size_t i=0; i<K; i++)
 		{
-			for(size_t s=0; s<M; s++) tmpJ[i][s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
 			for(size_t jj=0; jj<K; jj++)
 			{
         for(size_t j=0; j<M; j++)
@@ -67,7 +67,7 @@ void CTensorProduct<K, M>::Volume
 
 			for(size_t j=0; j<M; j++)
 			{
-        for(size_t s=0; s<M; s++) tmpI[j][s] = 0.0;
+        for(size_t s=0; s<M; s++) tmpI[j][s] = static_cast<as3double>(0.0);
 				for(size_t ii=0; ii<K; ii++)
 				{
           for(size_t i=0; i<M; i++)
@@ -90,7 +90,7 @@ void CTensorProduct<K, M>::Volume
 
 			for(size_t j=0; j<M; j++)
 			{
-				for(size_t s=0; s<M; s++) tmpI[j][s] = 0.0;
+				for(size_t s=0; s<M; s++) tmpI[j][s] = static_cast<as3double>(0.0);
 				for(size_t ii=0; ii<K; ii++)
 				{
           for(size_t i=0; i<M; i++)
@@ -113,7 +113,7 @@ void CTensorProduct<K, M>::Volume
 
 			for(size_t i=0; i<K; i++)
 			{
-        for(size_t s=0; s<M; s++) tmpJ[i][s] = 0.0;
+        for(size_t s=0; s<M; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
 				for(size_t jj=0; jj<K; jj++)
 				{
           for(size_t j=0; j<M; j++)
@@ -123,7 +123,7 @@ void CTensorProduct<K, M>::Volume
 
 			for(size_t j=0; j<M; j++)
 			{
-        for(size_t s=0; s<M; s++) tmpI[j][s] = 0.0;
+        for(size_t s=0; s<M; s++) tmpI[j][s] = static_cast<as3double>(0.0);
 				for(size_t ii=0; ii<K; ii++)
 				{
           for(size_t i=0; i<M; i++)

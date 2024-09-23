@@ -39,8 +39,10 @@ namespace NLogger
 	 * @brief Function that displays the boundary condition information over all zones.
 	 *
 	 * @param[in] config_container configuration/dictionary container.
-	 * @param[in] solver_container input vector of solver containers.
+	 * @param[in] geometry_container input geometry container.
+	 * @param[in] interface_container input vector of interface containers.
 	 */
-	void DisplayBoundaryConditions(CConfig                               *config_container,
-			                           as3vector1d<std::unique_ptr<ISolver>> &solver_container);
+	void DisplayBoundaryConditions(CConfig                                  *config_container,
+																 CGeometry                                *geometry_container,
+																 as3vector1d<std::unique_ptr<IInterface>> &interface_container);
 }

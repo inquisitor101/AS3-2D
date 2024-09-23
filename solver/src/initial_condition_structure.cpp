@@ -55,20 +55,20 @@ CGaussianPressureIC::CGaussianPressureIC
 	mYCenter  = config_container->GetDataIC(5);
 
 	// Default freestream pressure and temperature.
-	mPressureInf    = 101325.0;
-	mTemperatureInf = 300.0;
+	mPressureInf    = static_cast<as3double>( 101325.0 );
+	mTemperatureInf = static_cast<as3double>( 300.0    );
 
   // Deduce the freestream density.
-  mDensityInf = mPressureInf/(GAS_CONSTANT*mTemperatureInf);
+  mDensityInf = mPressureInf/(C_RGAS*mTemperatureInf);
 
   // Compute the reference speed of sound.
-  const as3double a    = std::sqrt(mPressureInf*GAMMA/mDensityInf);
+  const as3double a    = std::sqrt(mPressureInf*C_GMA/mDensityInf);
   // Compute the flow speed.
   const as3double umag = mMachInf*a;
   
 	// Compute the freestream velocity.
-	mXVelocityInf = umag*std::cos(mThetaInf*PI_CONSTANT/180.0);
-  mYVelocityInf = umag*std::sin(mThetaInf*PI_CONSTANT/180.0);
+	mXVelocityInf = umag*std::cos(mThetaInf*C_PI/C_180);
+  mYVelocityInf = umag*std::sin(mThetaInf*C_PI/C_180);
 }
 
 //-----------------------------------------------------------------------------------
@@ -115,10 +115,10 @@ void CGaussianPressureIC::InitializeSolution
 	const as3double rhoInf = mDensityInf;
 
 	// Abbreviations involving the width of the pressure.
-	const as3double kappa  = std::log(2.0)/(b0*b0);
+	const as3double kappa  = std::log(C_TWO)/(b0*b0);
 
 	// Abbreviation involving specific heat ratio.
-	const as3double ovgm1  = 1.0/GAMMA_MINUS_ONE;
+	const as3double ovgm1  = C_ONE/C_GM1;
 
 	// Loop over the elements and compute the solution.
 	for(size_t i=0; i<nElem; i++)
@@ -146,9 +146,9 @@ void CGaussianPressureIC::InitializeSolution
 			const as3double rho  = rhoInf;
 			const as3double u    = uInf;
 			const as3double v    = vInf;
-			const as3double p    = pInf*( 1.0 + A0*std::exp(-kappa*r2) );
+			const as3double p    = pInf*( C_ONE + A0*std::exp(-kappa*r2) );
 			// Compute the total energy.
-			const as3double rhoE = p*ovgm1 + 0.5*rho*( u*u + v*v );
+			const as3double rhoE = p*ovgm1 + C_HALF*rho*( u*u + v*v );
 
 			// Assemble conservative variables.
 			sol(0, l) = rho;
@@ -187,20 +187,20 @@ CIsentropicVortexIC::CIsentropicVortexIC
 	mYCenter  = config_container->GetDataIC(5);
 
 	// Default freestream pressure and temperature.
-	mPressureInf    = 101325.0;
-	mTemperatureInf = 300.0;
+	mPressureInf    = static_cast<as3double>( 101325.0 );
+	mTemperatureInf = static_cast<as3double>( 300.0    );
 
   // Deduce the freestream density.
-  mDensityInf = mPressureInf/(GAS_CONSTANT*mTemperatureInf);
+  mDensityInf = mPressureInf/(C_RGAS*mTemperatureInf);
 
   // Compute the reference speed of sound.
-  const as3double a    = std::sqrt(mPressureInf*GAMMA/mDensityInf);
+  const as3double a    = std::sqrt(mPressureInf*C_GMA/mDensityInf);
   // Compute the flow speed.
   const as3double umag = mMachInf*a;
   
 	// Compute the freestream velocity.
-	mXVelocityInf = umag*std::cos(mThetaInf*PI_CONSTANT/180.0);
-  mYVelocityInf = umag*std::sin(mThetaInf*PI_CONSTANT/180.0);
+	mXVelocityInf = umag*std::cos(mThetaInf*C_PI/C_180);
+  mYVelocityInf = umag*std::sin(mThetaInf*C_PI/C_180);
 }
 
 //-----------------------------------------------------------------------------------
@@ -246,13 +246,13 @@ void CIsentropicVortexIC::InitializeSolution
 	const as3double pInf   = mPressureInf;
 	const as3double rhoInf = mDensityInf;
 	const as3double Tinf   = mTemperatureInf;
-	const as3double aInf   = std::sqrt(pInf*GAMMA/rhoInf);
+	const as3double aInf   = std::sqrt(pInf*C_GMA/rhoInf);
   
-		// Abbreviations.
-	const as3double ovgm1 =  1.0/GAMMA_MINUS_ONE;
-  const as3double ovRv2 =  1.0/(Rv*Rv);
+	// Abbreviations.
+	const as3double ovgm1 =  C_ONE/C_GM1;
+  const as3double ovRv2 =  C_ONE/(Rv*Rv);
   const as3double alpha =  A0/(Rv*aInf);
-  const as3double omega = -0.5*GAMMA*alpha*alpha;
+  const as3double omega = -C_HALF*C_GMA*alpha*alpha;
 
 	// Loop over the elements and compute the solution.
 	for(size_t i=0; i<nElem; i++)
@@ -277,15 +277,15 @@ void CIsentropicVortexIC::InitializeSolution
 			const as3double r2 = dx*dx + dy*dy;
  
 			// Compute the stream function.
-			const as3double psi = A0*std::exp(-0.5*r2*ovRv2);
+			const as3double psi = A0*std::exp(-C_HALF*r2*ovRv2);
 
 			// Compute the velocities, pressure and density.
 			const as3double u    = -ovRv2*dy*psi + uInf;
 			const as3double v    =  ovRv2*dx*psi + vInf;
 			const as3double p    =  pInf*std::exp( omega*std::exp(-r2*ovRv2) );
-    	const as3double rho  =  p/(GAS_CONSTANT*Tinf);
+    	const as3double rho  =  p/(C_RGAS*Tinf);
 			// Compute the total energy.
-			const as3double rhoE = p*ovgm1 + 0.5*rho*( u*u + v*v );
+			const as3double rhoE = p*ovgm1 + C_HALF*rho*( u*u + v*v );
 
 			// Assemble conservative variables.
 			sol(0, l) = rho;

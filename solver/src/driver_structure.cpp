@@ -83,13 +83,13 @@ void CDriver::StartSolver
 	// Lapse time used by the entire solver, in processor time (not physical time).
 	const as3double lapsedtime_proc = proc_t1 - proc_t0;
 	// Lapse time used by the entire solver, in physical time.
-	const auto lapsedtime_phys = std::chrono::duration_cast<std::chrono::milliseconds>(phys_t1-phys_t0);
+	const std::chrono::duration<as3double> lapsedtime_phys = phys_t1 - phys_t0;
 
 	// Report lapsed time.
 	std::cout << "\n% % % % % % % % % % % % % % % % % % % % % % %" << std::endl;
 	std::cout << std::scientific << std::setprecision(10) << std::setw(10)
-	          << "lapsed (proc) time [sec]: " << lapsedtime_proc                << "  %" << "\n"
-	          << "lapsed (phys) time [sec]: " << lapsedtime_phys.count()*1.0e-3 << "  %" << std::endl;
+	          << "lapsed (proc) time [sec]: " << lapsedtime_proc << "s %" << "\n"
+	          << "lapsed (phys) time [sec]: " << lapsedtime_phys <<  " %" << std::endl;
 }
 
 //-----------------------------------------------------------------------------------
@@ -147,11 +147,36 @@ void CDriver::InitializeData
 		mInitialContainer->InitializeSolution(mConfigContainer.get(), zone, solver);
 	}
 
+	// Extract the interface boundaries.
+	auto& interface = mConfigContainer->GetInterfaceParamMarker();
+
+	// If interface conditions are specified, initialize them.
+	if( interface.size() )
+	{
+		// Allocate the required number of interface containers.
+		mInterfaceContainer.reserve( interface.size() );
+
+		// Initialize the interface boundaries.
+		for(size_t i=0; i<interface.size(); i++)
+		{
+			mInterfaceContainer.emplace_back
+			(
+			 CGenericFactory::CreateInterfaceContainer(mConfigContainer.get(), 
+					                                       mGeometryContainer.get(),
+																								 interface[i].get(),
+																								 mSolverContainer)
+			);
+		}
+	}
+
+
 	// Report output.
 	std::cout << "Done." << std::endl;
 
 	// Display the boundary conditions over all zones.
-	NLogger::DisplayBoundaryConditions(mConfigContainer.get(), mSolverContainer);
+	NLogger::DisplayBoundaryConditions(mConfigContainer.get(), 
+			                               mGeometryContainer.get(), 
+																		 mInterfaceContainer);
 
 	// Save initial state, before time-marching.
 	mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
@@ -197,6 +222,7 @@ void CDriver::Run
 				                           mGeometryContainer.get(),
 																	 mIterationContainer.get(),
 																	 mSolverContainer,
+																	 mInterfaceContainer,
 																	 t, dt,
 																	 monitordata);
 

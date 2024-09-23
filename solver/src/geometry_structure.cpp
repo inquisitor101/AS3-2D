@@ -101,12 +101,13 @@ CZoneGeometry::CZoneGeometry
 	: 
 		mZoneID(iZone), 
 	  mGridFile(gridfile),
-		mNPolyGrid(config_container->GetnPolyGrid(iZone))
+		mNPolyGrid(config_container->GetnPoly(iZone))
  /*
 	* Constructor for the zone geometry, which contains a single grid geometry.
 	*/
 {
-
+	// Generate the nodal face indices for a quadrilateral element.
+	GenerateNodalFaceIndices();
 }
 
 //-----------------------------------------------------------------------------------
@@ -120,6 +121,40 @@ CZoneGeometry::~CZoneGeometry
 	*/
 {
 
+}
+
+//-----------------------------------------------------------------------------------
+
+void CZoneGeometry::GenerateNodalFaceIndices
+(
+ void
+)
+ /*
+	* Function that generates nodal indices for the 4 faces of a quadrilateral.
+	*/
+{
+	// Deduce the number of solution points in 1D in this zone.
+	const unsigned short nSol1D = mNPolyGrid+1;
+
+	// Allocate memory for the nodal indices on all sides.
+	mFaceNodalIndices.resize( 4, as3vector1d<unsigned short>(nSol1D) );
+
+	// Offsets in the i- and j-direction.
+	const unsigned short di = mNPolyGrid;
+	const unsigned short dj = static_cast<unsigned short>( nSol1D*(nSol1D-1) );
+	
+	// Loop over the face nodes and generate their local indices.
+	for(unsigned short i=0; i<nSol1D; i++)
+	{
+		// Face: IMIN.
+		mFaceNodalIndices[0][i] = i*nSol1D;
+		// Face: IMAX.
+		mFaceNodalIndices[1][i] = mFaceNodalIndices[0][i] + di;
+		// Face: JMIN.
+		mFaceNodalIndices[2][i] = i;
+		// Face: JMAX.
+		mFaceNodalIndices[3][i] = mFaceNodalIndices[2][i] + dj;
+	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -175,20 +210,38 @@ void CZoneGeometry::InitializeMarkers
 	* Function that defines all the interface markers in this zone..
 	*/
 {
-	// For convenience, extract the number of total markers (interface+physical).
-	const size_t nMark = mark.size();
+	// Get the user-specified markers.
+	auto& tags = config_container->GetMarkerTag();
 
 	// Allocate the correct number of markers in this zone.
-	mMarker.resize( nMark );
+	mMarkerGeometry.resize( mark.size() );
 
 	// Loop over the markers and initialize them.
-	for(size_t i=0; i<nMark; i++)
+	for(size_t i=0; i<mMarkerGeometry.size(); i++)
 	{
-		// Determine the boundary condition associated with this marker. 
-		ETypeBC bc = config_container->DetermineMarkerBC(name[i]); 
+		// Initialize a flag that detects the marker.
+		bool found = false;
 
-		// Initialize the marker.
-		mMarker[i] = std::make_unique<CMarker>(mZoneID, name[i], bc, mark[i], face[i]); 
+		// Check if the marker is defined in the config file, otherwise issue an error.
+		for(auto& v: tags)
+		{
+			// Make sure that the marker tags are written in the correct order.
+			static_assert( std::is_same_v<std::string, decltype(v.first )>);
+			static_assert( std::is_same_v<ETypeBC,     decltype(v.second)>);
+
+			// If the marker is found, initialize its boundary container.
+			if( v.first == name[i] )
+			{
+				// Initialize the marker.
+				mMarkerGeometry[i] = std::make_unique<CMarker>(mZoneID, v.second, name[i], face[i], mark[i]); 
+
+				// Flag that the marker is found and move to the next iteration.
+				found = true; break;
+			}
+		}
+
+		// Marker is not defined in the config file, issue an error.
+		if( !found ) ERROR("Imported marker is not defined by the user.");
 	}
 }
 

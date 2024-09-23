@@ -1,15 +1,17 @@
 #pragma once
 
+#include "vtk_structure.hpp"
+#include "solver_structure.hpp"
+#include "tensor_structure.hpp"
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "temporal_structure.hpp"
-#include "vtk_structure.hpp"
+#include "boundary_structure.hpp"
+#include "interface_structure.hpp"
+#include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
-#include "solver_structure.hpp"
-#include "tensor_structure.hpp"
-#include "boundary_structure.hpp"
 #include "initial_condition_structure.hpp"
 
 
@@ -17,6 +19,7 @@
 class ISolver;
 class IFileVTK;
 class ITemporal;
+class IInterface;
 class IInitialCondition;
 
 /*!
@@ -56,6 +59,17 @@ class CGenericFactory
 		static std::unique_ptr<IInitialCondition> CreateInitialConditionContainer(CConfig *config_container);
 
 		/*!
+		 * @brief Function that creates a specialized instance of a Riemann solver container.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] riemann type of Riemann solver.
+		 *
+		 * @return unique pointer to the specific Riemann solver class.
+		 */
+		static std::unique_ptr<IRiemannSolver> CreateRiemannSolverContainer(CConfig          *config_container,
+				                                                               ETypeRiemannSolver riemann);
+
+		/*!
 		 * @brief Function that creates a specialized instance of a standard element container.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -88,11 +102,12 @@ class CGenericFactory
 		/*!
 		 * @brief Function that creates a specialized instance of a templated tensor container.
 		 *
-		 * @param[in] standard_element pointer to the relevant standar element container.
+		 * @param[in] standard_element pointer to the relevant standard element container.
 		 *
 		 * @return unique pointer to specialized template tensor-product class.
 		 */
 		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element);
+
 
 		/*!
 		 * @brief Function that creates a specialized instance of a boundary container.
@@ -100,14 +115,29 @@ class CGenericFactory
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] marker_container input marker container.
+		 * @param[in] index index of the owner element.
 		 *
 		 * @return unique pointer to the specific boundary class.
 		 */
-		static std::unique_ptr<IBoundary> CreateBoundaryContainer(CConfig   *config_container,
-				                                                      CGeometry *geometry_container,
-																													    CMarker   *marker_container);
+		static std::unique_ptr<IBoundary> CreateBoundaryContainer(CConfig      *config_container,
+				                                                      CGeometry    *geometry_container,
+																													    CMarker      *marker_container,
+																															unsigned int  index);
 
-
+		/*!
+		 * @brief Function that creates a specialized instance of an interface boundary container.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] geometry_container input geometry container.
+		 * @param[in] param_container input interface parameter container.
+		 * @param[in] solver_container input vector of solver containers. 
+		 *
+		 * @return unique pointer to the specific interface class.
+		 */
+		static std::unique_ptr<IInterface> CreateInterfaceContainer(CConfig                               *config_container,
+				                                                        CGeometry                             *geometry_container,
+																																CInterfaceParamMarker                 *param_container,
+																													      as3vector1d<std::unique_ptr<ISolver>> &solver_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a solver container.

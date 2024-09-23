@@ -6,6 +6,16 @@
 
 
 /*!
+ * @brief A class used for storing a single element face in a marker region.
+ */
+struct CFaceMarker
+{
+	unsigned int mIndex; ///< Element index containing this face marker.
+	EFaceElement mFace;  ///< Face location for this marker.
+};
+
+
+/*!
  * @brief A class used for storing a (single) marker region.
  */
 class CMarker
@@ -16,13 +26,16 @@ class CMarker
 		 * @brief Constructor of CMarker, which is responsible for a single marker geometry.
 		 *
 		 * @param[in] iZone current zone index of this marker.
+		 * @param[in] type type of BC.
 		 * @param[in] tagname name of the marker tag.
+		 * @param[in] face face locations on each element of this marker.
+		 * @param[in] element element indices on this marker. 
 		 */
-		CMarker(unsigned short            iZone,
-				    std::string               tagname,
-						ETypeBC                   typemarker,
-						as3vector1d<unsigned int> elements,
-						as3vector1d<EFaceElement> faces);
+		CMarker(unsigned short            zone,
+				    ETypeBC                   type,
+				    std::string               name,	
+						as3vector1d<EFaceElement> face,
+						as3vector1d<unsigned int> mark);
 	
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -38,42 +51,47 @@ class CMarker
 		unsigned short GetZoneID(void) const {return mZoneID;}
 
 		/*!
-		 * @brief Getter function which returns the value of mMarkerBC.
+		 * @brief Getter function which returns the value of mTypeBC.
 		 *
-		 * @return mMarkerBC.
+		 * @return mTypeBC.
 		 */
-		ETypeBC GetMarkerBC(void) const {return mMarkerBC;}
+		ETypeBC GetTypeBC(void) const {return mTypeBC;}
 
 		/*!
-		 * @brief Getter function which returns the value of mNameMarkerTag.
+		 * @brief Getter function which returns the value of mNameMarker.
 		 *
-		 * @return mNameMarkerTag.
+		 * @return mNameMarker.
 		 */
-		const std::string &GetNameMarkerTag(void) const {return mNameMarkerTag;}
+		const std::string &GetNameMarker(void) const {return mNameMarker;}
 
 		/*!
-		 * @brief Getter function which returns the value of mElementIndices.
+		 * @brief Getter function which returns the number of elements.
 		 *
-		 * @return mElementIndices.
+		 * @return mElementFaces.size().
 		 */
-		const as3vector1d<unsigned int> &GetElementIndices(void) const {return mElementIndices;}
+		size_t GetnElem(void) const {return mElementFaces.size();}
 
 		/*!
-		 * @brief Getter function which returns the value of mElementFaces.
+		 * @brief Getter function which returns mElementFaces.
 		 *
 		 * @return mElementFaces.
 		 */
-		const as3vector1d<EFaceElement> &GetElementFaces(void) const {return mElementFaces;}
+		const as3vector1d<CFaceMarker> &GetElementFaces(void) const {return mElementFaces;}
+
+		/*!
+		 * @brief Getter function which returns value of mElementFaces at a specific index.
+		 *
+		 * @return mElementFaces[index].
+		 */
+		const CFaceMarker &GetElementFaces(size_t index) const {return mElementFaces[index];}
 
 	protected:
 
 	private:
-		unsigned short            mZoneID;         ///< Current zone index.
-		std::string               mNameMarkerTag;  ///< Name of the marker tag.
-		ETypeBC                   mMarkerBC;       ///< Type of marker region.
-    as3vector1d<unsigned int> mElementIndices; ///< Element indices on this marker.
-		as3vector1d<EFaceElement> mElementFaces;   ///< Face indices on each element of this marker.
-
+		unsigned short           mZoneID;       ///< Current zone index.
+		ETypeBC                  mTypeBC;       ///< Type of boundary condition.
+		std::string              mNameMarker;   ///< Name of the marker tag.
+		as3vector1d<CFaceMarker> mElementFaces; ///< Elements and their faces on this marker.
 
 		// Disable default constructor.
 		CMarker(void) = delete;

@@ -20,8 +20,8 @@ void CTensorProduct<K, M>::ResidualVolume
 	*/
 {
  	// Unpack the information needed, based on the standard element.
-	const as3double *A    = mStandardElementContainer->GetLagrangeInt1D().data();
-	const as3double *ADer = mStandardElementContainer->GetDerLagrangeInt1D().data();
+	const as3double *A    = mLagrangeInt1D.data();
+	const as3double *ADer = mDerLagrangeInt1D.data();
 
 	// Cast the arrays from 1D to 2D, for convenience.
 	const as3double (*a)[K]    = (const as3double (*)[K]) A;
@@ -60,7 +60,7 @@ void CTensorProduct<K, M>::ResidualVolume
 			// Tensor product in the s-direction.
 			for(size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = 0.0;
+  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
 				for(size_t jj=0; jj<M; jj++)
 				{
     	    for(size_t j=0; j<K; j++)
@@ -89,7 +89,7 @@ void CTensorProduct<K, M>::ResidualVolume
 			// Tensor product in the s-direction.
 			for(size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = 0.0;
+  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
 				for(size_t jj=0; jj<M; jj++)
 				{
     	    for(size_t j=0; j<K; j++)
@@ -118,7 +118,7 @@ void CTensorProduct<K, M>::ResidualVolume
 			// Tensor product in the s-direction.
 			for(size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = 0.0;
+  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
 				for(size_t jj=0; jj<M; jj++)
 				{
     	    for(size_t j=0; j<K; j++)

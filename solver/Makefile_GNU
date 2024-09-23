@@ -48,7 +48,7 @@ CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra  #-Wpadd
 CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
 
 # Optimization flags.
-CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG
+CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG 
 
 # Guided-profiling flag.
 CXX_PGOFLAGS = #-pg
