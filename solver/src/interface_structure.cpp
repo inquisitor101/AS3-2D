@@ -299,12 +299,12 @@ void CEEInterface::ComputeInterfaceResidual
 	*/
 {
 	// Get the appropriate functions for interpolation.
-	auto InterpSurfaceI = GetFuncPointerInterpFaceI();
-	auto InterpSurfaceJ = GetFuncPointerInterpFaceJ();
+	auto InterpSurfaceI  = GetFuncPointerInterpFaceI();
+	auto InterpSurfaceJ  = GetFuncPointerInterpFaceJ();
 
-	// Get the appropriate functions for residual computation.
-	auto ResidualSurfaceI = GetFuncPointerCompResFaceI();
-	auto ResidualSurfaceJ = GetFuncPointerCompResFaceJ();
+	// Get the appropriate functions for residual contribution.
+	auto ComputeResFaceI = GetFuncPointerResidualFaceI();
+	auto ComputeResFaceJ = GetFuncPointerResidualFaceJ();
 
 	// Get the solvers of this class.
 	auto& isolver = solver_container[mIZone];
@@ -347,9 +347,17 @@ void CEEInterface::ComputeInterfaceResidual
 		// Notice, this is based on the owner state.
 		mRiemannSolverContainer->ComputeFlux(mWInt1D, metI, varI, varJ, flux);
 
+		// Compute the residual on the owned element, which is on the iface boundary.
+		ComputeResFaceI(mNVar, flux.data(), nullptr, nullptr, resI.data());
+
+		// For local conservation, negate the flux, since it leaves the owner element 
+		// to enter the matching element.
+		for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+		// Compute the residual on the matching element, which is on the jface boundary.
+		ComputeResFaceJ(mNVar, flux.data(), nullptr, nullptr, resJ.data());
 
 	}
-ERROR("");
 }
 
 

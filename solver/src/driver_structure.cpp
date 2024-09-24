@@ -236,6 +236,12 @@ void CDriver::Run
 		// Extra processing steps go here.
 
 	}
+
+	// TODO: needs a writing-frequency check.
+	// Save the final state. 
+	mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
+			                              mGeometryContainer.get(),
+																		mSolverContainer);
 }
 
 

@@ -133,6 +133,13 @@ class ISolver
 		const CStandardElement *GetStandardElement(void) const {return mStandardElementContainer.get();}
 
 		/*!
+		 * @brief Getter function which returns the entire physical element container.
+		 *
+		 * @return mPhysicalElementContainer.
+		 */
+		as3vector1d<std::unique_ptr<CPhysicalElement>> &GetPhysicalElement(void) {return mPhysicalElementContainer;}
+
+		/*!
 		 * @brief Getter function which returns a specific physical element container.
 		 *
 		 * @param[in] index index of the physical element.

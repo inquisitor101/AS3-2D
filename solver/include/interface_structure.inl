@@ -75,7 +75,7 @@ auto IInterface::GetFuncPointerInterpFaceJ
 
 //-----------------------------------------------------------------------------------
 
-auto IInterface::GetFuncPointerCompResFaceI
+auto IInterface::GetFuncPointerResidualFaceI
 (
  void
 )
@@ -110,7 +110,7 @@ auto IInterface::GetFuncPointerCompResFaceI
 
 //-----------------------------------------------------------------------------------
 
-auto IInterface::GetFuncPointerCompResFaceJ
+auto IInterface::GetFuncPointerResidualFaceJ
 (
  void
 )

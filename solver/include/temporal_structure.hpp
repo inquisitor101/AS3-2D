@@ -108,10 +108,10 @@ class CSSPRK3Temporal final : public ITemporal
 	protected:
 
 	private:
-
-		as3vector1d<as3double> rk3a; ///< SSP-RK3: a-coefficients.
-		as3vector1d<as3double> rk3b; ///< SSP-RK3: b-coefficients.
-		as3vector1d<as3double> rk3c; ///< SSP-RK3: c-coefficients.
+		unsigned short mNStageRK = 3; ///< Number of RK evaluation stages.
+		as3double      mRk3a[3] = {}; ///< SSP-RK3: a-coefficients.
+		as3double      mRk3b[3] = {}; ///< SSP-RK3: b-coefficients.
+		as3double      mRk3c[3] = {}; ///< SSP-RK3: c-coefficients.
 
 
 		/*!
@@ -124,8 +124,7 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] localtime local time in the RK evaluations.
 		 * @param[in] timestep physical time step.
-		 * @param[in] alpha relevant SSP-RK3 a-coefficient.
-		 * @param[in] beta relevant SSP-RK3 b-coefficient.
+		 * @param[in] iStageRK index of the RK stage.
 		 * @param[out] monitordata vector of parameters to monitor.
 		 */
 		void EvaluateSSPRK3(CConfig                                  *config_container,
@@ -135,8 +134,7 @@ class CSSPRK3Temporal final : public ITemporal
 												as3vector1d<std::unique_ptr<IInterface>> &interface_container,
 										    as3double                                 localtime, 
 										    as3double                                 timestep,
-												as3double                                 alpha,
-												as3double                                 beta,
+												unsigned short                            iStageRK,
 												as3vector1d<as3double>                   &monitordata);
 
 

@@ -32,7 +32,8 @@ CPhysicalElement::CPhysicalElement
 	mSol2D.resize( nVar, nSol2D );
 	// Allocate memory for the residual in 2D.
 	mRes2D.resize( nVar, nSol2D );
-
+	// Allocate memory for the tentative solution in 2D.
+	mSolOld2D.resize( nVar, nSol2D );
 	
 	// Compute the metrics at the volume solution points.
 	ComputeMetricsSolVolume(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());

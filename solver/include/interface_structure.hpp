@@ -111,12 +111,12 @@ class IInterface
 		/*!
 		 * @brief Function which returns a function pointer for the residual computation on the (owner) i-face.
 		 */
-		inline auto GetFuncPointerCompResFaceI(void);
+		inline auto GetFuncPointerResidualFaceI(void);
 
 		/*!
 		 * @brief Function which returns a function pointer for the residual computation on the (matching) j-face.
 		 */
-		inline auto GetFuncPointerCompResFaceJ(void);
+		inline auto GetFuncPointerResidualFaceJ(void);
 
 	private:
 

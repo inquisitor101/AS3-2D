@@ -138,7 +138,6 @@ void CIteration::ComputeResidual
 
 	}
 
-	// TODO
 	// Loop over the interface boundaries, if need be.
 	for( auto& interface: interface_container )
 	{

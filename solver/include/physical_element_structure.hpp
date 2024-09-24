@@ -16,6 +16,7 @@ class CPhysicalElement
 		unsigned short        mNPoly;           ///< Solution polynomial order.
 		CMatrixAS3<as3double> mSol2D;           ///< Solution on the physical element in 2D.
 		CMatrixAS3<as3double> mRes2D;           ///< Residual of the solution on the physical element in 2D.
+		CMatrixAS3<as3double> mSolOld2D;        ///< Tentative (previous) solution on the physical element in 2D.
 		CMatrixAS3<as3double> mInvMassMatrix;   ///< Inverse of the mass matrix.
 		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
