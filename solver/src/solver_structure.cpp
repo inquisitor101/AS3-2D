@@ -134,9 +134,6 @@ void CEESolver::InitBoundaryConditions
 	// Report output.
 	std::cout << "    boundary conditions.. ";
 
-	// Get a reference to the marker tags specified in the config file.
-	auto& tags = config_container->GetMarkerTag();
-
 	// Get a reference to the current zone.
 	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
 
@@ -424,8 +421,6 @@ void CEESolver::ComputeSurfaceResidualIDir
 			// Reference to the left element residual.
 			auto& resL = elemL->mRes2D;
 
-			// Extract the metrics at the integration points on the imin face of the right element.
-			auto& metR = elemR->mMetricIntIMin1D;
 			// Reference to the right element solution.
 			auto& solR = elemR->mSol2D;
 			// Reference to the right element residual.
@@ -590,8 +585,6 @@ void CEESolver::ComputeSurfaceResidualJDir
 			// Reference to the bottom element residual.
 			auto& resB = elemB->mRes2D;
 
-			// Extract the metrics at the integration points on the jmin face of the top element.
-			auto& metT = elemT->mMetricIntJMin1D;
 			// Reference to the top element solution.
 			auto& solT = elemT->mSol2D;
 			// Reference to the top element residual.

@@ -69,7 +69,7 @@ class CMarker
 		 *
 		 * @return mElementFaces.size().
 		 */
-		size_t GetnElem(void) const {return mElementFaces.size();}
+		unsigned int GetnElem(void) const {return static_cast<unsigned int>( mElementFaces.size() );}
 
 		/*!
 		 * @brief Getter function which returns mElementFaces.

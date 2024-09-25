@@ -485,12 +485,10 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	* Function that computes the inverse mass matrix on the physical element.
 	*/
 {
-	// Extract the number of solution points in 1D and 2D.
-	const size_t nSol1D = standard_element->GetnSol1D();
+	// Extract the number of solution points in 2D.
 	const size_t nSol2D = standard_element->GetnSol2D();
 	
-	// Extract the number of integration points in 1D and 2D.
-	const size_t nInt1D = standard_element->GetnInt1D();
+	// Extract the number of integration points in 2D.
 	const size_t nInt2D = standard_element->GetnInt2D();
 
 	// Extract the quadrature weights in 2D.

@@ -31,14 +31,6 @@ void CTensorProduct<K, M>::SurfaceIMAX
 	constexpr size_t K2  = K*K;
 	constexpr size_t Km1 = K-1;
 
-	// Ensure the tensor dimension is correct.
-#if DEBUG	
-	if( (K != mStandardElementContainer->GetnSol1D()) 
-			|| 
-			(M != mStandardElementContainer->GetnInt1D()) ) 
-		ERROR("Mismatch in tensor dimensions.");
-#endif
-
 
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)

@@ -267,7 +267,11 @@ class CTensorProduct final: public ITensorProduct
 				mDerLagrangeInt1D     ( standard_element->GetDerLagrangeInt1D()      ),
 				mDerLagrangeInt1DTrans( standard_element->GetDerLagrangeInt1DTrans() ),
 				mDerLagrangeMinFace1D ( standard_element->GetDerLagrangeMinFace1D()  ),
-				mDerLagrangeMaxFace1D ( standard_element->GetDerLagrangeMaxFace1D()  ) {} 
+				mDerLagrangeMaxFace1D ( standard_element->GetDerLagrangeMaxFace1D()  ) 
+		{
+			if( K != standard_element->GetnSol1D() ) ERROR("Mismatch in tensor K dimension.");
+			if( M != standard_element->GetnInt1D() ) ERROR("Mismatch in tensor M dimension.");
+		} 
 
 		// Default destructor.
 		~CTensorProduct(void) final = default;

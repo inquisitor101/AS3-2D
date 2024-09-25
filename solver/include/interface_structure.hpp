@@ -80,16 +80,16 @@ class IInterface
 		unsigned short GetJZone(void) const {return mJZone;}
 
 	protected:
-		std::string    mIName; ///< Name of the owner interface marker.
-		std::string    mJName; ///< Name of the matching interface marker.
-		unsigned short mIZone; ///< Zone ID of the owner interface marker.
-		unsigned short mJZone; ///< Zone ID of the matching interface marker.
-		EFaceElement   mIFace; ///< Face ID of the owner interface marker.
-		EFaceElement   mJFace; ///< Face ID of the matching interface marker.
+		unsigned short mNVar = 4; ///< Number of working variables.
+		std::string    mIName;    ///< Name of the owner interface marker.
+		std::string    mJName;    ///< Name of the matching interface marker.
+		unsigned short mIZone;    ///< Zone ID of the owner interface marker.
+		unsigned short mJZone;    ///< Zone ID of the matching interface marker.
+		EFaceElement   mIFace;    ///< Face ID of the owner interface marker.
+		EFaceElement   mJFace;    ///< Face ID of the matching interface marker.
 		
 		unsigned int   mNElem;    ///< Number of elements on this marker.
-		unsigned short mNInt1D;   ///< Number of integration points on this marker.
-		unsigned short mNVar = 4; ///< Number of working variables.
+		unsigned short mNInt1D;   ///< Number of integration points on this marker.	
 
 		as3vector1d<std::pair<unsigned int, unsigned int>> mIndexElement; ///< Indices of the pair of elements on this interface.
 

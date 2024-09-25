@@ -330,8 +330,6 @@ void CEEInterface::ComputeInterfaceResidual
 		// Reference to the owner element residual.
 		auto& resI = ielem->mRes2D;
 
-		// Extract the metrics at the integration points on the matching face.
-		auto& metJ = jelem->GetSurfaceMetricInt(mJFace);
 		// Reference to the matching element solution.
 		auto& solJ = jelem->mSol2D;
 		// Reference to the matching element residual.

@@ -32,14 +32,6 @@ void CTensorProduct<K, M>::ResidualSurfaceJMAX
 	// Index of the JMAX node.
 	constexpr size_t JK = K-1;
 
-	// Ensure the tensor dimension is correct.
-#if DEBUG	
-	if( (K != mStandardElementContainer->GetnSol1D()) 
-			|| 
-			(M != mStandardElementContainer->GetnInt1D()) ) 
-		ERROR("Mismatch in tensor dimensions.");
-#endif
-
 
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
