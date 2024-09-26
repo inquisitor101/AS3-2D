@@ -20,11 +20,15 @@ namespace NLogger
 	template<typename T>
 	void PrintMatrixAS3(CMatrixAS3<T> &m, std::string g)
 	{
-		std::cout << "\n" << g << "\n";
+		using namespace std;
+		cout << "\n" << g << "\n";
 		for(size_t i=0; i<m.row(); i++)
 		{
-			for(size_t j=0; j<m.col(); j++) std::cout << m(i,j) << " ";
-			std::cout << std::endl;
+			for(size_t j=0; j<m.col(); j++)
+			{
+				cout << fixed << showpos << scientific << m(i,j) << " ";
+			}
+			cout << endl;
 		}
 	}
 

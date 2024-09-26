@@ -48,7 +48,7 @@ void NPolynomialUtility::LagrangeBasis1D
 	NLinearAlgebra::InverseMatrix( V2inv ); 
 
 	// Compute the Lagrange basis function.
-	NLinearAlgebra::MatrixMatrixMult( V1, V2inv, L1D ); 
+	L1D = NLinearAlgebra::MatrixMatrixMult(V1, V2inv); 
 
 	// Ensure the correct dimensions of the resulting matrix.
 	if( (L1D.row() != nRow) || (L1D.col() != nCol) ) ERROR("Result of Lagrange basis is incorrect.");
@@ -90,7 +90,7 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
 	NLinearAlgebra::InverseMatrix( V2inv ); 
 
 	// Compute the derivative of the Lagrange basis function.
-	NLinearAlgebra::MatrixMatrixMult( dV1, V2inv, dL1D ); 
+	dL1D = NLinearAlgebra::MatrixMatrixMult(dV1, V2inv); 
 
 	// Ensure the correct dimensions of the resulting matrix.
 	if( (dL1D.row() != nRow) || (dL1D.col() != nCol) ) ERROR("Result of differentiation matrix is incorrect.");

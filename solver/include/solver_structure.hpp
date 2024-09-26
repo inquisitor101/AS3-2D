@@ -72,32 +72,28 @@ class ISolver
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the i-direction in the entire solver.
 		 *
-		 * @param[in] solver_container reference to the vector of solver containers. 
 		 * @param[in] geometry_container input geometry container.
 		 * @param[out] monitordata vector of parameters to monitor.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
-		virtual void ComputeSurfaceResidualIDir(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                                    CGeometry                             *geometry_container,
-																			      as3vector1d<as3double>                &monitordata,
-																			      CPoolMatrixAS3<as3double>             &workarray,
-																						as3double                              localtime) = 0;
+		virtual void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
+																			      as3vector1d<as3double>    &monitordata,
+																			      CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
 		 *
-		 * @param[in] solver_container reference to the vector of solver containers. 
 		 * @param[in] geometry_container input geometry container.
 		 * @param[out] monitordata vector of parameters to monitor.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
-		virtual void ComputeSurfaceResidualJDir(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                                    CGeometry                             *geometry_container,
-																			      as3vector1d<as3double>                &monitordata,
-																			      CPoolMatrixAS3<as3double>             &workarray,
-																						as3double                              localtime) = 0;
+		virtual void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
+																			      as3vector1d<as3double>    &monitordata,
+																			      CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime) = 0;
 
 		/*!
 		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
@@ -232,32 +228,28 @@ class CEESolver : public ISolver
 		/*!
 		 * @brief Function that computes the surface terms in the i-direction in the entire solver, based on the EE.
 		 *
-		 * @param[in] solver_container reference to the vector of solver containers.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[out] monitordata vector of parameters to monitor.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
-		void ComputeSurfaceResidualIDir(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                            CGeometry                             *geometry_container,
-															      as3vector1d<as3double>                &monitordata,
-															      CPoolMatrixAS3<as3double>             &workarray,
-																		as3double                              localtime) override;
+		void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
+															      as3vector1d<as3double>    &monitordata,
+															      CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime) override;
 
 		/*!
 		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
 		 *
-		 * @param[in] solver_container reference to the vector of solver containers.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[out] monitordata vector of parameters to monitor.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
-		void ComputeSurfaceResidualJDir(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                            CGeometry                             *geometry_container,
-															      as3vector1d<as3double>                &monitordata,
-															      CPoolMatrixAS3<as3double>             &workarray,
-																		as3double                              localtime) override;
+		void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
+															      as3vector1d<as3double>    &monitordata,
+															      CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime) override;
 
 		/*!
 		 * @brief Getter function which returns the number of working variables.

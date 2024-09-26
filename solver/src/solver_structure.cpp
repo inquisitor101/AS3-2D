@@ -373,11 +373,10 @@ void CEESolver::ComputeVolumeResidual
 
 void CEESolver::ComputeSurfaceResidualIDir
 (
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- CGeometry                             *geometry_container,
- as3vector1d<as3double>                &monitordata,
- CPoolMatrixAS3<as3double>             &workarray,
- as3double                              localtime
+ CGeometry                 *geometry_container,
+ as3vector1d<as3double>    &monitordata,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
 )
  /*
 	* Function that computes the residual terms in the i-direction of an EE-type PDE. 
@@ -537,11 +536,10 @@ void CEESolver::ComputeSurfaceResidualIDir
 
 void CEESolver::ComputeSurfaceResidualJDir
 (
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- CGeometry                             *geometry_container,
- as3vector1d<as3double>                &monitordata,
- CPoolMatrixAS3<as3double>             &workarray,
- as3double                              localtime
+ CGeometry                 *geometry_container,
+ as3vector1d<as3double>    &monitordata,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
 )
  /*
 	* Function that computes the residual terms in the j-direction of an EE-type PDE. 

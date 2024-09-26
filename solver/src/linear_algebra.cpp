@@ -62,15 +62,13 @@ void NLinearAlgebra::InverseMatrix
 
 //-----------------------------------------------------------------------------------
 
-void NLinearAlgebra::BLAS_GEMM
+CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
 (
  CMatrixAS3<as3double> &matA,
- CMatrixAS3<as3double> &matB,
- CMatrixAS3<as3double> &matC
+ CMatrixAS3<as3double> &matB
 )
  /*
 	* Function that computes a generalized matrix-matrix multiplication via BLAS (double-precision).
-	* Note, this routine allocates the memory for matC.
 	*/
 {
 	// Note, the GEMM BLAS routine assumes column-major, since the implementation is in Fortran.
@@ -106,7 +104,7 @@ void NLinearAlgebra::BLAS_GEMM
 	int c = static_cast<int>(matB.row()); // common size.
 
 	// Allocate the matrix to the correct size in row-major form, i.e. rows(A)*col(B).
-	matC.resize(n, m);
+	CMatrixAS3<as3double> matC(n, m);
 
 	as3double *A = matB.data(); // switched to B.
 	as3double *B = matA.data(); // switched to A.
@@ -114,19 +112,20 @@ void NLinearAlgebra::BLAS_GEMM
 
 	// Call the generalized matrix-matrix routine (double-precision).
 	dgemm_(&tA, &tB, &m, &n, &c, &one, A, &m, B, &c, &zero, C, &m);
+
+	// Return the matrix C via copy elision (RVO).
+	return matC;
 }
 
 //-----------------------------------------------------------------------------------
 
-void NLinearAlgebra::MatrixMatrixMult
+CMatrixAS3<as3double> NLinearAlgebra::MatrixMatrixMult
 (
  CMatrixAS3<as3double> &matA,
- CMatrixAS3<as3double> &matB,
- CMatrixAS3<as3double> &matC
+ CMatrixAS3<as3double> &matB
 )
  /*
 	* Function that computes a matrix-matrix multiplication manually.
-	* Note, this routine allocates the memory for matC.
 	*/
 {
 	// Ensure the common dimension of the matrices is correct.
@@ -135,22 +134,115 @@ void NLinearAlgebra::MatrixMatrixMult
 	// Extract the numbner of rows and columns of C and the common dimension.
 	const size_t nRow = matA.row();
 	const size_t nCol = matB.col();
-	const size_t nVec = matA.col(); // Common dimension.
+	const size_t nDim = matA.col(); // Common dimension.
 
 	// Allocate the matrix to the correct size in row-major form, i.e. rows(A)*col(B).
-	matC.resize(nRow, nCol);
+	CMatrixAS3<as3double> matC(nRow, nCol);
 
 	// Perform actual matrix-matrix multiplication.
 	for(size_t i=0; i<nRow; i++)
 	{
 		for(size_t j=0; j<nCol; j++)
 		{
-			matC(i,j) = 0.0; 
-			for(size_t k=0; k<nVec; k++)
+			matC(i,j) = C_ZERO; 
+			for(size_t k=0; k<nDim; k++)
 			{
 				matC(i,j) += matA(i,k)*matB(k,j);
 			}
 		}
+	}
+
+	// Return the matrix C via copy elision (RVO).
+	return matC;
+}
+
+//-----------------------------------------------------------------------------------
+
+CMatrixAS3<as3double> NLinearAlgebra::MatrixVectorMult
+(
+ CMatrixAS3<as3double> &matA,
+ CMatrixAS3<as3double> &vecB
+)
+ /*
+	* Function that computes a matrix-vector multiplication manually.
+	*/
+{
+	// Ensure the common dimension of the dot product per vector is correct.
+	if( matA.col() != vecB.col() ) ERROR("Incompatible dot product dimension.");
+
+	// Extract the numbner of rows and columns of A.
+	const size_t nRow = matA.row();
+	const size_t nCol = matA.col();
+
+	// Extract the number of vectors that are matrix-vector multiplied with matA.
+	const size_t nVec = vecB.row();
+
+	// Allocate the matrix of vectors to the correct size.
+	CMatrixAS3<as3double> vecC(nVec, nRow);
+
+	// Perform actual matrix-vector multiplication on each vector: i.
+	for(size_t i=0; i<nVec; i++)
+	{
+		for(size_t j=0; j<nRow; j++)
+		{
+			vecC(i,j) = C_ZERO; 
+			for(size_t k=0; k<nCol; k++)
+			{
+				vecC(i,j) += matA(j,k)*vecB(i,k);
+			}
+		}
+	}
+
+	// Return the vector C via copy elision (RVO).
+	return vecC;
+}
+
+//-----------------------------------------------------------------------------------
+
+void NLinearAlgebra::MatrixVectorTransMult
+(
+ CMatrixAS3<as3double> &matA,
+ CMatrixAS3<as3double> &vecB,
+ CMatrixAS3<as3double> &vecC
+)
+ /*
+	* Function that computes a matrix-vector multiplication manually, with the vector transposed.
+	*/
+{
+	// Consistency check.
+#if DEBUG	
+	// Ensure the common dimension of the dot product per vector is correct.
+	if( matA.col() != vecB.col() ) ERROR("Incompatible dot product dimension.");
+
+	// Check that the input/output vectors are of identical dimensions.
+	if( (vecB.row() != vecC.row()) || (vecB.col() != vecC.col()) )
+	{
+		ERROR("Vector dimensions are inconsistent.");
+	}
+#endif
+
+	// Extract the numbner of rows and columns of A.
+	const size_t nRow = matA.row();
+	const size_t nCol = matA.col();
+
+	// Extract the number of vectors that are matrix-vector multiplied with matA.
+	const size_t nVec = vecB.row();
+
+	// Create a temporary vector for storing the results.
+	as3double tmp[nRow];
+
+	// Perform actual matrix-vector multiplication on each vector: i.
+	for(size_t i=0; i<nVec; i++)
+	{
+		for(size_t j=0; j<nRow; j++)
+		{
+			tmp[j] = C_ZERO;
+			for(size_t k=0; k<nCol; k++)
+			{
+				tmp[j] += matA(j,k)*vecB(i,k);
+			}
+		}
+		for(size_t j=0; j<nRow; j++) vecC(i,j) = tmp[j];
 	}
 }
 

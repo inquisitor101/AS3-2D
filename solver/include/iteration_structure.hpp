@@ -6,7 +6,6 @@
 #include "solver_structure.hpp"
 #include "interface_structure.hpp"
 
-
 // Forward declaration to avoid compiler issues.
 class ISolver;
 class IInterface;

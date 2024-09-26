@@ -119,22 +119,16 @@ void CIteration::ComputeResidual
 	const unsigned short nZone = config_container->GetnZone();
 
 	// For now, loop over the zones and naively update the residuals.
-	for(unsigned short iZone=0; iZone<nZone; iZone++)
+	for( auto& solver: solver_container )
 	{
-		// Extract pointer to the relevant solver.
-		auto* solver = solver_container[iZone].get();
-		
-
 		// Compute all volume terms. Note, this step also initializes the residual.
 		solver->ComputeVolumeResidual(localtime, monitordata, workarray);
 
 		// Compute all surface terms in the i-direction.
-		solver->ComputeSurfaceResidualIDir(solver_container, geometry_container, 
-				                               monitordata, workarray, localtime);
+		solver->ComputeSurfaceResidualIDir(geometry_container, monitordata, workarray, localtime);
 
 		// Compute all surface terms in the j-direction.
-		solver->ComputeSurfaceResidualJDir(solver_container, geometry_container, 
-				                               monitordata, workarray, localtime);
+		solver->ComputeSurfaceResidualJDir(geometry_container, monitordata, workarray, localtime);
 
 	}
 
@@ -142,6 +136,21 @@ void CIteration::ComputeResidual
 	for( auto& interface: interface_container )
 	{
 		interface->ComputeInterfaceResidual(solver_container, workarray);
+	}
+
+	// Multiply by the inverse mass matrix.
+	for( auto& solver: solver_container )
+	{
+		for( auto& element: solver->GetPhysicalElement() )
+		{
+			// Get the inverse of the mass matrix.
+			auto& m = element->mInvMassMatrix;
+			// Get the residual on this element.
+			auto& r = element->mRes2D;
+
+			// Perform a matrix-matrix multiplication to obtain the residual.
+			NLinearAlgebra::MatrixVectorTransMult(m, r, r);
+		}
 	}
 }
 

@@ -514,7 +514,7 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	}
 
 	// Perform a matrix-matrix multiplication to obtain the mass matrix: At*B.
-	NLinearAlgebra::BLAS_GEMM(At, B, mInvMassMatrix);
+	mInvMassMatrix = NLinearAlgebra::BLAS_GEMM(At, B);
 
 	// Invert the mass matrix. 
 	// Note, it might prove useful to investigate preconditioning the matrix.
