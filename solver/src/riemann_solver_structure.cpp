@@ -78,14 +78,15 @@ void CRoeRiemannSolver::ComputeFlux
 	* Function that cmoputes a unique flux state on a surface using Roe's method.
 	*/
 {
-
 	// Loop over the integration points and compute the unique flux.
 	for(size_t l=0; l<wts.size(); l++)
 	{
 		// The face is assumed to be taken from the perspective of the left solution.
-		const as3double wq = C_HALF*wts[l]*met(0,l);
-		const as3double nx = met(1,l);
-		const as3double ny = met(2,l);
+		// Note, the residual is defined on the RHS: 
+		//  dUDt = Res(vol) - Res(surf), thus the surf terms are -ve.
+		const as3double wq = -C_HALF*wts[l]*met(0,l);
+		const as3double nx =  met(1,l);
+		const as3double ny =  met(2,l);
 
     // Compute the primitive data for the left state.
   	as3double tmp 	  	= C_ONE/solL(0,l);

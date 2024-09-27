@@ -70,7 +70,11 @@ IInterface::IInterface
 		// their boundary markers. The the matching (j-)index is:
 		const unsigned int j = mNElem - i - 1;
 
-		mIndexElement.emplace_back(i,j);
+		// Deduce the actual element indices, not their marker index.
+		const unsigned int I = imarker_container->GetElementFaces(i).mIndex;
+		const unsigned int J = jmarker_container->GetElementFaces(j).mIndex;
+
+		mIndexElement.emplace_back(I,J);
 	}
 
 	// Process the markers, to ensure they coincide geometrically.
@@ -354,7 +358,6 @@ void CEEInterface::ComputeInterfaceResidual
 
 		// Compute the residual on the matching element, which is on the jface boundary.
 		ComputeResFaceJ(mNVar, flux.data(), nullptr, nullptr, resJ.data());
-
 	}
 }
 

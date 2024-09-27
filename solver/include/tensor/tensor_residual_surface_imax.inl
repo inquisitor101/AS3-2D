@@ -28,7 +28,7 @@ void CTensorProduct<K, M>::ResidualSurfaceIMAX
 	const as3double (*aDer)[M] = (const as3double (*)[M]) ADer;
 
 	// Total number of (volume) integration/solution points in 2D.
-	constexpr size_t K2   = K*K;
+	constexpr size_t K2 = K*K;
 	// Index of the IMAX node.
 	constexpr size_t IK = K-1;
 

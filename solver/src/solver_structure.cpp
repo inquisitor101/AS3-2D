@@ -319,6 +319,8 @@ void CEESolver::ComputeVolumeResidual
 		for(size_t l=0; l<nInt2D; l++)
 		{
 			// Compute the weighting factor: Jacobian multiplied by the integration weight.
+			// Note, the residual is defined on the RHS: 
+			//  dUDt = Res(vol) - Res(surf), thus the vol terms are +ve.
 			const as3double weight = jac(0,l)*wInt2D[l];
 
 			// Assemble the relevant (weighted) metrics in the x- and y-derivatives.
