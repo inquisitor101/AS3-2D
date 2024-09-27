@@ -6,6 +6,21 @@
 //-----------------------------------------------------------------------------------
 
 
+std::unique_ptr<CMonitorData> 
+CGenericFactory::CreateMonitoringContainer
+(
+ CConfig *config_container
+)
+ /*
+	* Function that creates a specialized instance of a temporal container.
+	*/
+{
+	// For now, simply return the only monitoring data container.
+	return std::make_unique<CMonitorData>(config_container); 
+}
+
+//-----------------------------------------------------------------------------------
+
 std::unique_ptr<ITemporal> 
 CGenericFactory::CreateTemporalContainer
 (

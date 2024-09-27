@@ -9,6 +9,7 @@
 #include "temporal_structure.hpp"
 #include "boundary_structure.hpp"
 #include "interface_structure.hpp"
+#include "monitoring_structure.hpp"
 #include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
@@ -28,6 +29,15 @@ class IInitialCondition;
 class CGenericFactory
 {
 	public:
+
+		/*!
+		 * @brief Function that creates a specialized instance of a data monitoring container.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 *
+		 * @return unique pointer to the specific data monitoring class.
+		 */
+		static std::unique_ptr<CMonitorData> CreateMonitoringContainer(CConfig *config_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a temporal container.

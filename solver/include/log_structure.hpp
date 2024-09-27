@@ -1,8 +1,10 @@
 #pragma once
 
+#include <iomanip>
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "solver_structure.hpp"
+#include "monitoring_structure.hpp"
 
 
 /*!
@@ -31,6 +33,21 @@ namespace NLogger
 			cout << endl;
 		}
 	}
+
+	/*!
+	 * @brief Function that prints the monitored data and the header info.
+	 *
+	 * @param[in] config_container configuration/dictionary container.
+	 * @param[in] monitor_container data monitoring container.
+	 * @param[in] time current physical time.
+	 * @param[in] step current time step.
+	 * @param[in] data data monitored.
+	 */
+	void MonitorOutput(CConfig       *config_container,
+			               CMonitorData  *monitor_container,
+			               unsigned long  iter,
+			               as3double      time,
+										 as3double      step);
 
 	/*!
 	 * @brief Function that prints the type of solver in each zone.

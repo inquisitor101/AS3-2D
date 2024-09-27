@@ -67,10 +67,10 @@ void CIteration::PreProcessIteration
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
- as3vector1d<as3double>                   &monitordata,
  as3double                                 localtime 
 )
  /*
@@ -86,10 +86,10 @@ void CIteration::PostProcessIteration
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
- as3vector1d<as3double>                   &monitordata,
  as3double                                 localtime 
 )
  /*
@@ -105,10 +105,10 @@ void CIteration::ComputeResidual
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
- as3vector1d<as3double>                   &monitordata,
  as3double                                 localtime
 )
  /*
@@ -122,13 +122,13 @@ void CIteration::ComputeResidual
 	for( auto& solver: solver_container )
 	{
 		// Compute all volume terms. Note, this step also initializes the residual.
-		solver->ComputeVolumeResidual(localtime, monitordata, workarray);
+		solver->ComputeVolumeResidual(geometry_container, monitor_container, workarray, localtime);
 
 		// Compute all surface terms in the i-direction.
-		solver->ComputeSurfaceResidualIDir(geometry_container, monitordata, workarray, localtime);
+		solver->ComputeSurfaceResidualIDir(geometry_container, monitor_container, workarray, localtime);
 
 		// Compute all surface terms in the j-direction.
-		solver->ComputeSurfaceResidualJDir(geometry_container, monitordata, workarray, localtime);
+		solver->ComputeSurfaceResidualJDir(geometry_container, monitor_container, workarray, localtime);
 
 	}
 
@@ -160,9 +160,9 @@ void CIteration::GridSweep
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container, 
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- as3vector1d<as3double>                   &monitordata,
  as3double                                 localtime 
 )
  /*
@@ -178,29 +178,29 @@ void CIteration::GridSweep
 	// Check for any preprocessing steps.
 	PreProcessIteration(config_container,
 			                geometry_container,
+											monitor_container,
 											solver_container,
 											interface_container,
 											workarray,
-											monitordata,
 											localtime);
 
 
 	// Compute the residual over all zones.
 	ComputeResidual(config_container,
 			            geometry_container,
+									monitor_container,
 									solver_container,
 									interface_container,
 									workarray,
-									monitordata,
 									localtime);
 
 
 	// Check for any postprocessing steps.
 	PostProcessIteration(config_container,
 			                 geometry_container,
+											 monitor_container,
 											 solver_container,
 											 interface_container,
 											 workarray,
-											 monitordata,
 											 localtime);
 }

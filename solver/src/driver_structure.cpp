@@ -37,6 +37,9 @@ CDriver::CDriver
 	// Initialize the iteration container, must be initialized after the solver container.
 	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get(),
 			                                               mSolverContainer); 
+
+	// Initialize the data monitoring container.
+	mMonitoringContainer = CGenericFactory::CreateMonitoringContainer(mConfigContainer.get());
 }
 
 //-----------------------------------------------------------------------------------
@@ -205,11 +208,6 @@ void CDriver::Run
 	// Extract the total number of temporal iterations.
 	const size_t nIter = mConfigContainer->GetMaxIterTime();
 
-
-	// Allocate vector for data to monitor.
-	as3vector1d<as3double> monitordata(2);
-
-
 	// Initialize the starting time and iteration count.
 	as3double t = t0; size_t i = 0;
 
@@ -217,14 +215,19 @@ void CDriver::Run
 	while( (t<tf) && (i<nIter) )
 	{
 
+		// Monitor data.
+		NLogger::MonitorOutput(mConfigContainer.get(), 
+				                   mMonitoringContainer.get(),
+				                   i, t, dt);
+
 		// Update the solution in time.
 		mTemporalContainer->UpdateTime(mConfigContainer.get(),
 				                           mGeometryContainer.get(),
 																	 mIterationContainer.get(),
+																	 mMonitoringContainer.get(),
 																	 mSolverContainer,
 																	 mInterfaceContainer,
-																	 t, dt,
-																	 monitordata);
+																	 t, dt);
 
 
 		// Update physical time.
@@ -236,6 +239,12 @@ void CDriver::Run
 		// Extra processing steps go here.
 
 	}
+	
+	// Monitor data.
+	NLogger::MonitorOutput(mConfigContainer.get(), 
+			                   mMonitoringContainer.get(),
+				                   i, t, dt);
+	
 
 	// TODO: needs a writing-frequency check.
 	// Save the final state. 
@@ -243,7 +252,5 @@ void CDriver::Run
 			                              mGeometryContainer.get(),
 																		mSolverContainer);
 }
-
-
 
 

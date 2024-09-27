@@ -5,15 +5,16 @@
 
 #include "log_structure.hpp"
 #include "option_structure.hpp"
-#include "factory_structure.hpp"
 #include "config_structure.hpp"
-#include "geometry_structure.hpp"
 #include "import_structure.hpp"
 #include "output_structure.hpp"
-#include "temporal_structure.hpp"
 #include "solver_structure.hpp"
+#include "factory_structure.hpp"
+#include "geometry_structure.hpp"
+#include "temporal_structure.hpp"
 #include "iteration_structure.hpp"
 #include "interface_structure.hpp"
+#include "monitoring_structure.hpp"
 #include "initial_condition_structure.hpp"
 
 
@@ -47,7 +48,8 @@ class CDriver
 		std::unique_ptr<CConfig>                 mConfigContainer;    ///< Container for the configuration options. 
 		std::unique_ptr<CGeometry>               mGeometryContainer;  ///< Container for the geometry information. 
 		std::unique_ptr<COutput>                 mOutputContainer;    ///< Container for the output functionalities.
-    std::unique_ptr<ITemporal>               mTemporalContainer;  ///< Container for the temporal discretization.
+    std::unique_ptr<CMonitorData>            mMonitoringContainer;///< Container for the monitoring data.
+		std::unique_ptr<ITemporal>               mTemporalContainer;  ///< Container for the temporal discretization.
 		std::unique_ptr<CIteration>              mIterationContainer; ///< Container for a single grid-sweep iteration.
 		std::unique_ptr<IInitialCondition>       mInitialContainer;   ///< Container for the initial condition.
 		as3vector1d<std::unique_ptr<ISolver>>    mSolverContainer;	  ///< Vector of containers for the solver, per each zone.

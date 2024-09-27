@@ -190,7 +190,60 @@ void NLogger::DisplayBoundaryConditions
 	std::cout << "Done." << std::endl;
 }
 
+//-----------------------------------------------------------------------------------
 
+void NLogger::MonitorOutput
+(
+ CConfig       *config_container,
+ CMonitorData  *monitor_container,
+ unsigned long  iter,
+ as3double      time,
+ as3double      step
+)
+ /*
+	* Function that outputs the header of the information being displayed.
+	*/
+{
+	// Extract the max number of iterations.
+	unsigned long nMaxIter = config_container->GetMaxIterTime();
+	// Number of output reports for monitoring progress.
+	unsigned long nOutput  = std::max(1ul, nMaxIter/100);
+	// Compute number of max digits needed for output.
+	unsigned long nDigits  = std::to_string(nMaxIter).size();
+
+	// Display header.
+	if( iter%(50*nOutput) == 0 )
+	{
+		std::cout << "**********************************************"
+							<< "**********************************************" << std::endl;
+		std::cout << " Iteration\tPhysical Time \t Time step \t Max(Mach) \t Res[L2(rho)]" << std::endl;
+		std::cout << "**********************************************"
+							<< "**********************************************" << std::endl;
+	}
+
+	// Display data in this iteration.
+  // Extract the maximum Mach number.
+  const as3double Mmax = monitor_container->mMachMax;
+	// Extract the RMS of the density residual.
+	const as3double RMSr = monitor_container->mDensityL2;
+
+	// Display progress.
+	std::cout << std::scientific << "   "
+						<< std::setw(nDigits) << iter
+						<< " \t "  << time
+						<< " \t "  << step
+            << " \t "  << Mmax
+						<< " \t "  << RMSr << std::endl;
+
+	//// Check if there need be a gnuplot file written and write one.
+	//if( config_container->GetWriteGNUplot() )
+	//	output_container->WriteGNUplot(config_container, iIter, time, MonitoringData);
+
+//  // Check for floating-point errors at run-time.
+//#ifdef ENABLE_NAN_CHECK
+//	NError::CheckFloatingError();
+//#endif
+}
 
 
 

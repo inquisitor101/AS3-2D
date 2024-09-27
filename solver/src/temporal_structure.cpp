@@ -80,11 +80,11 @@ void CSSPRK3Temporal::UpdateTime
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
  CIteration                               *iteration_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  as3double                                 physicaltime,
- as3double                                 timestep,
- as3vector1d<as3double>                   &monitordata
+ as3double                                 timestep
 )
  /*
 	* Function that computes the upcoming solution in time, based on a SSP-RK3.
@@ -100,11 +100,11 @@ void CSSPRK3Temporal::UpdateTime
     EvaluateSSPRK3(config_container,
 				           geometry_container,
                		 iteration_container,
+									 monitor_container,
                		 solver_container,
 									 interface_container,
                		 localtime, timestep,
-									 iStageRK,
-               		 monitordata);
+									 iStageRK);
 	}
 }
 
@@ -115,12 +115,12 @@ void CSSPRK3Temporal::EvaluateSSPRK3
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
  CIteration                               *iteration_container,
+ CMonitorData                             *monitor_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  as3double                                 localtime,
  as3double                                 timestep,
- unsigned short                            iStageRK,
- as3vector1d<as3double>                   &monitordata
+ unsigned short                            iStageRK
 )
  /*
 	* Function that does a single stage SSP-RK3 evaluation.
@@ -133,9 +133,9 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 	// First, compute the residual.
 	iteration_container->GridSweep(config_container,
 			                           geometry_container,
+																 monitor_container,
 																 solver_container,
 																 interface_container,
-																 monitordata,
 																 localtime);
 
 

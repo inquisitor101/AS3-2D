@@ -278,9 +278,10 @@ void CEESolver::InitBoundaryConditions
 
 void CEESolver::ComputeVolumeResidual
 (
- as3double                  localtime,
- as3vector1d<as3double>    &monitordata,
- CPoolMatrixAS3<as3double> &workarray
+ CGeometry                 *geometry_container,
+ CMonitorData              *monitor_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
 )
  /*
 	* Function that computes the volume terms of an EE-type PDE. 
@@ -376,7 +377,7 @@ void CEESolver::ComputeVolumeResidual
 void CEESolver::ComputeSurfaceResidualIDir
 (
  CGeometry                 *geometry_container,
- as3vector1d<as3double>    &monitordata,
+ CMonitorData              *monitor_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime
 )
@@ -539,7 +540,7 @@ void CEESolver::ComputeSurfaceResidualIDir
 void CEESolver::ComputeSurfaceResidualJDir
 (
  CGeometry                 *geometry_container,
- as3vector1d<as3double>    &monitordata,
+ CMonitorData              *monitor_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime
 )

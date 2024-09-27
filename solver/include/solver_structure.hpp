@@ -6,6 +6,7 @@
 #include "tensor_structure.hpp"
 #include "factory_structure.hpp"
 #include "boundary_structure.hpp"
+#include "monitoring_structure.hpp"
 #include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
@@ -60,25 +61,27 @@ class ISolver
 
 		/*!
 		 * @brief Pure virtual function that computes the volume terms in the entire solver.
-		 * 
-		 * @param[in] localtime current physical time.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 *
+		 * @param[in] geometry_container input geometry container. 
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
 		 */
-		virtual void ComputeVolumeResidual(as3double                  localtime,
-																			 as3vector1d<as3double>    &monitordata,
-																			 CPoolMatrixAS3<as3double> &workarray) = 0;
+		virtual void ComputeVolumeResidual(CGeometry                 *geometry_container,
+																			 CMonitorData              *monitor_container,
+																			 CPoolMatrixAS3<as3double> &workarray,
+																			 as3double                  localtime) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the i-direction in the entire solver.
 		 *
 		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
 		virtual void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
-																			      as3vector1d<as3double>    &monitordata,
+																						CMonitorData              *monitor_container,
 																			      CPoolMatrixAS3<as3double> &workarray,
 																						as3double                  localtime) = 0;
 
@@ -86,12 +89,12 @@ class ISolver
 		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
 		 *
 		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
 		virtual void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
-																			      as3vector1d<as3double>    &monitordata,
+																						CMonitorData              *monitor_container,
 																			      CPoolMatrixAS3<as3double> &workarray,
 																						as3double                  localtime) = 0;
 
@@ -217,24 +220,26 @@ class CEESolver : public ISolver
 		/*!
 		 * @brief Function that computes the volume terms in the entire solver, based on the EE.
 		 * 
-		 * @param[in] localtime current physical time.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] geometry_container input geometry container. 
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
 		 */
-		void ComputeVolumeResidual(as3double                  localtime,
-															 as3vector1d<as3double>    &monitordata,
-															 CPoolMatrixAS3<as3double> &workarray) override;
+		void ComputeVolumeResidual(CGeometry                 *geometry_container,
+				                       CMonitorData              *monitor_container,
+															 CPoolMatrixAS3<as3double> &workarray,
+															 as3double                  localtime) override;
 
 		/*!
 		 * @brief Function that computes the surface terms in the i-direction in the entire solver, based on the EE.
 		 *
 		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
 		void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
-															      as3vector1d<as3double>    &monitordata,
+																		CMonitorData              *monitor_container,
 															      CPoolMatrixAS3<as3double> &workarray,
 																		as3double                  localtime) override;
 
@@ -242,12 +247,12 @@ class CEESolver : public ISolver
 		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
 		 *
 		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 */
 		void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
-															      as3vector1d<as3double>    &monitordata,
+																		CMonitorData              *monitor_container,
 															      CPoolMatrixAS3<as3double> &workarray,
 																		as3double                  localtime) override;
 
