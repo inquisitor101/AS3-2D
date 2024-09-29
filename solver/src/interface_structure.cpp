@@ -225,10 +225,6 @@ CEEInterface::CEEInterface
 	unsigned short ipoly = solver_container[mIZone]->GetStandardElement()->GetnPolySol();
 	unsigned short jpoly = solver_container[mJZone]->GetStandardElement()->GetnPolySol();
 	
-	//// Extract the number of solution points in each marker zone.
-	//unsigned short insol = solver_container[mIZone]->GetStandardElement()->GetnSol1D();
-	//unsigned short jnsol = solver_container[mJZone]->GetStandardElement()->GetnSol1D();
-	
 	// Extract the number of integration points in each marker zone.
 	unsigned short inint = solver_container[mIZone]->GetStandardElement()->GetnInt1D();
 	unsigned short jnint = solver_container[mJZone]->GetStandardElement()->GetnInt1D();
