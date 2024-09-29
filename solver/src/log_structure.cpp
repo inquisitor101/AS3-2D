@@ -221,7 +221,6 @@ void NLogger::MonitorOutput
 							<< "**********************************************" << std::endl;
 	}
 
-	// Display data in this iteration.
   // Extract the maximum Mach number.
   const as3double Mmax = monitor_container->mMachMax;
 	// Extract the RMS of the density residual.
@@ -229,20 +228,11 @@ void NLogger::MonitorOutput
 
 	// Display progress.
 	std::cout << std::scientific << "   "
-						<< std::setw(nDigits) << iter
+						<< std::setw(static_cast<int>(nDigits)) << iter
 						<< " \t "  << time
 						<< " \t "  << step
             << " \t "  << Mmax
 						<< " \t "  << RMSr << std::endl;
-
-	//// Check if there need be a gnuplot file written and write one.
-	//if( config_container->GetWriteGNUplot() )
-	//	output_container->WriteGNUplot(config_container, iIter, time, MonitoringData);
-
-//  // Check for floating-point errors at run-time.
-//#ifdef ENABLE_NAN_CHECK
-//	NError::CheckFloatingError();
-//#endif
 }
 
 

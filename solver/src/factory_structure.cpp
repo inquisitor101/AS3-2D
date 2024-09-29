@@ -201,6 +201,7 @@ CGenericFactory::CreateTensorContainer
 #define SPECIALIZED_TENSOR(K,M) if( (K==k) && (M==m) ) \
 	return std::make_unique< CTensorProduct<K,M> >(standard_element);
 
+	SPECIALIZED_TENSOR(2,2);
 	SPECIALIZED_TENSOR(2,3);
 
 	SPECIALIZED_TENSOR(3,3);

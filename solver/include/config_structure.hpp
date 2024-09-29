@@ -162,6 +162,13 @@ class CConfig
 		size_t GetMaxIterTime(void)                                 const {return mMaxIterTime;}
 
 		/*!
+		 * @brief Getter function which returns the writing frequency of the visualization files.
+		 *
+		 * @return mWriteVisFreq
+		 */
+		size_t GetWriteVisFreq(void)                                const {return mWriteVisFreq;}
+
+		/*!
 		 * @brief Getter function which returns the value of mZoneGridFilename, per input zone.
 		 *
 		 * @param[in] iZone zone ID.
@@ -240,6 +247,7 @@ class CConfig
 		as3double                       mFinalTime;              ///< Simulation ending time.
 		as3double                       mTimeStep;               ///< Time step.
 		size_t                          mMaxIterTime;            ///< Maximum temporal iterations during the simulation.
+		size_t                          mWriteVisFreq;           ///< Visualization file writing frequency.
 		std::string                     mOutputSolFilename;      ///< Output solution filename.
 		std::string                     mOutputVisFilename;      ///< Output visualization filename.
 		unsigned short                  mNZone;		    		       ///< Total number of zones.

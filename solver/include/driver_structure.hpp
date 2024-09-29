@@ -70,6 +70,15 @@ class CDriver
 		 */
 		void InitializeData(void);
 
+		/*!
+		 * @brief Function that writes the output information.
+		 *
+		 * @param[in] i temporal iteration count.
+		 * @param[in] t current physical time.
+		 * @param[in] dt current time step.
+		 */
+		void WriteOutput(size_t i, as3double t, as3double dt);
+
 
 		// Disable default constructor.
 		CDriver(void) = delete;
@@ -77,5 +86,4 @@ class CDriver
 		CDriver(const CDriver&) = delete;
 		// Disable default copy operator.
 		CDriver& operator=(CDriver&) = delete;
-
 };

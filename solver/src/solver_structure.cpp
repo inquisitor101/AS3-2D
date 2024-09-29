@@ -297,6 +297,9 @@ void CEESolver::ComputeVolumeResidual
 	CWorkMatrixAS3<as3double> dVarDx = workarray.GetWorkMatrixAS3(mNVar, nInt2D);
 	CWorkMatrixAS3<as3double> dVarDy = workarray.GetWorkMatrixAS3(mNVar, nInt2D);
 
+	// Initialize the max Mach squared, needed in the monitoring.
+	as3double M2max = C_ZERO;
+
 
 	// Loop over each element and compute its residual. Note, this also resets the residual.
 	for( auto& physical_element: mPhysicalElementContainer )
@@ -337,6 +340,17 @@ void CEESolver::ComputeVolumeResidual
   	  const as3double v     = ovrho*var(2,l);
   	  const as3double p     = C_GM1*( var(3,l) - C_HALF*(u*var(1,l) + v*var(2,l)) );
 
+
+    	// Magnitude of the velocity squared.
+    	const as3double umag2 = u*u + v*v;
+    	// Speed of sound squared.
+    	const as3double a2    = C_GMA*p*ovrho;
+
+    	// Compute the local Mach number squared.
+    	const as3double M2 = umag2/a2;
+    	// Check if this value is the largest.
+    	M2max = std::max(M2max, M2);
+
   	  // Compute the inviscid flux in the x-direction. 
   	  const as3double fx0 =     var(1,l);
   	  const as3double fx1 = u*  var(1,l) + p;
@@ -362,7 +376,6 @@ void CEESolver::ComputeVolumeResidual
 			dVarDy(3,l) = fx3*wdsdx + fy3*wdsdy;
 		}
 
-
 		// Scatter the volume residual terms back to the actual residual. Note, this resets the residual! 
 		mTensorProductContainer->ResidualVolume(mNVar, 
 				                                    nullptr, 
@@ -370,6 +383,9 @@ void CEESolver::ComputeVolumeResidual
 																						dVarDy.data(), 
 																						res.data());
 	}
+
+	// Set the monitored data.
+	monitor_container->mMachMax = std::sqrt(M2max);
 }
 
 //-----------------------------------------------------------------------------------

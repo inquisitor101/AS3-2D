@@ -189,6 +189,65 @@ void CDriver::InitializeData
 
 //-----------------------------------------------------------------------------------
 
+void CDriver::WriteOutput
+(
+ size_t    i,
+ as3double t,
+ as3double dt
+)
+ /*
+	* Function that writes the output information. 
+	*/
+{
+	// For convenience, extract the properties of the simulation end time.
+	const size_t nIter = mConfigContainer->GetMaxIterTime();
+	const as3double tf = mConfigContainer->GetFinalTime();
+
+	// Extract the visualization output frequency.
+	const size_t fvis = mConfigContainer->GetWriteVisFreq();
+
+	// Flag whether the the visualization file is written.
+	bool isvis = false;
+
+	// Check if we need to write the visualization file.
+	if( i%fvis == 0 )
+	{
+		mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
+				                              mGeometryContainer.get(),
+																			mSolverContainer);
+	
+		// Update the visualization flag.
+		isvis = true;
+	}
+
+	// Check if this is the end of the simulation.
+	if( (i >= nIter) || (t >= tf) )
+	{
+
+		// Write the visualization file, if it hasnt been written.
+		if( !isvis )
+		{
+			mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
+					                              mGeometryContainer.get(),
+																				mSolverContainer);
+		}
+	}
+
+	// Monitor data.
+	NLogger::MonitorOutput(mConfigContainer.get(), 
+			                   mMonitoringContainer.get(),
+				                 i, t, dt);
+
+	// TODO: write GNUplot file
+
+  // Check for floating-point errors at run-time.
+#ifdef ENABLE_NAN_CHECK
+	NError::CheckFloatingError();
+#endif
+}
+
+//-----------------------------------------------------------------------------------
+
 void CDriver::Run
 (
  void
@@ -215,11 +274,6 @@ void CDriver::Run
 	while( (t<tf) && (i<nIter) )
 	{
 
-		// Monitor data.
-		NLogger::MonitorOutput(mConfigContainer.get(), 
-				                   mMonitoringContainer.get(),
-				                   i, t, dt);
-
 		// Update the solution in time.
 		mTemporalContainer->UpdateTime(mConfigContainer.get(),
 				                           mGeometryContainer.get(),
@@ -229,28 +283,12 @@ void CDriver::Run
 																	 mInterfaceContainer,
 																	 t, dt);
 
-
-		// Update physical time.
-		t += dt;
-
-		// Update iteration count.
-		i++;
-
-		// Extra processing steps go here.
-
+		// Update physical time and iteration count.
+		t += dt; i++;
+	
+		// Write the output data, if need be.
+		WriteOutput(i, t, dt);
 	}
-	
-	// Monitor data.
-	NLogger::MonitorOutput(mConfigContainer.get(), 
-			                   mMonitoringContainer.get(),
-				                   i, t, dt);
-	
-
-	// TODO: needs a writing-frequency check.
-	// Save the final state. 
-	mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
-			                              mGeometryContainer.get(),
-																		mSolverContainer);
 }
 
 

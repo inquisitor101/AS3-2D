@@ -189,6 +189,9 @@ bool CConfig::ReadOutputOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mOutputVisFormat = GenericScalarMap(MapVisualFormat, buffer, "OUTPUT_VIS_FORMAT");
 
+
+	// Read the writing frequency of the visualization files.
+	NInputUtility::AddScalarOption(paramfile, "WRITE_VIS_FREQ", mWriteVisFreq, true);
 	// Read the output visualization filename.
 	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FILENAME", mOutputVisFilename, true);
 	// Read the output solution filename.

@@ -115,9 +115,6 @@ void CIteration::ComputeResidual
 	* Function that computes the residual in all zones.
 	*/
 {
-	// Extract the number of zones.
-	const unsigned short nZone = config_container->GetnZone();
-
 	// For now, loop over the zones and naively update the residuals.
 	for( auto& solver: solver_container )
 	{
