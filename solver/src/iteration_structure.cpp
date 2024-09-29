@@ -65,13 +65,13 @@ CIteration::~CIteration
 
 void CIteration::PreProcessIteration
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime, 
- CPoolMatrixAS3<as3double>             &workarray,
- as3vector1d<as3double>                &monitordata
-
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ CPoolMatrixAS3<as3double>                &workarray,
+ as3double                                 localtime 
 )
  /*
 	* Function that preprocesses the solution, before sweeping the grid.
@@ -84,12 +84,13 @@ void CIteration::PreProcessIteration
 
 void CIteration::PostProcessIteration
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime, 
- CPoolMatrixAS3<as3double>             &workarray,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ CPoolMatrixAS3<as3double>                &workarray,
+ as3double                                 localtime 
 )
  /*
 	* Function that postprocesses the solution, after sweeping the grid.
@@ -102,52 +103,50 @@ void CIteration::PostProcessIteration
 
 void CIteration::ComputeResidual
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime,
- CPoolMatrixAS3<as3double>             &workarray,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ CPoolMatrixAS3<as3double>                &workarray,
+ as3double                                 localtime
 )
  /*
 	* Function that computes the residual in all zones.
 	*/
 {
-	// NOTE
-	// This is the most performance-dependent function, at least under the current design choices.
-	// What we know:
-	// 1) The volume terms are the most expensive to compute. However, they are compact terms, completely decoupled.
-	// 2) The surface terms are coupled, as they rely on neighboring elements and boundary values.
-	//
-	// Probably, better to seperate the surface terms and the volume terms. 
-	// Also, perhaps it is more efficient to consider internal and boundary surface faces separately?
-
-
-
-	// Extract the number of zones.
-	const unsigned short nZone = config_container->GetnZone();
-
 	// For now, loop over the zones and naively update the residuals.
-	for(unsigned short iZone=0; iZone<nZone; iZone++)
+	for( auto& solver: solver_container )
 	{
-		// Extract pointer to the relevant solver.
-		auto* solver       = solver_container[iZone].get();
-		// Extract pointer to the relevant grid zone.
-		auto* grid         = geometry_container->GetZoneGeometry(iZone);
-		// Extract the number of elements in this zone.
-		const size_t nElem = grid->GetnElem();
+		// Compute all volume terms. Note, this step also initializes the residual.
+		solver->ComputeVolumeResidual(geometry_container, monitor_container, workarray, localtime);
 
-	
+		// Compute all surface terms in the i-direction.
+		solver->ComputeSurfaceResidualIDir(geometry_container, monitor_container, workarray, localtime);
 
-		// Loop over the elements and compute the residuals.
-		for(size_t iElem=0; iElem<nElem; iElem++)
+		// Compute all surface terms in the j-direction.
+		solver->ComputeSurfaceResidualJDir(geometry_container, monitor_container, workarray, localtime);
+
+	}
+
+	// Loop over the interface boundaries, if need be.
+	for( auto& interface: interface_container )
+	{
+		interface->ComputeInterfaceResidual(solver_container, workarray);
+	}
+
+	// Multiply by the inverse mass matrix.
+	for( auto& solver: solver_container )
+	{
+		for( auto& element: solver->GetPhysicalElement() )
 		{
-			// Compute volume terms. Note, this step also initializes the residual.
-			solver->ComputeVolumeResidual(iElem, localtime, monitordata, workarray);
+			// Get the inverse of the mass matrix.
+			auto& m = element->mInvMassMatrix;
+			// Get the residual on this element.
+			auto& r = element->mRes2D;
 
-			// Compute surface terms.
-
-			// Multiply by the inverse mass matrix.
+			// Perform a matrix-matrix multiplication to obtain the residual.
+			NLinearAlgebra::MatrixVectorTransMult(m, r, r);
 		}
 	}
 }
@@ -156,11 +155,12 @@ void CIteration::ComputeResidual
 
 void CIteration::GridSweep
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime, 
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container, 
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ as3double                                 localtime 
 )
  /*
 	* Function that performs a grid sweep over all the zones. 
@@ -175,26 +175,29 @@ void CIteration::GridSweep
 	// Check for any preprocessing steps.
 	PreProcessIteration(config_container,
 			                geometry_container,
+											monitor_container,
 											solver_container,
-											localtime,
+											interface_container,
 											workarray,
-											monitordata);
+											localtime);
 
 
 	// Compute the residual over all zones.
 	ComputeResidual(config_container,
 			            geometry_container,
+									monitor_container,
 									solver_container,
-									localtime,
+									interface_container,
 									workarray,
-									monitordata);
+									localtime);
 
 
 	// Check for any postprocessing steps.
 	PostProcessIteration(config_container,
 			                 geometry_container,
+											 monitor_container,
 											 solver_container,
-											 localtime,
+											 interface_container,
 											 workarray,
-											 monitordata);
+											 localtime);
 }

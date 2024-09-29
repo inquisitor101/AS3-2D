@@ -74,7 +74,7 @@ void NInputUtility::AddScalarOption
   // Initialize string.
   std::string valString;
   // Initialize line number.
-  size_t CurrentLine;
+  long CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -116,7 +116,7 @@ void NInputUtility::AddScalarOption
   // Initialize string.
   std::string valString;
   // Initialize line number.
-  size_t CurrentLine;
+  long CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -164,7 +164,7 @@ void NInputUtility::AddVectorOption
   // Initialize string.
 	std::vector<std::string> valStringVector;
   // Initialize line number.
-  size_t CurrentLine;
+  long CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -217,7 +217,7 @@ void NInputUtility::AddVectorOption
 	// Initialize string.
 	std::vector<std::string> valStringVector;
   // Initialize line number.
-  size_t CurrentLine;
+  long CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 

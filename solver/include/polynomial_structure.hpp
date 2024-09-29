@@ -9,6 +9,15 @@
 namespace NPolynomialUtility
 {
   /*!
+	 * @brief Function that computes the integration rule in 1D.
+	 *
+	 * @param[in] npoly input polynomial order.
+	 *
+	 * @return number of integration nodes in 1D.
+	 */
+  unsigned short IntegrationRule1D(unsigned short npoly);
+
+  /*!
 	 * @brief Function that computes the Lagrange basis functions in 1D via 2 Vandermonde matrices: L = V1*inv(V2).
 	 *
 	 * @param[in] V1 Vandermonde matrix in 1D at evaluation points.
@@ -48,7 +57,7 @@ namespace NPolynomialUtility
 	 * @param[in] rDOFs1D vector of DOFs in 1D.
 	 * @param[out] rBasis1D vector containing the Legendre basis in 1D.
 	 */
-	void OrthonormalLegendreBasis1D(const int                    nCol, 
+	void OrthonormalLegendreBasis1D(const unsigned int           nCol, 
 			                            const CMatrixAS3<as3double> &rDOFs1D,
 																	CMatrixAS3<as3double>       &rBasis1D);
 
@@ -59,7 +68,7 @@ namespace NPolynomialUtility
 	 * @param[in] rDOFs1D vector of DOFs in 1D.
 	 * @param[out] rDerBasis1D vector containing the derivative of the Legendre basis in 1D.
 	 */
-	void DerivativeOrthonormalLegendreBasis1D(const int                    nCol, 
+	void DerivativeOrthonormalLegendreBasis1D(const unsigned int           nCol, 
 			                                      const CMatrixAS3<as3double> &rDOFs1D,
 																	          CMatrixAS3<as3double>       &rDerBasis1D);
 

@@ -30,13 +30,6 @@ CConfig::CConfig
   inputfile.close();
 
 
-	// Read the zone connectivity options.
-	if( !ReadZoneConnectivityOptions(filename) )
-	{
-		message << "Failed to extract zone connectivity options from " << filename;
-		ERROR(message.str());
-	}
-
 	// Read the zone configuration options.
 	if( !ReadZoneConfigurationOptions(filename) )
 	{
@@ -73,7 +66,6 @@ CConfig::CConfig
 	}
 	
 
-
 	// Report output.
 	std::cout << "Done." << std::endl;
 }
@@ -93,51 +85,6 @@ CConfig::~CConfig
 
 //-----------------------------------------------------------------------------------
 
-bool CConfig::ReadZoneConnectivityOptions
-(
- const char *filename
-)
- /*
-	* Function that reads the zone connectivity options.
-	*/
-{
-	// Report output.
-	std::cout << "  reading zone connectivity............... ";	
-
-  // Open input file.
-  std::ifstream paramfile(filename);
-
-  // Buffer for storing temporary strings.
-	std::string buffer;
-
-	// Read the mesh format specified.
-	NInputUtility::AddScalarOption(paramfile, "MESH_FORMAT", buffer, true);
-	// Deduce the type from the buffer, based on the mapping.
-	mMeshFormat = GenericScalarMap(MapMeshFormat, buffer, "MESH_FORMAT");
-
-	// Read the total number of zones expected.
-	NInputUtility::AddScalarOption(paramfile, "NUMBER_ZONE", mNZone, true);
-
-	// Read the format of the input grid files.
-	NInputUtility::AddScalarOption(paramfile, "INPUT_GRID_FORMAT", buffer, true);
-	// Deduce the type from the buffer, based on the mapping.
-	mInputGridFormat = GenericScalarMap(MapFormatFile, buffer, "INPUT_GRID_FORMAT");
-
-	// Close the file, since it will be opened later.
-	paramfile.close();
-
-	// Extract the information in the zone connectivity file.
-	ExtractZoneGridFiles(filename);
-
-	// Report output.
-	std::cout << " Done." << std::endl;
-
-  // Return happily.
-	return true;
-}
-
-//-----------------------------------------------------------------------------------
-
 bool CConfig::ReadZoneConfigurationOptions
 (
  const char *filename
@@ -153,53 +100,62 @@ bool CConfig::ReadZoneConfigurationOptions
   std::ifstream paramfile(filename);
 
   // Buffer for storing temporary strings.
-	as3vector1d<std::string> buffer;
+	std::string              buffer;
+	as3vector1d<std::string> buffervec;
 
-  // Read the zone markers names.
-	NInputUtility::AddVectorOption(paramfile, "MARKER_ZONE", buffer, true);
-  // Pad entries for the buffer vector. This serves as an error check, rather than padding.
-  PadEntriesVectorData(buffer, "MARKER_ZONE", mNZone);
-	// Deduce the zone indices.
-	NInputUtility::ExtractLastDigitFromString(buffer, mZoneIndex);
-
+	// Read the total number of zones expected.
+	NInputUtility::AddScalarOption(paramfile, "NUMBER_ZONE", mNZone, true);
+ 
 	// Read the type of solver in each zone.
-	NInputUtility::AddVectorOption(paramfile, "TYPE_SOLVER", buffer, true);
+	NInputUtility::AddVectorOption(paramfile, "TYPE_SOLVER", buffervec, true);
   // Pad entries for the buffer vector.
-  PadEntriesVectorData(buffer, "TYPE_SOLVER", mNZone, 1, 2);
+  PadEntriesVectorData(buffervec, "TYPE_SOLVER", mNZone, 1, 2);
 	// Deduce the type from the buffer, based on the mapping.
-	mTypeSolver = GenericVectorMap(MapTypeSolver, buffer, "TYPE_SOLVER");
+	mTypeSolver = GenericVectorMap(MapTypeSolver, buffervec, "TYPE_SOLVER");
 
 	// Default buffer layer value is: none.
 	as3vector1d<std::string> dvalue = { "NONE" }; 
 	// Read the type of buffer zone in each zone. Default: none.
-	NInputUtility::AddVectorOption(paramfile, "TYPE_BUFFER_LAYER", buffer, dvalue, true);
+	NInputUtility::AddVectorOption(paramfile, "TYPE_BUFFER_LAYER", buffervec, dvalue, true);
   // Pad entries for the buffer vector.
-  PadEntriesVectorData(buffer, "TYPE_BUFFER_LAYER", mNZone, 1, 2);
+  PadEntriesVectorData(buffervec, "TYPE_BUFFER_LAYER", mNZone, 1, 2);
 	// Deduce the type from the buffer, based on the mapping.
-	mTypeBufferLayer = GenericVectorMap(MapTypeBufferLayer, buffer, "TYPE_BUFFER_LAYER");
+	mTypeBufferLayer = GenericVectorMap(MapTypeBufferLayer, buffervec, "TYPE_BUFFER_LAYER");
 
 	// Read the type of DOFs in each zone.
-	NInputUtility::AddVectorOption(paramfile, "TYPE_DOF", buffer, true);
+	NInputUtility::AddVectorOption(paramfile, "TYPE_DOF", buffervec, true);
   // Pad entries for the buffer vector.
-  PadEntriesVectorData(buffer, "TYPE_DOF", mNZone, 1, 2);
+  PadEntriesVectorData(buffervec, "TYPE_DOF", mNZone, 1, 2);
 	// Deduce the type from the buffer, based on the mapping.
-	mTypeDOF = GenericVectorMap(MapTypeDOF, buffer, "TYPE_DOF");
+	mTypeDOF = GenericVectorMap(MapTypeDOF, buffervec, "TYPE_DOF");
 
-	// Read the grid polynomial orders in each zone.
-	NInputUtility::AddVectorOption(paramfile, "POLY_ORDER_GRID", mNPolyGrid, true);
-  // Pad entries for the mNPolyGrid vector.
-  PadEntriesVectorData(mNPolyGrid, "POLY_ORDER_GRID", mNZone, 1, 2);
+	// Read the solution/grid polynomial orders in each zone.
+	NInputUtility::AddVectorOption(paramfile, "POLY_ORDER", mNPoly, true);
+  // Pad entries for the mNPoly vector.
+  PadEntriesVectorData(mNPoly, "POLY_ORDER", mNZone, 1, 2);
 
-	// Read the solution polynomial orders in each zone.
-	NInputUtility::AddVectorOption(paramfile, "POLY_ORDER_SOL", mNPolySol, true);
-  // Pad entries for the mNPolySol vector.
-  PadEntriesVectorData(mNPolySol, "POLY_ORDER_SOL", mNZone, 1, 2);
+	// Read the type of Riemann solver specified in each zone.
+	NInputUtility::AddVectorOption(paramfile, "RIEMANN_SOLVER", buffervec, true);
+	// Pad entries for the mTypeRiemannSolver vector.
+  PadEntriesVectorData(buffervec, "RIEMANN_SOLVER", mNZone, 1, 2);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeRiemannSolver = GenericVectorMap(MapTypeRiemannSolver, buffervec, "RIEMANN_SOLVER");
 
-	// Consistency checks.
-	ConsistencyCheckZoneConfiguration();
+	// Read the mesh format specified.
+	NInputUtility::AddScalarOption(paramfile, "MESH_FORMAT", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mMeshFormat = GenericScalarMap(MapMeshFormat, buffer, "MESH_FORMAT");
 
-	// Close file.
-  paramfile.close();
+	// Read the format of the input grid files.
+	NInputUtility::AddScalarOption(paramfile, "INPUT_GRID_FORMAT", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mInputGridFormat = GenericScalarMap(MapFormatFile, buffer, "INPUT_GRID_FORMAT");
+
+	// Close the file, since it will be opened later.
+	paramfile.close();
+
+	// Extract the information in the zone connectivity file.
+	ExtractZoneGridFiles(filename);
 
 	// Report output.
 	std::cout << " Done." << std::endl;
@@ -228,12 +184,14 @@ bool CConfig::ReadOutputOptions
 	std::string              buffer;
 	as3vector1d<std::string> buffervec;
 
-
 	// Read the output visualization format specified.
 	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FORMAT", buffer, true);
 	// Deduce the type from the buffer, based on the mapping.
 	mOutputVisFormat = GenericScalarMap(MapVisualFormat, buffer, "OUTPUT_VIS_FORMAT");
 
+
+	// Read the writing frequency of the visualization files.
+	NInputUtility::AddScalarOption(paramfile, "WRITE_VIS_FREQ", mWriteVisFreq, true);
 	// Read the output visualization filename.
 	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FILENAME", mOutputVisFilename, true);
 	// Read the output solution filename.
@@ -332,7 +290,6 @@ bool CConfig::ReadInitialConditionOptions
 		default: ERROR("Cannot extract additional information from the specified IC.");
 	}
 
-
 	// Report output.
 	std::cout << " Done." << std::endl;
 
@@ -353,23 +310,35 @@ bool CConfig::ReadBoundaryConditionOptions
 	// Report output.
   std::cout << "  reading boundary condition information.. ";
 	
-	// Check for and extract periodic boundary condition information, if present.
-	ExtractInfoPeriodicBC(filename);
+	// Check for and extract interface/periodic boundary condition information, if present.
+	ExtractInfoInterfaceBC(filename);
 
-
-	// Check that all the markers are indeed unique. 
-	if( mBoundaryMarkers.size() )
+	// Check that all the boundary + interface markers are indeed unique. 
+	if( mMarkerTag.size() )
 	{
-		// Loop over the elements and ensure uniqueness.
-		for(size_t i=0; i<mBoundaryMarkers.size(); i++)
-			for(size_t j=i+1; j<mBoundaryMarkers.size(); j++)
-				if( mBoundaryMarkers[i].first == mBoundaryMarkers[j].first ) ERROR("Markers are not unique."); 
+		// Ensure both interface and boundary markers are correct in size.
+		if( mMarkerTag.size() != (mBoundaryParamMarker.size() + 2*mInterfaceParamMarker.size()) )
+		{
+			ERROR("Markers are not consistent in size.");
+		}
+
+		// Ensure the markers are indeed unique.
+		for(size_t i=0; i<mMarkerTag.size(); i++)
+		{
+			for(size_t j=i+1; j<mMarkerTag.size(); j++)
+			{
+				if( mMarkerTag[i].first == mMarkerTag[j].first ) 
+				{
+					ERROR("Markers are not unique."); 
+				}
+			}
+		}
 	}
 	else
 	{
-		ERROR("No boundary conditions have been deteced.");
+		// No boundary information is detected, this is nonsense.
+		ERROR("Marker boundary/interface conditions are missing.");
 	}
-
 
 	// Report output.
 	std::cout << " Done." << std::endl;
@@ -380,12 +349,12 @@ bool CConfig::ReadBoundaryConditionOptions
 
 //-----------------------------------------------------------------------------------
 
-void CConfig::ExtractInfoPeriodicBC
+void CConfig::ExtractInfoInterfaceBC
 (
  const char *filename
 )
  /*
-	* Function that reads the periodic BC information, if present.
+	* Function that reads the interface/periodic BC information, if present.
 	*/
 {
 	// Open input file.
@@ -404,22 +373,19 @@ void CConfig::ExtractInfoPeriodicBC
 		as3vector1d<std::string> buffer;
 		
 		// Read the information of the periodic marker, if specified.
-		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_PERIODIC", buffer, defval, false);
+		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_INTERFACE", buffer, defval, false);
 
 		// Check if any new values are found.
 		if( buffer != defval )
 		{
-			// Ensure the values are a pair.
-			if( buffer.size() != 2 ) ERROR("Periodic BCs must specify two markers.");
+			// Ensure the values specified are 4: iName, jName, rx, ry.
+			if( buffer.size() != 4 )
+			{
+				ERROR("Interface BCs must specify two markers and a 2D translation vector.");
+			}
 
-			// Accumulate the information: iMarker, jMarker.
-			mMarkerNamePeriodic.push_back( buffer );
-
-			// The periodic markers are a pair: iMarker, jMarker. Also, include their reverse 
-			// order: jMarker, iMarker. This is not strictly needed, but helps in the processing.
-			std::reverse( buffer.begin(), buffer.end() );
-			// Include the reversed order: jMarker, iMarker.
-			mMarkerNamePeriodic.push_back( buffer );
+			// Accumulate the information.
+			mInterfaceParamMarker.push_back( std::make_unique<CInterfaceParamMarker>(buffer) );
 		}
 		else
 		{
@@ -428,26 +394,16 @@ void CConfig::ExtractInfoPeriodicBC
 		}
 	}
 
-
-	// Check that all the markers are indeed unique. This can be done more elegantly, but this
-	// is fine for now, at the preprocessing stage.
-	if( mMarkerNamePeriodic.size() )
+	// Accumulate the marker tag information, if need be.
+	if( mInterfaceParamMarker.size() )
 	{
-		// Abbreviation, for readability.
-		auto& m = mMarkerNamePeriodic;
-		
-		// Loop over the elements and ensure uniqueness.
-		for(size_t i=0; i<m.size(); i++)
-			for(size_t j=i+1; j<m.size(); j++)
-				if( (m[i][0] == m[j][0]) || (m[i][1] == m[j][1]) ) ERROR("Periodic markers are not unique."); 
+		for( auto& interface: mInterfaceParamMarker )
+		{
+			// Accumulate both pair of boundaries.
+			mMarkerTag.push_back( {interface->mName,         interface->GetTypeBC()} );
+			mMarkerTag.push_back( {interface->mNameMatching, interface->GetTypeBC()} );
+		}
 	}
-
-	// Accumulate the marker name and type for book-keeping purposes.
-	for(size_t i=0; i<mMarkerNamePeriodic.size(); i++)
-	{
-		mBoundaryMarkers.push_back( {mMarkerNamePeriodic[i][0], ETypeBC::PERIODIC} );
-	}
-
 
 	// Close file.
   paramfile.close();
@@ -557,29 +513,6 @@ void CConfig::IC_IsentropicVortex
 
 //-----------------------------------------------------------------------------------
 
-void CConfig::ConsistencyCheckZoneConfiguration
-(
- void
-)
- /*
-	* Function that does a consistency check for zone configuration.
-	*/
-{
-	// Check that the zone indices are sequential.
-	as3vector1d<unsigned short> tmp = mZoneIndex;
-	// Sort the data sequentially.
-	std::sort( tmp.begin(), tmp.end() );
-
-	// Check that the data start from 0 and end at nZone-1.
-	unsigned short j=0;
-	for(unsigned short i=0; i<mNZone; i++)
-	{
-		if( tmp[i] != j++ ) ERROR("Zone indices must be sequential, starting from 0.");
-	}				
-}
-
-//-----------------------------------------------------------------------------------
-
 void CConfig::ExtractZoneGridFiles
 (
  const char *filename
@@ -650,46 +583,6 @@ void CConfig::ExtractZoneGridFiles
 }
 
 //-----------------------------------------------------------------------------------
-
-ETypeBC CConfig::DetermineMarkerBC
-(
- std::string &marker
-)
- /*
-	* Function that determines the boundary condition for a given marker.
-	*/
-{
-	// Search for the relevant marker name.
-	for( auto& bm: mBoundaryMarkers )
-		if( bm.first == marker ) return bm.second;
-
-	// If the code reaches this far, the marker has not been found.
-	ERROR("Could not detect marker: " + marker);
-
-	// The program should not reach this far. Return something to avoid a compiler error.
-	return ETypeBC::PERIODIC;
-}
-
-//-----------------------------------------------------------------------------------
-	
-std::string CConfig::FindMatchingPeriodicMarker
-(
- const std::string &imarker
-)
- /*
-	* Function that finds the name of the matching periodic boundary marker.
-	*/
-{
-	// Search for the relevant marker name.
-	for( auto& mp: mMarkerNamePeriodic )
-		if( mp[0] == imarker ) return mp[1];
-
-	// If the code reaches this far, the marker has not been found.
-	ERROR("Could not find the matching marker for: " + imarker);
-
-	// The program should not reach this far. Return something to avoid a compiler error.
-	return "";
-}
 
 
 

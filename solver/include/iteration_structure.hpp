@@ -4,10 +4,12 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "solver_structure.hpp"
-
+#include "interface_structure.hpp"
+#include "monitoring_structure.hpp"
 
 // Forward declaration to avoid compiler issues.
 class ISolver;
+class IInterface;
 
 
 /*!
@@ -35,15 +37,18 @@ class CIteration
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] localtime local physical time.
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] localtime local physical time.
 		 */
-		void GridSweep(CConfig                               *config_container,
-		               CGeometry                             *geometry_container,
-									 as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-									 as3double                              localtime, 
-									 as3vector1d<as3double>                &monitordata);
+		void GridSweep(CConfig                                  *config_container,
+		               CGeometry                                *geometry_container,
+									 CMonitorData                             *monitor_container,
+									 as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+									 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+									 as3double                                 localtime);
 
 	protected:
 
@@ -55,48 +60,57 @@ class CIteration
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
-		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] localtime local physical time.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] solver_container input multizone solver container. 
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] localtime local physical time.
 		 */
-		void PreProcessIteration(CConfig                               *config_container,
-		                         CGeometry                             *geometry_container,
-									           as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-									           as3double                              localtime, 
-														 CPoolMatrixAS3<as3double>             &workarray,
-									           as3vector1d<as3double>                &monitordata);
+		void PreProcessIteration(CConfig                                  *config_container,
+		                         CGeometry                                *geometry_container,
+														 CMonitorData                             *monitor_container,
+									           as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+														 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+									           CPoolMatrixAS3<as3double>                &workarray,
+														 as3double                                 localtime);
 
 		/*!
 		 * @brief Function that postprocesses the solution, after sweeping the grid.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
-		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] localtime local physical time.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] solver_container input multizone solver container. 
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] localtime local physical time.
 		 */
-		void PostProcessIteration(CConfig                               *config_container,
-		                          CGeometry                             *geometry_container,
-									            as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-									            as3double                              localtime, 
-															CPoolMatrixAS3<as3double>             &workarray,
-									            as3vector1d<as3double>                &monitordata);
+		void PostProcessIteration(CConfig                                  *config_container,
+		                          CGeometry                                *geometry_container,
+															CMonitorData                             *monitor_container,
+									            as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+															as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+									            CPoolMatrixAS3<as3double>                &workarray,
+															as3double                                 localtime);
 
 		/*!
 		 * @brief Function that computes the residual in all zones.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] localtime local physical time.
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] localtime local physical time.
 		 */
-		void ComputeResidual(CConfig                               *config_container,
-		                     CGeometry                             *geometry_container,
-									       as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-									       as3double                              localtime,
-												 CPoolMatrixAS3<as3double>             &workarray,
-									       as3vector1d<as3double>                &monitordata);
+		void ComputeResidual(CConfig                                  *config_container,
+		                     CGeometry                                *geometry_container,
+												 CMonitorData                             *monitor_container,
+									       as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+												 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+									       CPoolMatrixAS3<as3double>                &workarray,
+												 as3double                                 localtime);
 
 
 

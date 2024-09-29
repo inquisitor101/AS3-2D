@@ -19,9 +19,9 @@ void CTensorProduct<K, M>::SurfaceJMIN
 	*/
 {
 	// Unpack the information needed, based on the standard element.
-	const as3double *A        = mStandardElementContainer->GetLagrangeInt1DTrans().data();
-	const as3double *ADer     = mStandardElementContainer->GetDerLagrangeInt1DTrans().data();
-	const as3double *aDerFace = mStandardElementContainer->GetDerLagrangeMinFace1D().data();
+	const as3double *A        = mLagrangeInt1DTrans.data();
+	const as3double *ADer     = mDerLagrangeInt1DTrans.data();
+	const as3double *aDerFace = mDerLagrangeMinFace1D.data();
 
 	// Cast the arrays from 1D to 2D.
 	const as3double (*a)[M]    = (const as3double (*)[M]) A;
@@ -29,14 +29,6 @@ void CTensorProduct<K, M>::SurfaceJMIN
 
 	// Total number of (volume) solution points in 2D.
 	constexpr size_t K2 = K*K;
-
-	// Ensure the tensor dimension is correct.
-#if DEBUG	
-	if( (K != mStandardElementContainer->GetnSol1D()) 
-			|| 
-			(M != mStandardElementContainer->GetnInt1D()) ) 
-		ERROR("Mismatch in tensor dimensions.");
-#endif
 
 
 	// Loop over each N entry.
@@ -56,7 +48,7 @@ void CTensorProduct<K, M>::SurfaceJMIN
 			// Get a pointer to the current variable address in C.
 			as3double *c = &C[l*M];
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
         for(size_t ii=0; ii<K; ii++)
@@ -74,7 +66,7 @@ void CTensorProduct<K, M>::SurfaceJMIN
 			// Get a pointer to the current variable address in CDerR.
 			as3double *cDerR = &CDerR[l*M];
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
         for(size_t ii=0; ii<K; ii++)
@@ -95,14 +87,14 @@ void CTensorProduct<K, M>::SurfaceJMIN
 			// Cast array B from 1D to 2D.
 			const as3double (*b)[K] = (const as3double (*)[K]) &B[l*K2];
 			
-			for(size_t s=0; s<K; s++) tmpJ[s] = 0.0;
+			for(size_t s=0; s<K; s++) tmpJ[s] = static_cast<as3double>(0.0);
 			for(size_t i=0; i<K; i++)
 			{
         for(size_t jj=0; jj<K; jj++)
 					tmpJ[i] += aDerFace[jj] * b[jj][i];
 			}
 
-			for(size_t s=0; s<M; s++) tmpI[s] = 0.0;
+			for(size_t s=0; s<M; s++) tmpI[s] = static_cast<as3double>(0.0);
 			for(size_t k=0; k<M; k++)
 			{
         for(size_t ii=0; ii<K; ii++)

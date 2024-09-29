@@ -42,13 +42,13 @@ LDLIBS = -llapack -lblas $(CXX_PGOFLAGS)
 DEPFLAGS = -MMD -MT $@ -MP -MF $(DEP_DIR)/$*.d
 
 # Compiler debug flags.
-CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra  #-Wpadded -Werror #-fanalyzer 
+CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra -Wno-unused-parameter #-Wpadded -Werror #-fanalyzer 
 
 # Preprocessor flags.
 CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
 
 # Optimization flags.
-CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG
+CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG 
 
 # Guided-profiling flag.
 CXX_PGOFLAGS = #-pg

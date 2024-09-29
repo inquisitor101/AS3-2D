@@ -6,6 +6,8 @@
 #include "tensor_structure.hpp"
 #include "factory_structure.hpp"
 #include "boundary_structure.hpp"
+#include "monitoring_structure.hpp"
+#include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
 
@@ -35,6 +37,11 @@ class ISolver
 
 
 		/*!
+		 * @brief Pure virtual function that returns the type of solver. Must be overridden.
+		 */
+		virtual ETypeSolver GetTypeSolver(void) const = 0;
+
+		/*!
 		 * @brief Pure virtual function that initializes the physical elements. Must be implemented in a derived class.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -53,16 +60,43 @@ class ISolver
 				                                CGeometry *geometry_container) = 0;
 
 		/*!
-		 * @brief Pure virtual function that computes the volume terms over a single element.
-		 * 
-		 * @param[in] iElem element index.
+		 * @brief Pure virtual function that computes the volume terms in the entire solver.
+		 *
+		 * @param[in] geometry_container input geometry container. 
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
-		 * @param[out] monitordata vector of parameters to monitor.
 		 */
-		virtual void ComputeVolumeResidual(size_t                     iElem,
-				                               as3double                  localtime,
-																			 as3vector1d<as3double>    &monitordata,
-																			 CPoolMatrixAS3<as3double> &workarray) = 0;
+		virtual void ComputeVolumeResidual(CGeometry                 *geometry_container,
+																			 CMonitorData              *monitor_container,
+																			 CPoolMatrixAS3<as3double> &workarray,
+																			 as3double                  localtime) = 0;
+
+		/*!
+		 * @brief Pure virtual function that computes the surface terms in the i-direction in the entire solver.
+		 *
+		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
+		 */
+		virtual void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
+																						CMonitorData              *monitor_container,
+																			      CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime) = 0;
+
+		/*!
+		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
+		 *
+		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
+		 */
+		virtual void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
+																						CMonitorData              *monitor_container,
+																			      CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime) = 0;
 
 		/*!
 		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
@@ -84,11 +118,25 @@ class ISolver
 		ITensorProduct *GetTensorProduct(void) const {return mTensorProductContainer.get();}
 
 		/*!
+		 * @brief Getter function which returns the Riemann solver container of this zone.
+		 *
+		 * @return mRiemannSolverContainer.
+		 */
+		IRiemannSolver *GetRiemannSolver(void) const {return mRiemannSolverContainer.get();}
+
+		/*!
 		 * @brief Getter function which returns the standard element container of this zone.
 		 *
 		 * @return mStandardElementContainer.
 		 */
 		const CStandardElement *GetStandardElement(void) const {return mStandardElementContainer.get();}
+
+		/*!
+		 * @brief Getter function which returns the entire physical element container.
+		 *
+		 * @return mPhysicalElementContainer.
+		 */
+		as3vector1d<std::unique_ptr<CPhysicalElement>> &GetPhysicalElement(void) {return mPhysicalElementContainer;}
 
 		/*!
 		 * @brief Getter function which returns a specific physical element container.
@@ -99,20 +147,18 @@ class ISolver
 		 */
 		CPhysicalElement *GetPhysicalElement(size_t index) const {return mPhysicalElementContainer[index].get();}
 
-		/*!
-		 * @brief Getter function which returns the entire boundary container.
-		 *
-		 * @return mBoundaryContainer.
-		 */
-		as3vector1d<std::unique_ptr<IBoundary>> &GetBoundaryContainer(void) {return mBoundaryContainer;}
 
 	protected:
 		const unsigned short                           mZoneID;                    ///< Zone ID of this container.
-	
 		std::unique_ptr<ITensorProduct>                mTensorProductContainer;    ///< Tensor product container.
+		std::unique_ptr<IRiemannSolver>                mRiemannSolverContainer;    ///< Riemann solver container.
 		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	
 		as3vector1d<std::unique_ptr<CPhysicalElement>> mPhysicalElementContainer;  ///< Physical element container.
-		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryContainer;         ///< Boundary condition container.
+		
+		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryIMINContainer;     ///< IMIN boundary container.
+		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryIMAXContainer;     ///< IMAX boundary container.
+		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryJMINContainer;     ///< JMIN boundary container.
+		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryJMAXContainer;     ///< JMAX boundary container.
 
 	private:
 		// Disable default constructor.
@@ -149,6 +195,11 @@ class CEESolver : public ISolver
 		~CEESolver(void) override;
 
 		/*!
+		 * @brief Function that returns the type of solver. 
+		 */
+		ETypeSolver GetTypeSolver(void) const override {return ETypeSolver::EE;}
+
+		/*!
 		 * @brief Function that initializes the physical elements.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
@@ -167,16 +218,43 @@ class CEESolver : public ISolver
 		                            CGeometry *geometry_container) override;
 
 		/*!
-		 * @brief Function that computes the volume terms over a single element, based on the EE equations.
+		 * @brief Function that computes the volume terms in the entire solver, based on the EE.
 		 * 
-		 * @param[in] iElem element index.
+		 * @param[in] geometry_container input geometry container. 
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
-		 * @param[out] monitordata vector of parameters to monitor.
 		 */
-		void ComputeVolumeResidual(size_t                     iElem,
-		                           as3double                  localtime,
-															 as3vector1d<as3double>    &monitordata,
-															 CPoolMatrixAS3<as3double> &workarray) override;
+		void ComputeVolumeResidual(CGeometry                 *geometry_container,
+				                       CMonitorData              *monitor_container,
+															 CPoolMatrixAS3<as3double> &workarray,
+															 as3double                  localtime) override;
+
+		/*!
+		 * @brief Function that computes the surface terms in the i-direction in the entire solver, based on the EE.
+		 *
+		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
+		 */
+		void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
+																		CMonitorData              *monitor_container,
+															      CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime) override;
+
+		/*!
+		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
+		 *
+		 * @param[in] geometry_container input geometry container.
+		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] workarray memory for the working array.
+		 * @param[in] localtime current physical time.
+		 */
+		void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
+																		CMonitorData              *monitor_container,
+															      CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime) override;
 
 		/*!
 		 * @brief Getter function which returns the number of working variables.

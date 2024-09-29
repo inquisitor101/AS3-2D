@@ -46,26 +46,18 @@ CSSPRK3Temporal::CSSPRK3Temporal
 	* Constructor for the strong-stability-preserving 3rd-order Runge-Kutta (SSP-RK3) temporal class.
 	*/
 {
-	// Number of stages is three.
-	const size_t nStageRK = 3;
-
-	// Initialize the SSP-RK3 coefficients.
-	rk3a.resize(nStageRK);
-	rk3b.resize(nStageRK);
-	rk3c.resize(nStageRK);
-
 	// Initialize the SSP-RK3 coefficients. 
-	rk3a[0] = 1.0;
-	rk3a[1] = 3.0/4.0;
-	rk3a[2] = 1.0/3.0;
+	mRk3a[0] = static_cast<as3double>(1.0);
+	mRk3a[1] = static_cast<as3double>(3.0/4.0);
+	mRk3a[2] = static_cast<as3double>(1.0/3.0);
 
-	rk3b[0] = 1.0;
-	rk3b[1] = 1.0/4.0;
-	rk3b[2] = 2.0/3.0;
+	mRk3b[0] = static_cast<as3double>(1.0);
+	mRk3b[1] = static_cast<as3double>(1.0/4.0);
+	mRk3b[2] = static_cast<as3double>(2.0/3.0);
 
-	rk3c[0] = 0.0;
-	rk3c[1] = 1.0;
-	rk3c[2] = 1.0/2.0;
+	mRk3c[0] = static_cast<as3double>(0.0);
+	mRk3c[1] = static_cast<as3double>(1.0);
+	mRk3c[2] = static_cast<as3double>(1.0/2.0);
 }
 
 //-----------------------------------------------------------------------------------
@@ -85,39 +77,34 @@ CSSPRK3Temporal::~CSSPRK3Temporal
 
 void CSSPRK3Temporal::UpdateTime
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CIteration                            *iteration_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              physicaltime,
- as3double                              timestep,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CIteration                               *iteration_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ as3double                                 physicaltime,
+ as3double                                 timestep
 )
  /*
 	* Function that computes the upcoming solution in time, based on a SSP-RK3.
 	*/
 {
-	// Extract number of RK stages in a SSP-RK3.
-	const size_t nStageRK = rk3a.size();
-
 	// Loop over all Runge-Kutta stages.
-	for(size_t iStageRK=0; iStageRK<nStageRK; iStageRK++)
+	for(unsigned short iStageRK=0; iStageRK<mNStageRK; iStageRK++)
 	{
 		// Local physical time.
-		const as3double localtime = physicaltime + rk3c[iStageRK]*timestep;
-
-		// Local RK coefficients.
-		const as3double alpha = rk3a[iStageRK];
-		const as3double beta  = rk3b[iStageRK];
+		const as3double localtime = physicaltime + mRk3c[iStageRK]*timestep;
 
     // Perform a single stage evaluation, based on a SSP-RK3 .
     EvaluateSSPRK3(config_container,
-				            geometry_container,
-               			iteration_container,
-               			solver_container,
-               			localtime, timestep,
-               			alpha, beta,
-               			monitordata);
+				           geometry_container,
+               		 iteration_container,
+									 monitor_container,
+               		 solver_container,
+									 interface_container,
+               		 localtime, timestep,
+									 iStageRK);
 	}
 }
 
@@ -125,26 +112,89 @@ void CSSPRK3Temporal::UpdateTime
 
 void CSSPRK3Temporal::EvaluateSSPRK3
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CIteration                            *iteration_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3double                              localtime,
- as3double                              timestep,
- as3double                              alpha,
- as3double                              beta,
- as3vector1d<as3double>                &monitordata
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ CIteration                               *iteration_container,
+ CMonitorData                             *monitor_container,
+ as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+ as3double                                 localtime,
+ as3double                                 timestep,
+ unsigned short                            iStageRK
 )
  /*
 	* Function that does a single stage SSP-RK3 evaluation.
 	*/
 {
+	// Local RK coefficients.
+	const as3double alpha = mRk3a[iStageRK];
+	const as3double beta  = mRk3b[iStageRK];
+
 	// First, compute the residual.
 	iteration_container->GridSweep(config_container,
 			                           geometry_container,
+																 monitor_container,
 																 solver_container,
-																 localtime,
-																 monitordata);
+																 interface_container,
+																 localtime);
+
+
+	// Update the solution in time. For computational efficiency, make a distinction 
+	// between the first stage (iStage=0) and the remaining ones.
+	if( iStageRK == 0 )
+	{
+		// Abbreviation.
+		const as3double bdt = beta*timestep;
+
+		// Loop over each solver in every zone.
+		for( auto& solver: solver_container )
+		{
+			// Loop over every element in this zone.
+			for( auto& element: solver->GetPhysicalElement() )
+			{
+				// Extract current solution and residual.
+				auto& sol = element->mSol2D;
+				auto& res = element->mRes2D;
+		
+				// Extract the tentative (sol) solution state.
+				auto& old = element->mSolOld2D;
+
+				// Loop over each node and compute its updated value.
+				for(size_t l=0; l<sol.size(); l++)
+				{
+					old[l]  = sol[l];
+					sol[l] += bdt*res[l];
+				}
+			}
+		}
+	}
+	else
+	{
+		// Abbreviation.
+		const as3double bdt = beta*timestep;
+		const as3double oma = C_ONE - alpha;
+
+		// Loop over each solver in every zone.
+		for( auto& solver: solver_container )
+		{
+			// Loop over every element in this zone.
+			for( auto& element: solver->GetPhysicalElement() )
+			{
+				// Extract current solution and residual.
+				auto& sol = element->mSol2D;
+				auto& res = element->mRes2D;
+		
+				// Extract the tentative (sol) solution state.
+				auto& old = element->mSolOld2D;
+
+				// Loop over each node and compute its updated value.
+				for(size_t l=0; l<sol.size(); l++)
+				{
+					sol[l] = oma*sol[l] + alpha*old[l] + bdt*res[l];
+				}
+			}
+		}
+	}
 }
 
 

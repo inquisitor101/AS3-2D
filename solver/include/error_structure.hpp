@@ -2,6 +2,10 @@
 
 #include <iostream>
 
+#ifdef ENABLE_NAN_CHECK
+#include <fenv.h>
+#endif
+
 /*!
  * @brief Macro for an error log message, before terminating the program.
  */
@@ -27,4 +31,12 @@ namespace NError
 	               const char        *fileName,
 	               const int          lineNumber,
 	               const std::string &errorMessage);
+
+
+#ifdef ENABLE_NAN_CHECK
+	/*!
+	 * @brief Function that checks floating point errors.
+	 */
+	void CheckFloatingError(void);
+#endif
 }

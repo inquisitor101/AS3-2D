@@ -42,7 +42,7 @@ class CGeometry
 		 *
 		 * @return mZoneGeometry[iZone]
 		 */
-		CZoneGeometry *GetZoneGeometry(unsigned short iZone) const {return mZoneGeometry[iZone].get();}
+		CZoneGeometry *GetZoneGeometry(size_t iZone) const {return mZoneGeometry[iZone].get();}
 
 	protected:
 
@@ -122,11 +122,11 @@ class CZoneGeometry
 		const std::string &GetGridFile(void) const {return mGridFile;}
 
 		/*!
-		 * @brief Getter function which returns the mMarker.
+		 * @brief Getter function which returns the mMarkerGeometry.
 		 *
-		 * @return mMarker.
+		 * @return mMarkerGeometry.
 		 */
-		as3vector1d<std::unique_ptr<CMarker>> &GetMarker(void) {return mMarker;}
+		as3vector1d<std::unique_ptr<CMarker>> &GetMarker(void) {return mMarkerGeometry;}
 
 		/*!
 		 * @brief Getter function which returns the element of the specified index.
@@ -140,28 +140,28 @@ class CZoneGeometry
 		 *
 		 * @return mElementGeometry.size().
 		 */
-		size_t GetnElem(void) const {return mElementGeometry.size();}
+		unsigned int GetnElem(void) const {return static_cast<unsigned int>( mElementGeometry.size() );}
 
 		/*!
 		 * @brief Getter function which returns the number of elements in the x-direction.
 		 *
 		 * @return mNxElem.
 		 */
-		size_t GetnxElem(void) const {return static_cast<size_t>(mNxElem);}
+		unsigned int GetnxElem(void) const {return mNxElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of elements in the y-direction.
 		 *
 		 * @return mNyElem.
 		 */
-		size_t GetnyElem(void) const {return static_cast<size_t>(mNyElem);}
+		unsigned int GetnyElem(void) const {return mNyElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of grid nodes in 2D.
 		 *
 		 * @return (mNPolyGrid+1)*(mNPolyGrid+1).
 		 */
-		unsigned int GetnNodeGrid2D(void) const {return static_cast<unsigned int>( (mNPolyGrid+1)*(mNPolyGrid+1) );}
+		unsigned int GetnNodeGrid2D(void) const {return (mNPolyGrid+1)*(mNPolyGrid+1);}
 
 		/*!
 		 * @brief Getter function which returns the polynomial order of the grid element.
@@ -170,18 +170,47 @@ class CZoneGeometry
 		 */
 		unsigned short GetnPolyGrid(void) const {return mNPolyGrid;}
 
+		/*!
+		 * @brief Function that returns the vector containing the nodal indices of the specified face.
+		 *
+		 * @param[in] face type of face.
+		 *
+		 * @return mFaceNodalIndices[matching index].
+		 */
+		const as3vector1d<unsigned short> &GetFaceNodalIndices(EFaceElement face) const
+		{
+			switch( face )
+			{
+				case(EFaceElement::IMIN): {return mFaceNodalIndices[0]; break;}
+				case(EFaceElement::IMAX): {return mFaceNodalIndices[1]; break;}
+				case(EFaceElement::JMIN): {return mFaceNodalIndices[2]; break;}
+				case(EFaceElement::JMAX): {return mFaceNodalIndices[3]; break;}
+				default: ERROR("Face is unknown.");
+			}
+
+			// The program should not reach this far. Issue something to avoid compiler issues.
+			throw std::exception();
+		}
+
 	protected:
 
 	private:
-		const unsigned short                           mZoneID;          ///< Current zone index.
-		const std::string															 mGridFile;				 ///< Associated grid file name of this zone.
-		unsigned short                                 mNPolyGrid;       ///< Polynomial order of the grid element.
-		unsigned int                                   mNxElem;          ///< Number of elements in x-direction.
-		unsigned int                                   mNyElem;          ///< Number of elements in y-direction.	
-		
-		as3vector1d<std::unique_ptr<CMarker>>          mMarker;          ///< Container with the marker data.
-		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry; ///< Container with the element geometry.
+		const unsigned short                           mZoneID;           ///< Current zone index.
+		const std::string															 mGridFile;				  ///< Associated grid file name of this zone.
+		unsigned short                                 mNPolyGrid;        ///< Polynomial order of the grid element.
+		unsigned int                                   mNxElem;           ///< Number of elements in x-direction.
+		unsigned int                                   mNyElem;           ///< Number of elements in y-direction.	
 
+		as3vector2d<unsigned short>                    mFaceNodalIndices; ///< Container with the nodal face indices.
+																																			///< [iFace][iNode].
+		as3vector1d<std::unique_ptr<CMarker>>          mMarkerGeometry;   ///< Container with the marker data.
+		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
+
+
+		/*!
+		 * @brief Function that generates all 4 nodal indices on a quadrilateral in this zone.
+		 */
+		void GenerateNodalFaceIndices(void);
 
 		// Disable default constructor.
 		CZoneGeometry(void) = delete;

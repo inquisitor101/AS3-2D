@@ -200,19 +200,19 @@ void CLegacyBinaryVTK::WriteFileVTK
   const int MAX_STRING_LENGTH = 255;
 
 	// Initialize the buffer data.
-	as3vector2d<float> vars_buf(nZone);
-	as3vector2d<float> coor_buf(nZone);
-	as3vector2d<int>   conn_buf(nZone);
-	as3vector2d<int>   type_buf(nZone);
+	as3vector2d<float>         vars_buf(nZone);
+	as3vector2d<float>         coor_buf(nZone);
+	as3vector2d<unsigned int>  conn_buf(nZone);
+	as3vector2d<unsigned int>  type_buf(nZone);
 
 	// AS3 uses quadrilateral elements only. Based on VTK syntax, these have the below properties.
 	const unsigned int quad_elem = 9;
 	const unsigned int quad_npts = 4;
 
 	// Accumulate the total number of DOFs written per zone.
-	int nDOFsWritten    = 0;
+	unsigned int nDOFsWritten    = 0;
 	// Accumulate the total number of P1 sub-elements per zone.
-	int nSubElemWritten = 0;
+	unsigned int nSubElemWritten = 0;
 
 
 	// Assemble the data to write.
@@ -222,20 +222,20 @@ void CLegacyBinaryVTK::WriteFileVTK
 		auto* zone = geometry_container->GetZoneGeometry(iZone);
 
 		// Extract the current zone information.	
-		const int nElem = static_cast<int>( zone->GetnElem() );
-		const int nNode = static_cast<int>( zone->GetnNodeGrid2D() );
-		const int nPoly = static_cast<int>( zone->GetnPolyGrid() );
+		const unsigned int nElem = zone->GetnElem();
+		const unsigned int nNode = zone->GetnNodeGrid2D();
+		const unsigned int nPoly = zone->GetnPolyGrid();
 		
 		// Total DOFs and P1 sub-elements in this zone.
-		const int nDOFsTot = nNode*nElem;
-		const int nSubElem = nPoly*nPoly;
+		const unsigned int nDOFsTot = nNode*nElem;
+		const unsigned int nSubElem = nPoly*nPoly;
 
 		// Extract number of elements in x and y in this zone.
-		const int nxElem = static_cast<int>( zone->GetnxElem() );
-		const int nyElem = static_cast<int>( zone->GetnyElem() );
+		const unsigned int nxElem = zone->GetnxElem();
+		const unsigned int nyElem = zone->GetnyElem();
 
 		// Deduce number of nodes for the DOFs in 1D.
-		const int nDOFsSol1D = nPoly + 1;
+		const unsigned int nDOFsSol1D = nPoly + 1;
 
 		// Ensure the number of elements is correct.
 		if( nxElem*nyElem != nElem ) ERROR("Inconsistency in the number of elements being written.");
@@ -249,39 +249,41 @@ void CLegacyBinaryVTK::WriteFileVTK
 		type_buf[iZone].resize( nElem*nSubElem, quad_elem );
 
 		// Initialize the buffer data.
-  	for(int ijElem=0; ijElem<nElem; ++ijElem)
+  	for(unsigned int ijElem=0; ijElem<nElem; ++ijElem)
   	{
 			// Deduce the local element indices in x and y.
 			//const int jElem = ijElem/nxElem;
 			//const int iElem = ijElem - jElem*nxElem;
 
 			// Deduce the current element coordinate array location.
-			float *coorelem = coor_buf[iZone].data() + ijElem*3*nNode;  
+			float        *coorelem = coor_buf[iZone].data() + ijElem*3*nNode;  
 			// Deduce the current element connectivity array location.
-			int   *connelem = conn_buf[iZone].data() + ijElem*(quad_npts+1)*nSubElem;
+			unsigned int *connelem = conn_buf[iZone].data() + ijElem*(quad_npts+1)*nSubElem;
 
 			// Extract the current element coordinates.
 			auto& xyelem = zone->GetElementGeometry(ijElem)->GetCoordSolDOFs();
 
 			// Loop over every DOF on this element and store the coordinate.
-			int idx = 0;
-			for(int l=0; l<nNode; l++){
+			unsigned int idx = 0;
+			for(unsigned int l=0; l<nNode; l++)
+			{
 				coorelem[idx++] = static_cast<float>( xyelem(0,l) );
 				coorelem[idx++] = static_cast<float>( xyelem(1,l) );
 				coorelem[idx++] = 0.0f;
 			}
 
 			// Deduce the start of the current element's connectivity array.
-			const int offset = ijElem*nNode + nDOFsWritten;
+			const unsigned int offset = ijElem*nNode + nDOFsWritten;
 			
 			// Connectivity array.
 			idx = 0;
-			for(int j=0; j<nPoly; j++){
-				const int joff = offset + j*nDOFsSol1D;
-				for(int i=0; i<nPoly; i++){
-
+			for(unsigned int j=0; j<nPoly; j++)
+			{
+				const unsigned int joff = offset + j*nDOFsSol1D;
+				for(unsigned int i=0; i<nPoly; i++)
+				{
 					// Starting index of each nPoly=1 sub-element.
-					const int n0 = joff + i; 
+					const unsigned int n0 = joff + i; 
 					// Number of points in this element.
 					connelem[idx++] = quad_npts;
 					// Actual connectivity array.
@@ -299,7 +301,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 		nSubElemWritten += nElem*nSubElem; 
 
 		// Allocate the size of the written data variables.
-		vars_buf[iZone].resize(nDOFsTot*mVariableNames.size(), 0.0);
+		vars_buf[iZone].resize(nDOFsTot*mVariableNames.size(), 0.0f);
 	}
 
 	// Compute and store the required data for visualization. 
@@ -310,22 +312,24 @@ void CLegacyBinaryVTK::WriteFileVTK
 	
 
 	// Check if there need be any swapping, since ParaView expects data in big endian format.
-	if( !mBigEndian ){
-		for(unsigned short iZone=0; iZone<nZone; iZone++){
-			NInputUtility::SwapBytes( coor_buf[iZone].data(), sizeof(float), coor_buf[iZone].size() );
-			NInputUtility::SwapBytes( vars_buf[iZone].data(), sizeof(float), vars_buf[iZone].size() );
-			NInputUtility::SwapBytes( conn_buf[iZone].data(), sizeof(int),   conn_buf[iZone].size() );
-			NInputUtility::SwapBytes( type_buf[iZone].data(), sizeof(int),   type_buf[iZone].size() );
+	if( !mBigEndian )
+	{
+		for(unsigned short iZone=0; iZone<nZone; iZone++)
+		{
+			NInputUtility::SwapBytes( coor_buf[iZone].data(), sizeof(float),        coor_buf[iZone].size() );
+			NInputUtility::SwapBytes( vars_buf[iZone].data(), sizeof(float),        vars_buf[iZone].size() );
+			NInputUtility::SwapBytes( conn_buf[iZone].data(), sizeof(unsigned int), conn_buf[iZone].size() );
+			NInputUtility::SwapBytes( type_buf[iZone].data(), sizeof(unsigned int), type_buf[iZone].size() );
 		}
 	}
 
 
 	// Save number of total DOFs per zone, as it is needed for writing scalar/vector data.
-	int nDOFsZone[nZone];
+	unsigned int nDOFsZone[nZone];
 	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
-		const int nElem  = static_cast<int>( geometry_container->GetZoneGeometry(iZone)->GetnElem() );
-		const int nNode  = static_cast<int>( geometry_container->GetZoneGeometry(iZone)->GetnNodeGrid2D() );
+		const unsigned int nElem  = geometry_container->GetZoneGeometry(iZone)->GetnElem();
+		const unsigned int nNode  = geometry_container->GetZoneGeometry(iZone)->GetnNodeGrid2D();
 		nDOFsZone[iZone] = nElem*nNode; 
 	} 
 
@@ -358,23 +362,17 @@ void CLegacyBinaryVTK::WriteFileVTK
   // Write the coordinates.
   std::sprintf(str_buf, "POINTS %i float\n", nDOFsWritten);
   std::fwrite(str_buf, sizeof(char), strlen(str_buf), fh);
-  for(int iZone=0; iZone<nZone; iZone++) 
-		std::fwrite(coor_buf[iZone].data(), sizeof(float), coor_buf[iZone].size(), fh);
-
+	for( auto& coor: coor_buf ) std::fwrite(coor.data(), sizeof(float), coor.size(), fh);
 
   // Write the connectivity data.
   std::sprintf(str_buf, "\nCELLS %i %i\n", nSubElemWritten, (quad_npts+1)*nSubElemWritten);
   std::fwrite(str_buf, sizeof(char), strlen(str_buf), fh);
-  for(int iZone=0; iZone<nZone; iZone++)
-		std::fwrite(conn_buf[iZone].data(), sizeof(int), conn_buf[iZone].size(), fh);
-
+  for( auto& conn: conn_buf ) std::fwrite(conn.data(), sizeof(unsigned int), conn.size(), fh);
 
   // Write the element type data.
   std::sprintf(str_buf, "\nCELL_TYPES %i\n", nSubElemWritten);
   std::fwrite(str_buf, sizeof(char), strlen(str_buf), fh);
-  for(int iZone=0; iZone<nZone; iZone++)
-		std::fwrite(type_buf[iZone].data(), sizeof(int), type_buf[iZone].size(), fh);
-
+  for( auto& type: type_buf ) std::fwrite(type.data(), sizeof(unsigned int), type.size(), fh);
 
   // Write the ASCII line for the point data.
   std::sprintf(str_buf, "\nPOINT_DATA %i\n", nDOFsWritten);
@@ -410,7 +408,7 @@ void CLegacyBinaryVTK::WriteFileVTK
       std::fwrite(str_buf, sizeof(char), strlen(str_buf), fh);
 
       // Write the vector data.
-			for(int iZone=0; iZone<nZone; iZone++)
+			for(unsigned int iZone=0; iZone<nZone; iZone++)
 				std::fwrite(vars_buf[iZone].data() + iVar*nDOFsZone[iZone], sizeof(float), 3*nDOFsZone[iZone], fh);
 
 			// Skip remainder of instructions in this loop index.
@@ -428,7 +426,7 @@ void CLegacyBinaryVTK::WriteFileVTK
       std::fwrite(str_buf, sizeof(char), strlen(str_buf), fh);
 
       // Write the scalar data.
-			for(int iZone=0; iZone<nZone; iZone++)
+			for(unsigned int iZone=0; iZone<nZone; iZone++)
 				std::fwrite(vars_buf[iZone].data() + iVar*nDOFsZone[iZone], sizeof(float), nDOFsZone[iZone], fh);
     
 			// Skip remainder of instructions in this loop index.
@@ -446,6 +444,8 @@ void CLegacyBinaryVTK::WriteFileVTK
 
 	// Report: all is complete!
 	std::cout << "Done." << std::endl;
+	std::cout << "----------------------------------------------"
+							 "----------------------------------------------" << std::endl;
 }
 
 //-----------------------------------------------------------------------------------
@@ -461,13 +461,10 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 	* Function that computes the required data for visualization in binary format.
 	*/
 {
-	// Abbreviation involving gamma.
-	const as3double gm1 = GAMMA_MINUS_ONE;
-
 	// Extract total number of zones.
 	const unsigned short nZone = config_container->GetnZone();
 
-	for(size_t iZone=0; iZone<nZone; iZone++)
+	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
 		// Extract current grid zone.
 		auto* zone   = geometry_container->GetZoneGeometry(iZone);
@@ -475,14 +472,11 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 		auto* solver = solver_container[iZone].get();
 
 		// Extract the total number of elements in this zone.
-		const int nElem = static_cast<int>( zone->GetnElem() );
-
+		const size_t nElem = zone->GetnElem();
 		// Extract the current zone information.
-		const int nNode    = static_cast<int>( zone->GetnNodeGrid2D() );
+		const size_t nNode = zone->GetnNodeGrid2D();
 		// Total DOFs and sub-elements in this zone.
-		const int nDOFsTot = static_cast<int>( nNode*nElem );
-		// Extract number of elements in x-direction in this zone.
-		const int nxElem   = static_cast<int>( zone->GetnxElem() );
+		const size_t nDOFs = nNode*nElem;
 
 
 		// Loop over every element and process the data for visualization.
@@ -499,11 +493,10 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 			// Loop over the element DOFs and compute the primitive variables needed.
 			for(size_t l=0; l<nNode; l++)
 			{
-				const as3double ovrho =   1.0/sol(0,l);                       
-				const as3double u     = ovrho*sol(1,l);                     
-				const as3double v     = ovrho*sol(2,l);                     
-				const as3double p     = gm1*( sol(3,l) 
-						                  -   0.5*sol(0,l)*(u*u + v*v) );
+				const as3double ovrho =  C_ONE/sol(0,l);
+				const as3double u     =  ovrho*sol(1,l);
+				const as3double v     =  ovrho*sol(2,l);
+				const as3double p     =  C_GM1*( sol(3,l) - C_HALF*sol(0,l)*(u*u + v*v) );
 				
 				// Store the values.
 				primvar(0,l) = ovrho;
@@ -513,7 +506,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 			}
 
 			// Counter for the number of variables.
-			int iVar = 0;
+			unsigned int iVar = 0;
 
 			// Determine which variables to compute.
 			for( auto& var: config_container->GetWriteVisVar() )
@@ -526,7 +519,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::DENSITY): 
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 				
 						// Compute and store the density in each DOF.
 						for(size_t l=0; l<nNode; l++)
@@ -543,15 +536,15 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::MOMENTUM):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode*3;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
 	
 						// Compute and store the momentum variables.
 						for(size_t l=0; l<nNode; l++)
 						{
-							const int l3 = 3*l;
+							const size_t l3 = 3*l;
 							buf[l3  ] = static_cast<float>( sol(1,l) );
 							buf[l3+1] = static_cast<float>( sol(2,l) );
-							buf[l3+2] = static_cast<float>(    0.0   );
+							buf[l3+2] = static_cast<float>(   0.0f   );
 						}
 	
 						// Update variable counter for a 3D vector.
@@ -563,7 +556,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::TOTAL_ENERGY):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 	
 						// Compute and store the energy variable.
 						for(size_t l=0; l<nNode; l++)
@@ -580,7 +573,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::PRESSURE):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 						
 						// Compute and store the pressure variable.
 						for(size_t l=0; l<nNode; l++)
@@ -597,16 +590,16 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::VELOCITY):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode*3;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
 	
 						// Compute and store the velocity variables.
 						for(size_t l=0; l<nNode; l++)
 						{
-							const int l3 = 3*l;
+							const size_t l3 = 3*l;
 							const as3double ovrho = primvar(0,l);
 							buf[l3  ] = static_cast<float>( ovrho*sol(1,l) );
 							buf[l3+1] = static_cast<float>( ovrho*sol(2,l) );
-							buf[l3+2] = static_cast<float>(       0.0      );
+							buf[l3+2] = static_cast<float>(      0.0f      );
 						}
 
 						// Update variable counter for a 3D vector.
@@ -618,10 +611,10 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::TEMPERATURE):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 	
 						// Abbreviation for 1/R.
-						const as3double ovR = 1.0/GAS_CONSTANT;
+						const as3double ovR = C_ONE/C_RGAS;
 	
 						// Compute and store the temperature variable.
 						for(size_t l=0; l<nNode; l++)
@@ -638,12 +631,12 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::MACH):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 	
 						// Compute and store the Mach number variable.
 						for(size_t l=0; l<nNode; l++)
 						{
-							const as3double a2    = GAMMA*primvar(0,l)*primvar(3,l);
+							const as3double a2    = C_GMA*primvar(0,l)*primvar(3,l);
 							const as3double umag2 = primvar(1,l)*primvar(1,l) 
 								                    + primvar(2,l)*primvar(2,l); 
 							buf[l] = static_cast<float>( std::sqrt( umag2/a2 ) ); 
@@ -658,12 +651,12 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					case(EWriteVariable::ENTROPY):
 					{
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 	
 						// Compute and store the Mach number variable.
 						for(size_t l=0; l<nNode; l++)
 						{
-							buf[l] = static_cast<float>( std::log( primvar(3,l)*std::pow( primvar(0,l), GAMMA ) ) );
+							buf[l] = static_cast<float>( std::log( primvar(3,l)*std::pow( primvar(0,l), C_GMA ) ) );
 						}
 
 						// Update variable counter for a scalar.
@@ -721,7 +714,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 						}
 
 						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFsTot + ijElem*nNode;
+						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
 
 						// Compute and store the Vorticity variable.
 						for(size_t l=0; l<nNode; l++)

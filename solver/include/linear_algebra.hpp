@@ -20,23 +20,44 @@ namespace NLinearAlgebra
 	 *
 	 * @param[in] matA matrix A.
 	 * @param[in] matB matrix B.
-	 * @param[out] matC matrix value: C = A*B.
+	 *
+	 * return matrix value: C = A*B.
 	 */
-	void BLAS_GEMM(CMatrixAS3<as3double> &matA,
-			           CMatrixAS3<as3double> &matB,
-						     CMatrixAS3<as3double> &matC);
+	CMatrixAS3<as3double> BLAS_GEMM(CMatrixAS3<as3double> &matA,
+			                            CMatrixAS3<as3double> &matB);
 
 	/*!
 	 * @brief Function that computes a matrix-matrix multiplication manually.
 	 *
 	 * @param[in] matA matrix A.
 	 * @param[in] matB matrix B.
-	 * @param[out] matC matrix value: C = A*B.
+	 *
+	 * @return matrix value: C = A*B.
 	 */
-	void MatrixMatrixMult(CMatrixAS3<as3double> &matA,
-			                  CMatrixAS3<as3double> &matB,
-						            CMatrixAS3<as3double> &matC);
+	CMatrixAS3<as3double> MatrixMatrixMult(CMatrixAS3<as3double> &matA,
+			                                   CMatrixAS3<as3double> &matB);
 
+	/*!
+	 * @brief Function that computes a matrix-vector multiplication manually.
+	 *
+	 * @param[in] matA matrix A.
+	 * @param[in] vecB vector B.
+	 *
+	 * @return vector value: {C} = A*{B}, where {} can be multiple vectors.
+	 */
+	CMatrixAS3<as3double> MatrixVectorMult(CMatrixAS3<as3double> &matA,
+			                                   CMatrixAS3<as3double> &vecB);
+
+	/*!
+	 * @brief Function that computes a matrix-vector multiplication manually, with vecB being transposed.
+	 *
+	 * @param[in] matA matrix A.
+	 * @param[in] vecB vector B.
+	 * @param[out] vecC vector: {C} = A*{B}, where {} can be multiple vectors.
+	 */
+	void MatrixVectorTransMult(CMatrixAS3<as3double> &matA,
+			                       CMatrixAS3<as3double> &vecB,
+												     CMatrixAS3<as3double> &vecC);
 
 	/*!
 	 * @brief Function that computes the transpose of an AS3-type matrix.

@@ -6,6 +6,21 @@
 //-----------------------------------------------------------------------------------
 
 
+std::unique_ptr<CMonitorData> 
+CGenericFactory::CreateMonitoringContainer
+(
+ CConfig *config_container
+)
+ /*
+	* Function that creates a specialized instance of a temporal container.
+	*/
+{
+	// For now, simply return the only monitoring data container.
+	return std::make_unique<CMonitorData>(config_container); 
+}
+
+//-----------------------------------------------------------------------------------
+
 std::unique_ptr<ITemporal> 
 CGenericFactory::CreateTemporalContainer
 (
@@ -95,6 +110,34 @@ CGenericFactory::CreateInitialConditionContainer
 
 //-----------------------------------------------------------------------------------
 
+std::unique_ptr<IRiemannSolver> 
+CGenericFactory::CreateRiemannSolverContainer
+(
+ CConfig           *config_container,
+ ETypeRiemannSolver riemann
+)
+ /*
+	* Function that creates a specialized instance of a Riemann solver container.
+	*/
+{
+	// Check what type of container is specified.
+	switch( riemann )
+	{
+		case(ETypeRiemannSolver::ROE):
+		{
+			return std::make_unique<CRoeRiemannSolver>(config_container);
+			break;
+		}
+
+		default: ERROR("Unknown type of Riemann solver container.");
+	}	
+
+	// To avoid a compiler warning.
+	return nullptr; 
+}
+
+//-----------------------------------------------------------------------------------
+
 std::unique_ptr<CStandardElement> 
 CGenericFactory::CreateStandardElement
 (
@@ -105,7 +148,15 @@ CGenericFactory::CreateStandardElement
 	* Function that creates a specialized instance of a standard element container.
 	*/
 {
-	return std::make_unique<CStandardElement>(config_container, iZone);
+	// Deduce the polynomial order of the solution and type of DOFs. 
+	auto nPoly   = config_container->GetnPoly(iZone);
+	auto typeDOF = config_container->GetTypeDOF(iZone);
+	
+	// Get the number of (over-)integration points in 1D.
+	auto nInt1D  = NPolynomialUtility::IntegrationRule1D(nPoly); 
+
+	// Return the correct instantiation of this object.
+	return std::make_unique<CStandardElement>(typeDOF, nPoly, nInt1D);
 }
 
 //-----------------------------------------------------------------------------------
@@ -140,79 +191,45 @@ CGenericFactory::CreateTensorContainer
 )
  /*
 	* Function that creates a specialized instance of a templated tensor container.
-	* The instantiation is based on the input standard_element, namely <K,M>: 
-	*   K is equivalent to nSol1D.
-	*   M is equivalent to nInt1D.
 	*/
 {
-	// While we can create a static variable, it doesn't make sense to have all the 
-	// different objects instantiated over the entire lifetime of the simulation. In 
-	// principle, we can use shared_ptr with static members, but creating these objects
-	// and then deleting all except the one corresponding to <m,k> is fine as a 
-	// preprocessing step.
-	std::vector<std::unique_ptr<ITensorProduct>> mTensor;
-
-	// Lambda that accumulates the specialized templated classes, based on dimensions M and K.
-	auto f = [&mTensor]<size_t kk, size_t mm>() -> void
-	{
-		mTensor.push_back( std::make_unique<CTensorProduct<kk,mm>>() );
-	};
-
-	// Macro to help write cleaner code, since lambda-template syntax is (very) ugly..
-#define ADD_TENSOR(KK,MM) f.template operator()<KK,MM>()
-
-
-	// K = 2.
-	ADD_TENSOR(2,2); // M = 2.
-	
-	// K = 3.
-	ADD_TENSOR(3,3); // M = 3.
-	ADD_TENSOR(3,4); // M = 4.
-	
-	// K = 4.
-	ADD_TENSOR(4,4); // M = 4.
-	ADD_TENSOR(4,5); // M = 5.
-	
-	// K = 5.
-	ADD_TENSOR(5,5); // M = 5.
-	ADD_TENSOR(5,7); // M = 7.
-	
-	// K = 6.
-	ADD_TENSOR(6,6); // M = 6.
-	ADD_TENSOR(6,8); // M = 8.
-	
-	// K = 7.
-	ADD_TENSOR(7, 7); // M = 7.
-	ADD_TENSOR(7,10); // M = 10.
-	
-	// K = 8.
-	ADD_TENSOR(8, 8); // M = 8.
-	ADD_TENSOR(8,11); // M = 11.
-	
-	// K = 9.
-	ADD_TENSOR(9, 9); // M = 9.
-	ADD_TENSOR(9,13); // M = 13.
-	
-	// K = 10.
-	ADD_TENSOR(10,10); // M = 10.
-	ADD_TENSOR(10,14); // M = 14.
-
-
-	// Check if value exists and move its ownership, otherwise break the code.
+	// Extract the number of solution points (k) and integration points (m) in 1D.
 	const size_t k = standard_element->GetnSol1D();
 	const size_t m = standard_element->GetnInt1D();
-	for(auto& p: mTensor)		
-	{
-		if( (p->mK==k) && (p->mM==m) )
-		{
-			// Assign its standard element pointer.
-			p->SetStandardElement(standard_element);
-			return std::move(p);
-		}
-	}
 
-	// If the code made it this far, it means the values have not been implemented (yet). 
-	ERROR("Combination of (K,M) = " + std::to_string(k) + ", " + std::to_string(m) + " is not found.");
+	// Macro which helps in readability for the compile-time specialized tensor classes.
+#define SPECIALIZED_TENSOR(K,M) if( (K==k) && (M==m) ) \
+	return std::make_unique< CTensorProduct<K,M> >(standard_element);
+
+	SPECIALIZED_TENSOR(2,2);
+	SPECIALIZED_TENSOR(2,3);
+
+	SPECIALIZED_TENSOR(3,3);
+	SPECIALIZED_TENSOR(3,4);
+
+	SPECIALIZED_TENSOR(4,4);
+	SPECIALIZED_TENSOR(4,5);
+
+	SPECIALIZED_TENSOR(5,5);
+	SPECIALIZED_TENSOR(5,7);
+
+	SPECIALIZED_TENSOR(6,6);
+	SPECIALIZED_TENSOR(6,8);
+
+	SPECIALIZED_TENSOR(7, 7);
+	SPECIALIZED_TENSOR(7,10);
+
+	SPECIALIZED_TENSOR(8, 8);
+	SPECIALIZED_TENSOR(8,11);
+
+	SPECIALIZED_TENSOR(9, 9);
+	SPECIALIZED_TENSOR(9,13);
+	
+	SPECIALIZED_TENSOR(10,10);
+	SPECIALIZED_TENSOR(10,14);
+
+	// If the program made it this far, it means the specified values are not implemented.
+	ERROR("Combination of (K,M) = " + std::to_string(k) + ", " + std::to_string(m) + " is not found.");			
 
 	// To avoid a compiler warning.
 	return nullptr; 
@@ -223,23 +240,31 @@ CGenericFactory::CreateTensorContainer
 std::unique_ptr<IBoundary> 
 CGenericFactory::CreateBoundaryContainer
 (
- CConfig   *config_container,
- CGeometry *geometry_container,
- CMarker   *marker_container
+ CConfig      *config_container,
+ CGeometry    *geometry_container,
+ CMarker      *marker_container,
+ unsigned int  index
 )
  /*
 	* Function that creates a specialized instance of a boundary container.
 	*/
 {
-	// Check what type of container is specified.
-	switch( marker_container->GetMarkerBC() )
-	{
-		case(ETypeBC::PERIODIC):
-		{
-			return std::make_unique<CPeriodicBoundary>( config_container, geometry_container, marker_container );
-			break;
-		}
+	// Determine the boundary condition associated with this marker. 
+	auto* param = config_container->GetBoundaryParamMarker( marker_container->GetNameMarker() ); 
 
+	// Check if the parameter object is found, else issue an error.
+	if( !param ) 
+	{
+		ERROR("Could not find the boundary parameter for the marker: " 
+				  + marker_container->GetNameMarker() 
+			    + " with element index: " + std::to_string(index) );
+	}
+
+
+	// Check what type of container is specified.
+	switch( param->GetTypeBC() )
+	{
+		
 		default: ERROR("Unknown type of boundary container.");
 	}
 
@@ -288,17 +313,94 @@ CGenericFactory::CreateMultizoneSolverContainer
 	* Function that creates a vector of specialized instances of solver containers.
 	*/
 {
-	as3vector1d<std::unique_ptr<ISolver>> solver;
+	// Allocate the necessary number of solvers.
+	as3vector1d<std::unique_ptr<ISolver>> solver_container( config_container->GetnZone() );
 
-	// Check what type of container is specified.
-	for(unsigned short iZone=0; iZone<config_container->GetnZone(); iZone++)
+	// Initialize each solver.
+	for(unsigned short iZone=0; iZone<solver_container.size(); iZone++)
 	{
-		solver.push_back
-		( 
-		 CreateSolverContainer(config_container, geometry_container, iZone) 
-		);
+		solver_container[iZone] = CreateSolverContainer(config_container, geometry_container, iZone);
+	}
+
+	// Return the vector of solver containers.
+	return solver_container; 
+}
+
+//-----------------------------------------------------------------------------------
+
+std::unique_ptr<IInterface>
+CGenericFactory::CreateInterfaceContainer
+(
+ CConfig                               *config_container,
+ CGeometry                             *geometry_container,
+ CInterfaceParamMarker                 *param_container,
+ as3vector1d<std::unique_ptr<ISolver>> &solver_container 
+)
+ /*
+	* Function that creates a specialized instance of an interface boundary container.
+	*/
+{
+	// Temporary lambda to search for the zone of a given marker name.
+	auto lFindMarker = [=](std::string &name) -> CMarker*
+	{
+		for( auto& zone: geometry_container->GetZoneGeometry() )
+		{
+			for( auto& marker: zone->GetMarker() )
+			{
+				if( marker->GetNameMarker() == name )
+				{
+					return marker.get();
+				}
+			}
+		}
+		
+		// The program should not reach here, otherwise we have an error.
+		ERROR("Could not find the interface marker.");
+
+		// To avoid compiler problems, return something.
+		return nullptr;
+	};
+
+	// Get a pointer to the two markers forming this interface.
+	const CMarker *imarker_container = lFindMarker(param_container->mName);
+	const CMarker *jmarker_container = lFindMarker(param_container->mNameMatching);
+
+	// Extract the zone ID of these markers.
+	const unsigned short iZone = imarker_container->GetZoneID();
+	const unsigned short jZone = jmarker_container->GetZoneID();
+
+	// Check what type of solver we have in the iZone.
+	switch( solver_container[iZone]->GetTypeSolver() )
+	{
+		case(ETypeSolver::EE):
+		{
+			// Check the type of solver in the jZone too.
+			switch( solver_container[jZone]->GetTypeSolver() )
+			{
+				// This is a EE-EE interface.
+				case(ETypeSolver::EE):
+				{
+					return std::make_unique<CEEInterface>(config_container, 
+							                                  geometry_container, 
+																								param_container,
+																								imarker_container, 
+																								jmarker_container,
+																								solver_container);
+					break;
+				}
+
+				default: ERROR("Unknown type of solver container in zone: " + std::to_string(jZone));
+			}
+
+			break;
+		}
+
+		default: ERROR("Unknown type of solver container in zone: " + std::to_string(iZone));
 	}
 
 	// To avoid a compiler warning.
-	return solver; 
+	return nullptr; 
 }
+
+
+

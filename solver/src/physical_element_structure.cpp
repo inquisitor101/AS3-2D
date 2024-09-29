@@ -16,7 +16,7 @@ CPhysicalElement::CPhysicalElement
  unsigned short    nVar
 )
 	:
-		mNPoly( config_container->GetnPolySol(iZone) )
+		mNPoly( config_container->GetnPoly(iZone) )
  /*
 	* Constructor for the physical element, which initiates an element in physical space.
 	*/
@@ -32,7 +32,8 @@ CPhysicalElement::CPhysicalElement
 	mSol2D.resize( nVar, nSol2D );
 	// Allocate memory for the residual in 2D.
 	mRes2D.resize( nVar, nSol2D );
-
+	// Allocate memory for the tentative solution in 2D.
+	mSolOld2D.resize( nVar, nSol2D );
 	
 	// Compute the metrics at the volume solution points.
 	ComputeMetricsSolVolume(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
@@ -86,10 +87,6 @@ void CPhysicalElement::ComputeMetricsSolVolume
 	// Number of volume solution points in 2D.
 	const size_t nSol2D = standard_element->GetnSol2D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the volume metrics.
 	mMetricSol2D.resize( nItem, nSol2D );
 
@@ -119,10 +116,10 @@ void CPhysicalElement::ComputeMetricsSolVolume
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute and store the metrics.
 		mMetricSol2D(0, i) =  J;             // |J|
@@ -152,10 +149,6 @@ void CPhysicalElement::ComputeMetricsIntVolume
 	// Number of volume integration points in 2D.
 	const size_t nInt2D = standard_element->GetnInt2D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the volume metrics.
 	mMetricInt2D.resize( nItem, nInt2D );
 
@@ -179,10 +172,10 @@ void CPhysicalElement::ComputeMetricsIntVolume
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute and store the metrics.
 		mMetricInt2D(0, i) =  J;             // |J|
@@ -212,10 +205,6 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 	// Number of volume integration points in 1D.
 	const size_t nInt1D = standard_element->GetnInt1D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the surface metrics.
 	mMetricIntIMin1D.resize( nItem, nInt1D );
 
@@ -239,10 +228,10 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute the normal in the negative r-direction. Note, IMIN surface normal points inward.
 		const as3double nx = -dyds;
@@ -282,10 +271,6 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
 	// Number of volume integration points in 1D.
 	const size_t nInt1D = standard_element->GetnInt1D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the surface metrics.
 	mMetricIntIMax1D.resize( nItem, nInt1D );
 
@@ -309,10 +294,10 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute the normal in the positive r-direction. Note, IMAX surface normal points outward.
 		const as3double nx =  dyds;
@@ -352,10 +337,6 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 	// Number of volume integration points in 1D.
 	const size_t nInt1D = standard_element->GetnInt1D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the surface metrics.
 	mMetricIntJMin1D.resize( nItem, nInt1D );
 
@@ -379,10 +360,10 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute the normal in the negative s-direction. Note, JMIN surface normal points inward.
 		const as3double nx =  dydr;
@@ -422,10 +403,6 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 	// Number of volume integration points in 1D.
 	const size_t nInt1D = standard_element->GetnInt1D(); 
 
-	// Define constants, such that precision is implicit.
-	const as3double one  = (as3double) 1.0;
-	const as3double zero = (as3double) 0.0;
-
 	// Allocate memory for the surface metrics.
 	mMetricIntJMax1D.resize( nItem, nInt1D );
 
@@ -449,10 +426,10 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 		const as3double J    = dxdr*dyds - dydr*dxds;
 
 		// Check if the element makes sense.
-		if( J <= zero ) ERROR("Negative Jacobian is encountered.");
+		if( J <= C_ZERO ) ERROR("Negative Jacobian is encountered.");
 
 		// Inverse of the Jacobian.
-		const as3double Jinv = one/J;
+		const as3double Jinv = C_ONE/J;
 
 		// Compute the normal in the positive s-direction. Note, JMAX surface normal points outward.
 		const as3double nx = -dydr;
@@ -484,12 +461,10 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	* Function that computes the inverse mass matrix on the physical element.
 	*/
 {
-	// Extract the number of solution points in 1D and 2D.
-	const size_t nSol1D = standard_element->GetnSol1D();
+	// Extract the number of solution points in 2D.
 	const size_t nSol2D = standard_element->GetnSol2D();
 	
-	// Extract the number of integration points in 1D and 2D.
-	const size_t nInt1D = standard_element->GetnInt1D();
+	// Extract the number of integration points in 2D.
 	const size_t nInt2D = standard_element->GetnInt2D();
 
 	// Extract the quadrature weights in 2D.
@@ -515,7 +490,7 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	}
 
 	// Perform a matrix-matrix multiplication to obtain the mass matrix: At*B.
-	NLinearAlgebra::BLAS_GEMM(At, B, mInvMassMatrix);
+	mInvMassMatrix = NLinearAlgebra::BLAS_GEMM(At, B);
 
 	// Invert the mass matrix. 
 	// Note, it might prove useful to investigate preconditioning the matrix.

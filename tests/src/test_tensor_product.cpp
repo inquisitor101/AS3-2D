@@ -22,7 +22,9 @@ void CTest_TP::SetUp
 
 	mElement.resize(mConfig->GetnZone());
 	for(unsigned short iZone=0; iZone<mConfig->GetnZone(); iZone++) 
-		mElement[iZone] = std::make_unique<CStandardElement>(mConfig.get(), iZone);
+	{
+		mElement[iZone] = CGenericFactory::CreateStandardElement(mConfig.get(), iZone);
+	}
 
 	// Restore cout.
 	std::cout.rdbuf(buffer);

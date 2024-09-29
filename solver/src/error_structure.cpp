@@ -57,4 +57,26 @@ void NError::Terminate
   exit(1);
 }
 
+//-----------------------------------------------------------------------------------
+
+#ifdef ENABLE_NAN_CHECK
+void NError::CheckFloatingError
+(
+  void
+)
+ /*
+  * Function that determines if a floating-point error is encountered.
+  */
+{
+  std::string message;
+  // Check what error has been raised.
+  if( std::fetestexcept(FE_DIVBYZERO) ) message += "Error... FE_DIVBYZERO,";
+  // if( std::fetestexcept(FE_INEXACT)   ) message += "Error... FE_INEXACT,";
+  if( std::fetestexcept(FE_INVALID)   ) message += "Error... FE_INVALID,";
+  if( std::fetestexcept(FE_OVERFLOW)  ) message += "Error... FE_OVERFLOW,";
+  //if( std::fetestexcept(FE_UNDERFLOW) ) message += "Error... FE_UNDERFLOW,";
+
+  if( !message.empty() ) ERROR(message);
+}
+#endif
 

@@ -33,17 +33,15 @@ namespace
 		const size_t c = 20;
 		
 		CMatrixAS3<as3double> A(m,c);
-		CMatrixAS3<as3double> B(c,n);
-		
-		CMatrixAS3<as3double> C; 
-		CMatrixAS3<as3double> D;
-		CMatrixAS3<as3double> E;
+		CMatrixAS3<as3double> B(c,n);	
 
 		NTest_LA::InitMatrixRand(A);
 		NTest_LA::InitMatrixRand(B);
 
-		NLinearAlgebra::MatrixMatrixMult(A, B, C);
-		NLinearAlgebra::BLAS_GEMM(A, B, D);
+		CMatrixAS3<as3double> E;
+
+		CMatrixAS3<as3double> C = NLinearAlgebra::MatrixMatrixMult(A, B);
+		CMatrixAS3<as3double> D = NLinearAlgebra::BLAS_GEMM(A, B);
 		NTest_LA::MatrixMult(A, B, E);
 		
 		NTest_LA::MatrixErrorNormLinf(C, E, 1.0e-14);
@@ -73,12 +71,11 @@ namespace
 		C = A;
 		NLinearAlgebra::InverseMatrix(C);
 
-		CMatrixAS3<as3double> D;
-		NLinearAlgebra::BLAS_GEMM(C, A, D);
+		CMatrixAS3<as3double> D = NLinearAlgebra::BLAS_GEMM(C, A);
 		NTest_LA::MatrixErrorNormLinf(D, I, 1.0e-14);
 
-		NLinearAlgebra::MatrixMatrixMult(C, A, D);
-		NTest_LA::MatrixErrorNormLinf(D, I, 1.0e-14);
+		CMatrixAS3<as3double> E = NLinearAlgebra::MatrixMatrixMult(C, A);
+		NTest_LA::MatrixErrorNormLinf(E, I, 1.0e-14);
 	}
 }
 

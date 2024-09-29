@@ -5,6 +5,8 @@
 #include "geometry_structure.hpp"
 #include "iteration_structure.hpp"
 #include "solver_structure.hpp"
+#include "interface_structure.hpp"
+#include "monitoring_structure.hpp"
 
 // Forward declaration to avoid compiler issues.
 class ISolver;
@@ -35,18 +37,20 @@ class ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] solver_container input multizone solver container.
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] timephysical current physical simulation time.
-		 * @param[in] timestep physical time step.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] timestep physical time step. 
 		 */
-		virtual void UpdateTime(CConfig                               *config_container,
-				                    CGeometry                             *geometry_container,
-														CIteration                            *iteration_container,
-														as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-														as3double                              physicaltime, 
-														as3double                              timestep,
-														as3vector1d<as3double>                &monitordata) = 0;
+		virtual void UpdateTime(CConfig                                  *config_container,
+				                    CGeometry                                *geometry_container,
+														CIteration                               *iteration_container,
+														CMonitorData                             *monitor_container,
+														as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+														as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+														as3double                                 physicaltime, 
+														as3double                                 timestep) = 0;
 
 	protected:
 
@@ -87,26 +91,28 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] solver_container input multizone solver container.
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] timephysical current physical simulation time.
 		 * @param[in] timestep physical time step.
-		 * @param[out] monitordata vector of parameters to monitor.
 		 */
-		void UpdateTime(CConfig                               *config_container,
-		                CGeometry                             *geometry_container,
-										CIteration                            *iteration_container,
-										as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-										as3double                              physicaltime, 
-										as3double                              timestep,
-										as3vector1d<as3double>                &monitordata) final;
+		void UpdateTime(CConfig                                  *config_container,
+		                CGeometry                                *geometry_container,
+										CIteration                               *iteration_container,
+										CMonitorData                             *monitor_container,
+										as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+										as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+										as3double                                 physicaltime, 
+										as3double                                 timestep) final;
 
 	protected:
 
 	private:
-
-		as3vector1d<as3double> rk3a; ///< SSP-RK3: a-coefficients.
-		as3vector1d<as3double> rk3b; ///< SSP-RK3: b-coefficients.
-		as3vector1d<as3double> rk3c; ///< SSP-RK3: c-coefficients.
+		unsigned short mNStageRK = 3; ///< Number of RK evaluation stages.
+		as3double      mRk3a[3] = {}; ///< SSP-RK3: a-coefficients.
+		as3double      mRk3b[3] = {}; ///< SSP-RK3: b-coefficients.
+		as3double      mRk3c[3] = {}; ///< SSP-RK3: c-coefficients.
 
 
 		/*!
@@ -115,22 +121,22 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
+		 * @param[out] monitor_container data monitoring container.
 		 * @param[in] solver_container input multizone solver container.
+		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] localtime local time in the RK evaluations.
 		 * @param[in] timestep physical time step.
-		 * @param[in] alpha relevant SSP-RK3 a-coefficient.
-		 * @param[in] beta relevant SSP-RK3 b-coefficient.
-		 * @param[out] monitordata vector of parameters to monitor.
+		 * @param[in] iStageRK index of the RK stage.
 		 */
-		void EvaluateSSPRK3(CConfig                               *config_container,
-		                    CGeometry                             *geometry_container,
-										    CIteration                            *iteration_container,
-										    as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-										    as3double                              localtime, 
-										    as3double                              timestep,
-												as3double                              alpha,
-												as3double                              beta,
-												as3vector1d<as3double>                &monitordata);
+		void EvaluateSSPRK3(CConfig                                  *config_container,
+		                    CGeometry                                *geometry_container,
+										    CIteration                               *iteration_container,
+												CMonitorData                             *monitor_container,
+										    as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+												as3vector1d<std::unique_ptr<IInterface>> &interface_container,
+										    as3double                                 localtime, 
+										    as3double                                 timestep,
+												unsigned short                            iStageRK);
 
 
 
