@@ -51,6 +51,9 @@ CPhysicalElement::CPhysicalElement
 	// Compute the inverse of the mass matrix on the physical element. Note, this needs to be computed 
 	// after the metrics, since they are needed during the integration of the basis.
 	ComputeInverseMassMatrix(standard_element, tensor_container);
+
+	// Compute the average length scales and normals per direction.
+	ComputeElementProperties(standard_element);
 }
 
 //-----------------------------------------------------------------------------------
@@ -498,6 +501,82 @@ void CPhysicalElement::ComputeInverseMassMatrix
 }
 
 //-----------------------------------------------------------------------------------
+
+void CPhysicalElement::ComputeElementProperties
+(
+ CStandardElement *standard_element
+)
+ /*
+	* Function that computes the average surface properties on the physical element.
+	*/
+{
+	// Extract the integration weights in 1D and 2D.
+	auto& w1D = standard_element->GetwInt1D();
+	auto& w2D = standard_element->GetwInt2D();
+
+	// Extract number of integration points in 1D and 2D.
+	const unsigned short nInt1D = standard_element->GetnInt1D();
+	const unsigned short nInt2D = standard_element->GetnInt2D();
+
+	// Compute the volume on this element.
+	mVolumeElement = C_ZERO;
+	for(size_t l=0; l<nInt2D; l++)
+	{
+		mVolumeElement += w2D[l]*mMetricInt2D(0,l);
+	}
+
+	// Estimate the volume length scale.
+	mLengthScaleVol = std::sqrt( mVolumeElement );
+
+
+	/* * * 
+	 * I-DIRECTION
+	 */
+
+	// Surface area of the faces in the i-direction.
+	as3double sumSurfaceAreaI = C_ZERO;
+
+	// Compute the surface properties in the i-direction.
+	mAvgNormIDir[0] = mAvgNormIDir[1] = C_ZERO;
+	for(size_t l=0; l<nInt1D; l++)
+	{
+		mAvgNormIDir[0] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(1,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(1,l) );
+		mAvgNormIDir[1] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(2,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(2,l) );
+		sumSurfaceAreaI += w1D[l]*( mMetricIntIMin1D(0,l)                       + mMetricIntIMax1D(0,l) );
+	}
+
+	// Estimate the length scale in the i-direction.
+	mLengthScaleIDir = C_TWO*mVolumeElement/sumSurfaceAreaI;
+
+	// Normalize the average normal in the i-direction.
+	mAvgNormIDir[0] /= sumSurfaceAreaI;
+	mAvgNormIDir[1] /= sumSurfaceAreaI;
+
+	/* * * 
+	 * J-DIRECTION
+	 */
+
+	// Surface area of the faces in the j-direction.
+	as3double sumSurfaceAreaJ = C_ZERO;
+
+	// Compute the surface properties in the j-direction.
+	mAvgNormJDir[0] = mAvgNormJDir[1] = C_ZERO;
+	for(size_t l=0; l<nInt1D; l++)
+	{
+		mAvgNormJDir[0] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(1,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(1,l) );
+		mAvgNormJDir[1] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(2,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(2,l) );
+		sumSurfaceAreaJ += w1D[l]*( mMetricIntJMin1D(0,l)                       + mMetricIntJMax1D(0,l) );
+	}
+
+	// Estimate the length scale in the j-direction.
+	mLengthScaleJDir = C_TWO*mVolumeElement/sumSurfaceAreaJ;
+
+	// Normalize the average normal in the j-direction.
+	mAvgNormJDir[0] /= sumSurfaceAreaJ;
+	mAvgNormJDir[1] /= sumSurfaceAreaJ;
+}
+
+
 
 
 

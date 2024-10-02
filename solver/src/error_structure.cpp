@@ -8,10 +8,10 @@
 
 void NError::Terminate
 (
- const char        *functionName,
- const char        *fileName,
- const int          lineNumber,
- const std::string &errorMessage
+ const char        *func,
+ const char        *file,
+ const int          line,
+ const std::string &error
 )
  /*
   * Function which prints an error message and exit from the program.
@@ -20,7 +20,7 @@ void NError::Terminate
   // Insert a comment character and a space on places where a newline
   // character occurs in the string, such that the error message
   // looks nicer.
-  std::string  message = errorMessage;
+  std::string  message = error;
   std::string  buffer  = message;
   std::string::size_type off = 1;
 
@@ -34,27 +34,75 @@ void NError::Terminate
   }
 
   // Header of the error message.
-	std::cout << std::endl;
-	std::cout << "#" << std::endl
+	std::cout << "\n#\n"
             << "#============================= !!! Error !!! "
-            << "==============================" << std::endl
+            << "==============================\n"
             << "#" << std::endl;
 
   // Write the function name, file name and line number.
-  std::cout << "#* Run-time error in " << functionName << std::endl;
-  std::cout << "#* File: " << fileName
-            << ", Line: "  << lineNumber << std::endl
-            << "#" << std::endl;
+  std::cout << "# Run-time error in...\n";
+  std::cout << "#   (*) Function: " << func << "\n"
+		        << "#   (*) Filename: " << file << "\n"
+            << "#   (*) Line num: " << line << "\n"
+            << "#"                  << std::endl;
 
-  // Write the error message and the terminating line.
-  std::cout << "# " << message << std::endl
-            << "#" << std::endl;
+  // Write the warning error and the terminating line.
+  std::cout << "#   (!) Reason: \n# " << message << "\n#\n";
   std::cout << "#============================================"
-            << "==============================" << std::endl
-            << "#" << std::endl << std::flush;
+            << "==============================\n"
+            << "#"  << std::endl;
 
   // And exit.
   exit(1);
+}
+
+//-----------------------------------------------------------------------------------
+
+void NError::Warning
+(
+ const char        *func,
+ const char        *file,
+ const int          line,
+ const std::string &warning
+)
+ /*
+  * Function which prints a warning message, before resuming the program.
+  */
+{
+  // Insert a comment character and a space on places where a newline
+  // character occurs in the string, such that the warning message
+  // looks nicer.
+  std::string  message = warning;
+  std::string  buffer  = message;
+  std::string::size_type off = 1;
+
+  for(;;)
+  {
+    std::string::size_type loc = buffer.find("\n");
+    if(loc == std::string::npos) break;
+    message.insert(loc+off, "# ");
+    off += loc+3;
+    buffer.erase(0,loc+1);
+  }
+
+  // Header of the warning message.
+	std::cout << "\n#\n"
+            << "#============================ !!! Warning !!! "
+            << "=============================\n"
+            << "#" << std::endl;
+
+  // Write the function name, file name and line number.
+  std::cout << "# Warning encountered in...\n";
+  std::cout << "#   (*) Function: " << func << "\n"
+		        << "#   (*) Filename: " << file << "\n"
+            << "#   (*) Line num: " << line << "\n"
+            << "#"              << std::endl;
+
+  // Write the warning message and the terminating line.
+  std::cout << "#   (!) Reason: \n# " << message << "\n#\n";
+  std::cout << "#============================================"
+            << "==============================\n"
+            << "#"  << std::endl;
 }
 
 //-----------------------------------------------------------------------------------

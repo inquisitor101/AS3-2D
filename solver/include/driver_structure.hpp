@@ -77,8 +77,23 @@ class CDriver
 		 * @param[in] t current physical time.
 		 * @param[in] dt current time step.
 		 */
-		void WriteOutput(size_t i, as3double t, as3double dt);
+		void WriteOutput(size_t    i, 
+				             as3double t, 
+										 as3double dt);
 
+		/*!
+		 * @brief Function that reports the expected number of temporal steps.
+		 *
+		 * @return stable time step.
+		 */
+		as3double ComputeTimeStep(void);
+
+		/*!
+		 * @brief Function that computes the solution based on a synchronized time step.
+		 *
+		 * @param[in] t0 current starting time in the synchronization.
+		 */
+		void ExecuteTimeSyncStep(as3double t0);
 
 		// Disable default constructor.
 		CDriver(void) = delete;

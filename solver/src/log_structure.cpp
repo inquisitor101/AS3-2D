@@ -216,23 +216,37 @@ void NLogger::MonitorOutput
 	{
 		std::cout << "**********************************************"
 							<< "**********************************************" << std::endl;
-		std::cout << " Iteration\tPhysical Time \t Time step \t Max(Mach) \t Res[L2(rho)]" << std::endl;
+		std::cout << " Iteration "     << "\t"
+			        << " Time "          << "\t" 
+							<< " Sync time "     << "\t"
+							<< " Steps "         << "\t"
+							<< " min(dt) "       << "\t"
+							<< " max(dt) "       << "\t"
+							<< " Max(Mach) "     << "\n";
 		std::cout << "**********************************************"
 							<< "**********************************************" << std::endl;
 	}
 
   // Extract the maximum Mach number.
-  const as3double Mmax = monitor_container->mMachMax;
-	// Extract the RMS of the density residual.
-	const as3double RMSr = monitor_container->mDensityL2;
+  const as3double Mmax  = monitor_container->mMachMax;
+	// Extract the number of substeps per sync.
+	const size_t    nsub  = monitor_container->mNSyncSubStep;
+	// Extract the min and max time steps, per sync step.
+	const as3double dtmin = monitor_container->mMinTimeStep;
+	const as3double dtmax = monitor_container->mMaxTimeStep;
 
 	// Display progress.
-	std::cout << std::scientific << "   "
+	std::cout << std::scientific 
+						<< std::setprecision(6)
+		        << " " 
 						<< std::setw(static_cast<int>(nDigits)) << iter
-						<< " \t "  << time
-						<< " \t "  << step
-            << " \t "  << Mmax
-						<< " \t "  << RMSr << std::endl;
+						<< "\t"  << time
+						<< "\t"  << step
+						<< "\t"  << nsub
+						<< "\t"  << dtmin
+						<< "\t"  << dtmax
+            << "\t"  << Mmax
+						<< std::endl;
 }
 
 

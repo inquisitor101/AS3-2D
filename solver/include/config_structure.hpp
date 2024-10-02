@@ -26,12 +26,19 @@ class CConfig
 
 
 		/*!
-		 * @brief Getter function which returns the value of nZone.
+		 * @brief Getter function which returns the value of mNZone.
 		 *
-		 * @return nZone
+		 * @return mNZone
 		 */ 
 		unsigned short GetnZone(void)                               const {return mNZone;}
-	    
+
+		/*!
+		 * @brief Getter function which returns the value of mCFD.
+		 *
+		 * @return mCFL
+		 */ 
+		as3double GetCFL(void)                                      const {return mCFL;}
+	
 		/*!
 		 * @brief Getter function which returns the value of mOutputVisFilename.
 		 *
@@ -141,13 +148,6 @@ class CConfig
 		as3double GetStartTime(void)                                const {return mStartTime;}
 
 		/*!
-		 * @brief Getter function which returns the simulation end time.
-		 *
-		 * @return mFinalTime
-		 */
-		as3double GetFinalTime(void)                                const {return mFinalTime;}
-
-		/*!
 		 * @brief Getter function which returns the time step specified.
 		 *
 		 * @return mTimeStep
@@ -244,8 +244,8 @@ class CConfig
 		ETemporalScheme                 mTemporalScheme;         ///< Type of temporal scheme.
 		ETypeIC                         mTypeIC;                 ///< Type of initial condition.
 		as3double                       mStartTime;              ///< Simulation starting time.
-		as3double                       mFinalTime;              ///< Simulation ending time.
 		as3double                       mTimeStep;               ///< Time step.
+		as3double                       mCFL;                    ///< CFL stability number.
 		size_t                          mMaxIterTime;            ///< Maximum temporal iterations during the simulation.
 		size_t                          mWriteVisFreq;           ///< Visualization file writing frequency.
 		std::string                     mOutputSolFilename;      ///< Output solution filename.

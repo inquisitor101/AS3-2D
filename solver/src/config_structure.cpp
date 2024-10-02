@@ -238,12 +238,15 @@ bool CConfig::ReadTemporalOptions
 
 	// Read the simulation starting time.
 	NInputUtility::AddScalarOption(paramfile, "START_TIME", mStartTime, true);
-	// Read the simulation ending time.
-	NInputUtility::AddScalarOption(paramfile, "FINAL_TIME", mFinalTime, true);
 	// Read the temporal step specified.
 	NInputUtility::AddScalarOption(paramfile, "TIME_STEP", mTimeStep, true);
 	// Read the maximum number of temporal iterations.
 	NInputUtility::AddScalarOption(paramfile, "MAX_ITER_TIME", mMaxIterTime, true);
+	// Read the CFL number for temporal stability.
+	NInputUtility::AddScalarOption(paramfile, "CFL_NUMBER", mCFL, true);
+
+	// Ensure the CFL makes sense.
+	if( mCFL < C_ZERO ) ERROR("CFL numbner must be positive.");
 
 	// Close file.
   paramfile.close();

@@ -180,11 +180,6 @@ void CDriver::InitializeData
 	NLogger::DisplayBoundaryConditions(mConfigContainer.get(), 
 			                               mGeometryContainer.get(), 
 																		 mInterfaceContainer);
-
-	// Save initial state, before time-marching.
-	mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
-			                              mGeometryContainer.get(),
-																		mSolverContainer);
 }
 
 //-----------------------------------------------------------------------------------
@@ -201,10 +196,8 @@ void CDriver::WriteOutput
 {
 	// For convenience, extract the properties of the simulation end time.
 	const size_t nIter = mConfigContainer->GetMaxIterTime();
-	const as3double tf = mConfigContainer->GetFinalTime();
-
 	// Extract the visualization output frequency.
-	const size_t fvis = mConfigContainer->GetWriteVisFreq();
+	const size_t fvis  = mConfigContainer->GetWriteVisFreq();
 
 	// Flag whether the the visualization file is written.
 	bool isvis = false;
@@ -221,7 +214,7 @@ void CDriver::WriteOutput
 	}
 
 	// Check if this is the end of the simulation.
-	if( (i >= nIter) || (t >= tf) )
+	if( i >= nIter )
 	{
 
 		// Write the visualization file, if it hasnt been written.
@@ -259,20 +252,184 @@ void CDriver::Run
 	// Report solver specification as output.
 	NLogger::PrintInitSolver(mConfigContainer.get());
 
-	// Extract starting time, ending time and time step.
+	// Extract the simulation's starting time.
 	const as3double t0 = mConfigContainer->GetStartTime();
-	const as3double tf = mConfigContainer->GetFinalTime();
-	const as3double dt = mConfigContainer->GetTimeStep();
-	
-	// Extract the total number of temporal iterations.
-	const size_t nIter = mConfigContainer->GetMaxIterTime();
 
-	// Initialize the starting time and iteration count.
-	as3double t = t0; size_t i = 0;
+	// Extract the synchronization time step.
+	const as3double ts = mConfigContainer->GetTimeStep();
 
-	// March in time until either the max iterations or the final time is reached.
-	while( (t<tf) && (i<nIter) )
+	// Extract the total number of time synchronization iterations.
+	const size_t nSyncStep = mConfigContainer->GetMaxIterTime();
+
+	// Initialize the current time and iteration step.
+	as3double cTime = t0; size_t iSyncStep = 0;
+
+	// Write the initial output.
+	WriteOutput(iSyncStep, cTime, ts);
+
+
+	// March in time until the max number of iterations is reached.
+	while( iSyncStep < nSyncStep )
 	{
+		// Compute the solution for the current synchronized step.
+		ExecuteTimeSyncStep(cTime);
+
+		// Update physical time and iteration count.
+		cTime += ts; iSyncStep++;
+	
+		// Write the output data, if need be.
+		WriteOutput(iSyncStep, cTime, ts);
+	}
+}
+
+//-----------------------------------------------------------------------------------
+
+as3double CDriver::ComputeTimeStep
+(
+ void
+)
+ /*
+	* Function that computes the time step, based on stability constraints. 
+	*/
+{
+	// Extract the specified CFL number.
+	const as3double cfl = mConfigContainer->GetCFL();
+
+	// Temporary variable for the inviscid coefficient, based on the polynomial order.
+	as3double f1 = C_ZERO;
+
+	// Initialize the maximum of the inviscid spectral radius inverted.
+	as3double spectralRadiusInvMax = C_ZERO;
+
+	// Max Mach number squared, used for monitoring.
+	as3double maxM2 = C_ZERO;
+
+	// Loop over all the solvers.
+	for( auto& solver: mSolverContainer )
+	{
+		// Extract the number of DOFs on each element in this zone. 
+		const size_t   nSol2D = solver->GetStandardElement()->GetnSol2D();
+		// Extract the polynomial order in this zone.
+		const as3double npoly = static_cast<as3double>( solver->GetStandardElement()->GetnPolySol() );
+		// Deduce the maximum inviscid polynomial coefficient.
+		f1 = std::max( npoly*npoly, f1 );
+
+		// Loop over each element in each solver/zone.
+		for( auto& element: solver->GetPhysicalElement() )
+		{
+			// Extract the solution.
+			const auto& sol = element->mSol2D;	
+
+			// Extract average normals, based on the surface directions (i and j).
+			const as3double *ni = element->mAvgNormIDir;
+			const as3double *nj = element->mAvgNormJDir;
+
+			// Compute the inverse of the average length scale in the i and j-direction.
+			const as3double ovli = C_ONE/element->mLengthScaleIDir;
+			const as3double ovlj = C_ONE/element->mLengthScaleJDir;
+
+
+			// Loop over each DOF and compute the stability time limit.
+			for(size_t l=0; l<nSol2D; l++)
+			{
+  	  	// Compute the primitive variables.
+  	  	const as3double rho   = sol(0,l);
+  	  	const as3double ovrho = C_ONE/rho;
+  	  	const as3double u     = ovrho*sol(1,l);
+  	  	const as3double v     = ovrho*sol(2,l);
+  	  	const as3double p     = C_GM1*( sol(3,l) - C_HALF*(u*sol(1,l) + v*sol(2,l)) );
+
+				// Compute the speed of sound  and its squared.
+				const as3double a2    = C_GMA*p*ovrho;
+				const as3double a     = std::sqrt(a2);
+
+				// Compute the average i and j-projected velocities.
+				const as3double ui    = u*ni[0] + v*ni[1];
+				const as3double uj    = u*nj[0] + v*nj[1];
+
+				// Compute the maximum eigenvalues of the inviscid terms (which are acoustic).
+				const as3double lmbi  = std::abs(ui) + a;
+				const as3double lmbj  = std::abs(uj) + a;
+
+				// Compute the inverse of the spectral radius of the inviscid terms.
+				const as3double srinv = lmbi*ovli + lmbj*ovlj; 
+				
+				// Compute the max of the spectral radius inverted.
+				spectralRadiusInvMax  = std::max( srinv, spectralRadiusInvMax );
+		
+    		// Compute the local Mach number squared.
+    		const as3double M2 = (u*u + v*v)/a2;
+    		// Check if this value is the largest.
+    		maxM2 = std::max(maxM2, M2);
+
+				// Ensure the speed of sound is positive.
+				if( a2 < C_ZERO ) ERROR("Negative speed of sound encountered.");
+			}
+		}
+	}
+
+	// Update the monitored data.
+	mMonitoringContainer->mMachMax = std::sqrt(maxM2);
+
+	// Estimate the stable inverse time step.
+	const as3double dtinv = f1*spectralRadiusInvMax;
+
+	// Return the expected total number of synchronization time steps.
+	return (cfl/dtinv);
+}
+
+//-----------------------------------------------------------------------------------
+
+void CDriver::ExecuteTimeSyncStep
+(
+ as3double t0
+)
+ /*
+	* Function that computes the solution based on a synchronized time step.
+	*/
+{
+	// Flag that specified whether the time is sync'd or not.
+	bool issync = false;
+
+	// Counter for the number of sub-steps in this function.
+	size_t nSubStep = 0;
+
+	// Minimum and maximum time steps.
+	as3double dtmin = static_cast<as3double>( 99999.0 );
+	as3double dtmax = C_ZERO;
+
+	// Extract synchronization time step.
+	const as3double ts = mConfigContainer->GetTimeStep();
+	// Deduce the final time, in this synchronization time step.
+	const as3double tf = t0 + ts;
+	// Cutoff time, which adjusts the remaining time step to reach synchronization.
+	const as3double tc = t0 + static_cast<as3double>(0.99)*ts;
+
+	// Current elapsed time.
+	as3double time = t0;
+
+	// Loop until the physical time is synchronized.
+	while( !issync )
+	{
+		// Compute the time step.
+		as3double dt = ComputeTimeStep();
+
+		// If the stable time step is larger than the synchronization step, issue a warning.
+		if( dt > ts )
+		{
+			WARNING("Inefficient synchronization time step: dt(sync)/dt(stable) = " + std::to_string((dt/ts)));
+
+			// Set the stable time step to the sync step.
+			dt = std::min(dt, ts);
+		}
+		
+		// Check whether the synchronization time is reached.
+		if( (time+dt) > tc ) 
+		{
+			// Set the remaining time step and flag that sync is reached.
+			dt = tf - time; issync = true;
+		}
+
 
 		// Update the solution in time.
 		mTemporalContainer->UpdateTime(mConfigContainer.get(),
@@ -281,14 +438,23 @@ void CDriver::Run
 																	 mMonitoringContainer.get(),
 																	 mSolverContainer,
 																	 mInterfaceContainer,
-																	 t, dt);
+																	 time, dt);
 
-		// Update physical time and iteration count.
-		t += dt; i++;
-	
-		// Write the output data, if need be.
-		WriteOutput(i, t, dt);
+		// Update the elapsed time and increment the number of sub-steps.
+		time += dt; nSubStep++;
+
+		// Compute the global min and max time steps, per synchronization.
+		dtmin = std::min( dt, dtmin );
+		dtmax = std::max( dt, dtmax );
 	}
+
+	// Book-keep the number of substeps, min and max time steps.
+	mMonitoringContainer->mNSyncSubStep = nSubStep;
+	mMonitoringContainer->mMinTimeStep  = dtmin;
+	mMonitoringContainer->mMaxTimeStep  = dtmax;
 }
+
+
+
 
 

@@ -14,6 +14,13 @@ class CPhysicalElement
 	public:
 
 		unsigned short        mNPoly;           ///< Solution polynomial order.
+		as3double             mVolumeElement;   ///< Volume of this element.
+		as3double             mLengthScaleVol;  ///< Length scale defined based on the volume of this element.
+		as3double             mLengthScaleIDir; ///< Average length scale of the i-direction of this element.
+		as3double             mLengthScaleJDir; ///< Average length scale of the j-direction of this element.
+		as3double             mAvgNormIDir[2];  ///< Average unit-normal in the i-direction. 
+		as3double             mAvgNormJDir[2];  ///< Average unit-normal in the j-direction. 		
+
 		CMatrixAS3<as3double> mSol2D;           ///< Solution on the physical element in 2D.
 		CMatrixAS3<as3double> mRes2D;           ///< Residual of the solution on the physical element in 2D.
 		CMatrixAS3<as3double> mSolOld2D;        ///< Tentative (previous) solution on the physical element in 2D.
@@ -21,7 +28,6 @@ class CPhysicalElement
 		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
 																				    ///< [0]: |J|, [1]: drdx, [2]: drdy, [3]: dsdx, [4]: dsdy.
-
 		CMatrixAS3<as3double> mMetricInt2D;     ///< Metrics at the volume integration points in 2D. Rows: 
 																				    ///< [0]: |J|, [1]: drdx, [2]: drdy, [3]: dsdx, [4]: dsdy.
 
@@ -33,6 +39,7 @@ class CPhysicalElement
 																						///< [0]: ||n||, [1]: nx, [2]: ny, [3]: drdx, [4]: drdy, [5]: dsdx, [6]: dsdy.
 		CMatrixAS3<as3double> mMetricIntJMax1D; ///< Metrics at the JMAX surface integration points in 1D. Rows:
 																						///< [0]: ||n||, [1]: nx, [2]: ny, [3]: drdx, [4]: drdy, [5]: dsdx, [6]: dsdy.
+
 
 
 		/*!
@@ -211,6 +218,12 @@ class CPhysicalElement
 		void ComputeInverseMassMatrix(CStandardElement *standard_element,
 																  ITensorProduct   *tensor_container);
 
+		/*!
+		 * @brief Function that computes the volume and average surface properties on the physical element.
+		 *
+		 * @param[in] standard_element standard element container.
+		 */
+		void ComputeElementProperties(CStandardElement *standard_element);
 
 
 		// Disable default constructor.
