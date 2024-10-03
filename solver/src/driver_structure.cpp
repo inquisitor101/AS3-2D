@@ -295,11 +295,8 @@ as3double CDriver::ComputeTimeStep
 	// Extract the specified CFL number.
 	const as3double cfl = mConfigContainer->GetCFL();
 
-	// Temporary variable for the inviscid coefficient, based on the polynomial order.
-	as3double f1 = C_ZERO;
-
-	// Initialize the maximum of the inviscid spectral radius inverted.
-	as3double spectralRadiusInvMax = C_ZERO;
+	// Initialize the inverse of the lowest stable time step.
+	as3double dtinv = C_ZERO;
 
 	// Max Mach number squared, used for monitoring.
 	as3double maxM2 = C_ZERO;
@@ -312,7 +309,7 @@ as3double CDriver::ComputeTimeStep
 		// Extract the polynomial order in this zone.
 		const as3double npoly = static_cast<as3double>( solver->GetStandardElement()->GetnPolySol() );
 		// Deduce the maximum inviscid polynomial coefficient.
-		f1 = std::max( npoly*npoly, f1 );
+		const as3double f1    = npoly*npoly;
 
 		// Loop over each element in each solver/zone.
 		for( auto& element: solver->GetPhysicalElement() )
@@ -328,6 +325,8 @@ as3double CDriver::ComputeTimeStep
 			const as3double ovli = C_ONE/element->mLengthScaleIDir;
 			const as3double ovlj = C_ONE/element->mLengthScaleJDir;
 
+			// Initialize the max of the inverse (inviscid) spectral radius on this element.
+			as3double maxsrinv = C_ZERO;
 
 			// Loop over each DOF and compute the stability time limit.
 			for(size_t l=0; l<nSol2D; l++)
@@ -355,7 +354,7 @@ as3double CDriver::ComputeTimeStep
 				const as3double srinv = lmbi*ovli + lmbj*ovlj; 
 				
 				// Compute the max of the spectral radius inverted.
-				spectralRadiusInvMax  = std::max( srinv, spectralRadiusInvMax );
+				maxsrinv  = std::max( srinv, maxsrinv );
 		
     		// Compute the local Mach number squared.
     		const as3double M2 = (u*u + v*v)/a2;
@@ -365,6 +364,9 @@ as3double CDriver::ComputeTimeStep
 				// Ensure the speed of sound is positive.
 				if( a2 < C_ZERO ) ERROR("Negative speed of sound encountered.");
 			}
+
+			// Assign the max of the inverse time step.
+			dtinv = std::max( f1*maxsrinv, dtinv );
 		}
 	}
 
@@ -372,10 +374,10 @@ as3double CDriver::ComputeTimeStep
 	mMonitoringContainer->mMachMax = std::sqrt(maxM2);
 
 	// Estimate the stable inverse time step.
-	const as3double dtinv = f1*spectralRadiusInvMax;
+	const as3double dt = cfl/dtinv;
 
 	// Return the expected total number of synchronization time steps.
-	return (cfl/dtinv);
+	return dt;
 }
 
 //-----------------------------------------------------------------------------------
