@@ -208,6 +208,7 @@ void CIteration::ComputeResidual
 		// Extract the actual left residual.
 		auto& resL    = solver->GetPhysicalElement(IL)->mRes2D;
 
+		// Accumulate the left residual.
 		for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
 	}
 
@@ -221,11 +222,8 @@ void CIteration::ComputeResidual
 		const unsigned short iZone = openmp_container->GetInternJFace(i)->mZone;
 		const unsigned int   IT    = openmp_container->GetInternJFace(i)->mElem;
 
-		// Extract the relevant grid.
-		auto* grid = geometry_container->GetZoneGeometry(iZone);
-
 		// Deduce the bottom element's index.
-		const size_t IB = IT - grid->GetnxElem();
+		const size_t IB = IT - geometry_container->GetZoneGeometry(iZone)->GetnxElem();
 
 		// Extract the relevant solver.
 		auto& solver  = solver_container[iZone];
@@ -234,14 +232,12 @@ void CIteration::ComputeResidual
 		// Extract the actual bottom residual.
 		auto& resB    = solver->GetPhysicalElement(IB)->mRes2D;
 
+		// Accumulate the bottom residual.
 		for(size_t l=0; l<resB.size(); l++) resB[l] += tmpB[l];
 	}
 
 
 	// Loop over the interface boundaries, if need be.
-#ifdef HAVE_OPENMP
-#pragma omp single
-#endif
 	for( auto& interface: interface_container )
 	{
 		interface->ComputeInterfaceResidual(solver_container, workarray);
@@ -289,46 +285,40 @@ void CIteration::GridSweep
 	* Function that performs a grid sweep over all the zones. 
 	*/
 {
-//#ifdef HAVE_OPENMP
-//#pragma omp parallel
-//#endif
-//	{
-		// Initialize a work array, to avoid multiple memory allocations.
-		// Note, during parallelization, this needs to be allocated inside 
-		// the (shared memory) parallel region -- not here.
-		CPoolMatrixAS3<as3double> workarray(mNWorkData);
+	// Initialize a work array, to avoid multiple memory allocations.
+	// Note, during parallelization, this needs to be allocated inside 
+	// the (shared memory) parallel region -- not here.
+	CPoolMatrixAS3<as3double> workarray(mNWorkData);
 
 
-		// Check for any preprocessing steps.
-		PreProcessIteration(config_container,
-				                geometry_container,
-												openmp_container,
-												solver_container,
-												interface_container,
-												workarray,
-												localtime);
+	// Check for any preprocessing steps.
+	PreProcessIteration(config_container,
+			                geometry_container,
+											openmp_container,
+											solver_container,
+											interface_container,
+											workarray,
+											localtime);
 
 
-		// Compute the residual over all zones.
-		ComputeResidual(config_container,
-				            geometry_container,
-										openmp_container,
-										solver_container,
-										interface_container,
-										workarray,
-										localtime);
+	// Compute the residual over all zones.
+	ComputeResidual(config_container,
+			            geometry_container,
+									openmp_container,
+									solver_container,
+									interface_container,
+									workarray,
+									localtime);
 
 
-		// Check for any postprocessing steps.
-		PostProcessIteration(config_container,
-				                 geometry_container,
-												 openmp_container,
-												 solver_container,
-												 interface_container,
-												 workarray,
-												 localtime);
-
-	//} // End of OpenMP parallel region.
+	// Check for any postprocessing steps.
+	PostProcessIteration(config_container,
+			                 geometry_container,
+											 openmp_container,
+											 solver_container,
+											 interface_container,
+											 workarray,
+											 localtime);
 }
 
 

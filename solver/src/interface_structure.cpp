@@ -317,6 +317,9 @@ void CEEInterface::ComputeInterfaceResidual
 
 
 	// Loop over the owned elements on this interface.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
 	for( auto& [I, J]: mIndexElement )
 	{
 		// Get a pointer to the respective elements sharing this face.

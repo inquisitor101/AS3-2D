@@ -123,10 +123,6 @@ void CDriver::InitializeData
 	NImportFile::ImportAS3Grid(mConfigContainer.get(), 
 			                       mGeometryContainer.get());
 
-	// Initialize the OpenMP container.
-	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
-			                                         mGeometryContainer.get(),
-																							 mSolverContainer);
 
 	// Report output.
 	std::cout << "----------------------------------------------"
@@ -177,6 +173,10 @@ void CDriver::InitializeData
 		}
 	}
 
+	// Initialize the OpenMP container.
+	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
+			                                         mGeometryContainer.get(),
+																							 mSolverContainer);
 
 	// Report output.
 	std::cout << "Done." << std::endl;
