@@ -79,6 +79,13 @@ class IInterface
 		 */
 		unsigned short GetJZone(void) const {return mJZone;}
 
+		/*!
+		 * @brief Getter function which returns the number of elements on this interface.
+		 *
+		 * @return mNElem.
+		 */
+		unsigned int GetnElem(void) const {return mNElem;}
+
 	protected:
 		unsigned short mNVar = 4; ///< Number of working variables.
 		std::string    mIName;    ///< Name of the owner interface marker.

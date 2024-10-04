@@ -60,43 +60,47 @@ class ISolver
 				                                CGeometry *geometry_container) = 0;
 
 		/*!
-		 * @brief Pure virtual function that computes the volume terms in the entire solver.
+		 * @brief Pure virtual function that computes the volume terms for a given element.
 		 *
-		 * @param[in] geometry_container input geometry container. 
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current element index.
 		 */
-		virtual void ComputeVolumeResidual(CGeometry                 *geometry_container,
-																			 CMonitorData              *monitor_container,
+		virtual void ComputeVolumeResidual(CZoneGeometry             *grid_zone,
 																			 CPoolMatrixAS3<as3double> &workarray,
-																			 as3double                  localtime) = 0;
+																			 as3double                  localtime,
+																			 size_t                     iElem) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the i-direction in the entire solver.
 		 *
-		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current right element index.
+		 * @param[in] resL residual on the left element.
 		 */
-		virtual void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
-																						CMonitorData              *monitor_container,
-																			      CPoolMatrixAS3<as3double> &workarray,
-																						as3double                  localtime) = 0;
+		virtual void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
+				                                    CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime,
+																						size_t                     iElem,
+																						CMatrixAS3<as3double>     &resL) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
 		 *
-		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current right element index.
+		 * @param[in] resB residual on the bottom element.
 		 */
-		virtual void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
-																						CMonitorData              *monitor_container,
-																			      CPoolMatrixAS3<as3double> &workarray,
-																						as3double                  localtime) = 0;
+		virtual void ComputeSurfaceResidualJDir(CZoneGeometry             *grid_zone,
+				                                    CPoolMatrixAS3<as3double> &workarray,
+																						as3double                  localtime,
+																						size_t                     iElem,
+																						CMatrixAS3<as3double>     &resB) = 0;
 
 		/*!
 		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
@@ -218,43 +222,47 @@ class CEESolver : public ISolver
 		                            CGeometry *geometry_container) override;
 
 		/*!
-		 * @brief Function that computes the volume terms in the entire solver, based on the EE.
+		 * @brief Function that computes the volume terms for a given element, based on the EE.
 		 * 
-		 * @param[in] geometry_container input geometry container. 
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current element index.
 		 */
-		void ComputeVolumeResidual(CGeometry                 *geometry_container,
-				                       CMonitorData              *monitor_container,
-															 CPoolMatrixAS3<as3double> &workarray,
-															 as3double                  localtime) override;
+		void ComputeVolumeResidual(CZoneGeometry             *grid_zone,
+				                       CPoolMatrixAS3<as3double> &workarray,
+															 as3double                  localtime,
+															 size_t                     iElem) override;
 
 		/*!
 		 * @brief Function that computes the surface terms in the i-direction in the entire solver, based on the EE.
 		 *
-		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current right element index.
+		 * @param[in] resL residual on the left element.
 		 */
-		void ComputeSurfaceResidualIDir(CGeometry                 *geometry_container,
-																		CMonitorData              *monitor_container,
-															      CPoolMatrixAS3<as3double> &workarray,
-																		as3double                  localtime) override;
+		void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
+				                            CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime,
+																		size_t                     iElem,
+																		CMatrixAS3<as3double>     &resL) override;
 
 		/*!
 		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
 		 *
-		 * @param[in] geometry_container input geometry container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] grid_zone geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
+		 * @param[in] iElem current right element index.
+		 * @param[in] resB residual on the bottom element.
 		 */
-		void ComputeSurfaceResidualJDir(CGeometry                 *geometry_container,
-																		CMonitorData              *monitor_container,
-															      CPoolMatrixAS3<as3double> &workarray,
-																		as3double                  localtime) override;
+		void ComputeSurfaceResidualJDir(CZoneGeometry             *grid_zone,
+				                            CPoolMatrixAS3<as3double> &workarray,
+																		as3double                  localtime,
+																		size_t                     iElem,
+																		CMatrixAS3<as3double>     &resB) override;
 
 		/*!
 		 * @brief Getter function which returns the number of working variables.

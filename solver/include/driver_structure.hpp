@@ -9,6 +9,7 @@
 #include "import_structure.hpp"
 #include "output_structure.hpp"
 #include "solver_structure.hpp"
+#include "openmp_structure.hpp"
 #include "factory_structure.hpp"
 #include "geometry_structure.hpp"
 #include "temporal_structure.hpp"
@@ -49,6 +50,7 @@ class CDriver
 		std::unique_ptr<CGeometry>               mGeometryContainer;  ///< Container for the geometry information. 
 		std::unique_ptr<COutput>                 mOutputContainer;    ///< Container for the output functionalities.
     std::unique_ptr<CMonitorData>            mMonitoringContainer;///< Container for the monitoring data.
+		std::unique_ptr<COpenMP>                 mOpenMPContainer;    ///< Container for the OpenMP functionalities.
 		std::unique_ptr<ITemporal>               mTemporalContainer;  ///< Container for the temporal discretization.
 		std::unique_ptr<CIteration>              mIterationContainer; ///< Container for a single grid-sweep iteration.
 		std::unique_ptr<IInitialCondition>       mInitialContainer;   ///< Container for the initial condition.

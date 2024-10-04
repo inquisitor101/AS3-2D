@@ -5,6 +5,7 @@
 #include "geometry_structure.hpp"
 #include "iteration_structure.hpp"
 #include "solver_structure.hpp"
+#include "openmp_structure.hpp"
 #include "interface_structure.hpp"
 #include "monitoring_structure.hpp"
 
@@ -37,7 +38,7 @@ class ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container input multizone solver container.
 		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] timephysical current physical simulation time.
@@ -46,7 +47,7 @@ class ITemporal
 		virtual void UpdateTime(CConfig                                  *config_container,
 				                    CGeometry                                *geometry_container,
 														CIteration                               *iteration_container,
-														CMonitorData                             *monitor_container,
+														COpenMP                                  *openmp_container,
 														as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
 														as3vector1d<std::unique_ptr<IInterface>> &interface_container,
 														as3double                                 physicaltime, 
@@ -91,7 +92,7 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container input multizone solver container.
 		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] timephysical current physical simulation time.
@@ -100,7 +101,7 @@ class CSSPRK3Temporal final : public ITemporal
 		void UpdateTime(CConfig                                  *config_container,
 		                CGeometry                                *geometry_container,
 										CIteration                               *iteration_container,
-										CMonitorData                             *monitor_container,
+										COpenMP                                  *openmp_container,
 										as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
 										as3vector1d<std::unique_ptr<IInterface>> &interface_container,
 										as3double                                 physicaltime, 
@@ -121,7 +122,7 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
-		 * @param[out] monitor_container data monitoring container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container input multizone solver container.
 		 * @param[in] interface_container input vector of interface containers.
 		 * @param[in] localtime local time in the RK evaluations.
@@ -131,7 +132,7 @@ class CSSPRK3Temporal final : public ITemporal
 		void EvaluateSSPRK3(CConfig                                  *config_container,
 		                    CGeometry                                *geometry_container,
 										    CIteration                               *iteration_container,
-												CMonitorData                             *monitor_container,
+												COpenMP                                  *openmp_container,
 										    as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
 												as3vector1d<std::unique_ptr<IInterface>> &interface_container,
 										    as3double                                 localtime, 

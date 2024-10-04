@@ -80,7 +80,7 @@ void CSSPRK3Temporal::UpdateTime
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
  CIteration                               *iteration_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  as3double                                 physicaltime,
@@ -100,7 +100,7 @@ void CSSPRK3Temporal::UpdateTime
     EvaluateSSPRK3(config_container,
 				           geometry_container,
                		 iteration_container,
-									 monitor_container,
+									 openmp_container,
                		 solver_container,
 									 interface_container,
                		 localtime, timestep,
@@ -115,7 +115,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
  CIteration                               *iteration_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  as3double                                 localtime,
@@ -130,32 +130,48 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 	const as3double alpha = mRk3a[iStageRK];
 	const as3double beta  = mRk3b[iStageRK];
 
-	// First, compute the residual.
-	iteration_container->GridSweep(config_container,
-			                           geometry_container,
-																 monitor_container,
-																 solver_container,
-																 interface_container,
-																 localtime);
-
-
-	// Update the solution in time. For computational efficiency, make a distinction 
-	// between the first stage (iStage=0) and the remaining ones.
-	if( iStageRK == 0 )
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+#endif
 	{
-		// Abbreviation.
-		const as3double bdt = beta*timestep;
+		// First, compute the residual.
+		iteration_container->GridSweep(config_container,
+				                           geometry_container,
+																	 openmp_container,
+																	 solver_container,
+																	 interface_container,
+																	 localtime);
 
-		// Loop over each solver in every zone.
-		for( auto& solver: solver_container )
+		// Get the total number of elements in all zones.
+		const size_t nElemTotal = openmp_container->GetnElemTotal();
+
+
+		// Update the solution in time. For computational efficiency, make a distinction 
+		// between the first stage (iStage=0) and the remaining ones.
+		if( iStageRK == 0 )
 		{
-			// Loop over every element in this zone.
-			for( auto& element: solver->GetPhysicalElement() )
+			// Abbreviation.
+			const as3double bdt = beta*timestep;
+
+			// Loop over each solver in every zone.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+			for(size_t i=0; i<nElemTotal; i++)
 			{
+				// Deduce the current element's zone and index.
+				const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
+				const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+
+				// Extract the relevant solver.
+				auto& solver  = solver_container[iZone];
+				// Extract the relevant physical element.
+				auto* element = solver->GetPhysicalElement(iElem);
+
 				// Extract current solution and residual.
 				auto& sol = element->mSol2D;
 				auto& res = element->mRes2D;
-		
+			
 				// Extract the tentative (sol) solution state.
 				auto& old = element->mSolOld2D;
 
@@ -167,23 +183,32 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 				}
 			}
 		}
-	}
-	else
-	{
-		// Abbreviation.
-		const as3double bdt = beta*timestep;
-		const as3double oma = C_ONE - alpha;
-
-		// Loop over each solver in every zone.
-		for( auto& solver: solver_container )
+		else
 		{
-			// Loop over every element in this zone.
-			for( auto& element: solver->GetPhysicalElement() )
+			// Abbreviation.
+			const as3double bdt = beta*timestep;
+			const as3double oma = C_ONE - alpha;
+
+			// Loop over each solver in every zone.	
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+			for(size_t i=0; i<nElemTotal; i++)
 			{
+				// Deduce the current element's zone and index.
+				const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
+				const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+
+				// Extract the relevant solver.
+				auto& solver  = solver_container[iZone];
+				// Extract the relevant physical element.
+				auto* element = solver->GetPhysicalElement(iElem);
+
+
 				// Extract current solution and residual.
 				auto& sol = element->mSol2D;
 				auto& res = element->mRes2D;
-		
+			
 				// Extract the tentative (sol) solution state.
 				auto& old = element->mSolOld2D;
 
@@ -194,7 +219,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 				}
 			}
 		}
-	}
+	} // End of OpenMP parallel region.
 }
 
 

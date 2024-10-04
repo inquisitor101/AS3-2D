@@ -67,7 +67,7 @@ void CIteration::PreProcessIteration
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
@@ -86,7 +86,7 @@ void CIteration::PostProcessIteration
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
@@ -105,7 +105,7 @@ void CIteration::ComputeResidual
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  CPoolMatrixAS3<as3double>                &workarray,
@@ -115,39 +115,162 @@ void CIteration::ComputeResidual
 	* Function that computes the residual in all zones.
 	*/
 {
-	// For now, loop over the zones and naively update the residuals.
-	for( auto& solver: solver_container )
+	// Get the total number of elements in all zones.
+	const size_t nElemTotal = openmp_container->GetnElemTotal();
+	// Get the total number of internal i-faces in all zones.
+	const size_t nInternalIFace = openmp_container->GetnInternIFace();
+	// Get the total number of internal j-faces in all zones.
+	const size_t nInternalJFace = openmp_container->GetnInternJFace();
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nElemTotal; i++)
 	{
-		// Compute all volume terms. Note, this step also initializes the residual.
-		solver->ComputeVolumeResidual(geometry_container, monitor_container, workarray, localtime);
+		// Deduce the current element's zone and index.
+		const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
+		const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
 
-		// Compute all surface terms in the i-direction.
-		solver->ComputeSurfaceResidualIDir(geometry_container, monitor_container, workarray, localtime);
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the relevant grid.
+		auto* grid    = geometry_container->GetZoneGeometry(iZone);
 
-		// Compute all surface terms in the j-direction.
-		solver->ComputeSurfaceResidualJDir(geometry_container, monitor_container, workarray, localtime);
-
+		// Compute the volume terms on this element. Note, this step also initializes the residual.
+		solver->ComputeVolumeResidual(grid, workarray, localtime, iElem); 
 	}
 
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nInternalIFace; i++)
+	{
+		// Deduce the right element's zone and index.
+		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
+		const unsigned int   iElem = openmp_container->GetInternIFace(i)->mElem;
+
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the relevant grid.
+		auto* grid    = geometry_container->GetZoneGeometry(iZone);
+		// Extract the left residual.
+		auto& resL    = openmp_container->GetResIMin(i);
+
+		// Reset the left residual.
+		for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
+
+		// Compute all surface terms in the i-direction.
+		solver->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElem, resL);
+	}
+
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nInternalJFace; i++)
+	{
+		// Deduce the top element's zone and index.
+		const unsigned short iZone = openmp_container->GetInternJFace(i)->mZone;
+		const unsigned int   iElem = openmp_container->GetInternJFace(i)->mElem;
+
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the relevant grid.
+		auto* grid    = geometry_container->GetZoneGeometry(iZone);
+		// Extract the bottom residual.
+		auto& resB    = openmp_container->GetResJMin(i);
+
+		// Reset the bottom residual.
+		for(size_t l=0; l<resB.size(); l++) resB[l] = C_ZERO;
+
+		// Compute all surface terms in the j-direction.
+		solver->ComputeSurfaceResidualJDir(grid, workarray, localtime, iElem, resB);
+	}
+
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nInternalIFace; i++)
+	{
+		// Deduce the right element's zone and index.
+		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
+		const unsigned int   IR    = openmp_container->GetInternIFace(i)->mElem;
+
+		// Deduce the left element's index.
+		const unsigned int IL = IR-1;
+
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the temporary left residual.
+		auto& tmpL    = openmp_container->GetResIMin(i);
+		// Extract the actual left residual.
+		auto& resL    = solver->GetPhysicalElement(IL)->mRes2D;
+
+		for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
+	}
+
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nInternalJFace; i++)
+	{
+		// Deduce the top element's zone and index.
+		const unsigned short iZone = openmp_container->GetInternJFace(i)->mZone;
+		const unsigned int   IT    = openmp_container->GetInternJFace(i)->mElem;
+
+		// Extract the relevant grid.
+		auto* grid = geometry_container->GetZoneGeometry(iZone);
+
+		// Deduce the bottom element's index.
+		const size_t IB = IT - grid->GetnxElem();
+
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the temporary bottom residual.
+		auto& tmpB    = openmp_container->GetResJMin(i);
+		// Extract the actual bottom residual.
+		auto& resB    = solver->GetPhysicalElement(IB)->mRes2D;
+
+		for(size_t l=0; l<resB.size(); l++) resB[l] += tmpB[l];
+	}
+
+
 	// Loop over the interface boundaries, if need be.
+#ifdef HAVE_OPENMP
+#pragma omp single
+#endif
 	for( auto& interface: interface_container )
 	{
 		interface->ComputeInterfaceResidual(solver_container, workarray);
 	}
 
-	// Multiply by the inverse mass matrix.
-	for( auto& solver: solver_container )
-	{
-		for( auto& element: solver->GetPhysicalElement() )
-		{
-			// Get the inverse of the mass matrix.
-			auto& m = element->mInvMassMatrix;
-			// Get the residual on this element.
-			auto& r = element->mRes2D;
 
-			// Perform a matrix-matrix multiplication to obtain the residual.
-			NLinearAlgebra::MatrixVectorTransMult(m, r, r);
-		}
+
+	// Multiply by the inverse mass matrix.
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static)
+#endif
+	for(size_t i=0; i<nElemTotal; i++)
+	{
+		// Deduce the current element's zone and index.
+		const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
+		const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+
+		// Extract the relevant solver.
+		auto& solver  = solver_container[iZone];
+		// Extract the relevant physical element.
+		auto* element = solver->GetPhysicalElement(iElem);
+
+		// Get the inverse of the mass matrix.
+		auto& m = element->mInvMassMatrix;
+		// Get the residual on this element.
+		auto& r = element->mRes2D;
+
+		// Perform a matrix-matrix multiplication to obtain the residual.
+		NLinearAlgebra::MatrixVectorTransMult(m, r, r);
 	}
 }
 
@@ -157,7 +280,7 @@ void CIteration::GridSweep
 (
  CConfig                                  *config_container,
  CGeometry                                *geometry_container,
- CMonitorData                             *monitor_container,
+ COpenMP                                  *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>>    &solver_container, 
  as3vector1d<std::unique_ptr<IInterface>> &interface_container,
  as3double                                 localtime 
@@ -166,38 +289,46 @@ void CIteration::GridSweep
 	* Function that performs a grid sweep over all the zones. 
 	*/
 {
-	// Initialize a work array, to avoid multiple memory allocations.
-	// Note, during parallelization, this needs to be allocated inside 
-	// the (shared memory) parallel region -- not here.
-	CPoolMatrixAS3<as3double> workarray(mNWorkData);
+//#ifdef HAVE_OPENMP
+//#pragma omp parallel
+//#endif
+//	{
+		// Initialize a work array, to avoid multiple memory allocations.
+		// Note, during parallelization, this needs to be allocated inside 
+		// the (shared memory) parallel region -- not here.
+		CPoolMatrixAS3<as3double> workarray(mNWorkData);
 
 
-	// Check for any preprocessing steps.
-	PreProcessIteration(config_container,
-			                geometry_container,
-											monitor_container,
-											solver_container,
-											interface_container,
-											workarray,
-											localtime);
+		// Check for any preprocessing steps.
+		PreProcessIteration(config_container,
+				                geometry_container,
+												openmp_container,
+												solver_container,
+												interface_container,
+												workarray,
+												localtime);
 
 
-	// Compute the residual over all zones.
-	ComputeResidual(config_container,
-			            geometry_container,
-									monitor_container,
-									solver_container,
-									interface_container,
-									workarray,
-									localtime);
+		// Compute the residual over all zones.
+		ComputeResidual(config_container,
+				            geometry_container,
+										openmp_container,
+										solver_container,
+										interface_container,
+										workarray,
+										localtime);
 
 
-	// Check for any postprocessing steps.
-	PostProcessIteration(config_container,
-			                 geometry_container,
-											 monitor_container,
-											 solver_container,
-											 interface_container,
-											 workarray,
-											 localtime);
+		// Check for any postprocessing steps.
+		PostProcessIteration(config_container,
+				                 geometry_container,
+												 openmp_container,
+												 solver_container,
+												 interface_container,
+												 workarray,
+												 localtime);
+
+	//} // End of OpenMP parallel region.
 }
+
+

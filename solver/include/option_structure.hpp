@@ -8,6 +8,11 @@
 #include "error_structure.hpp"
 #include "data_structure.hpp"
 
+#ifdef HAVE_OPENMP
+#include <omp.h>
+#endif
+
+
 
 /* * * 
  * Global name-aliasing definitions.

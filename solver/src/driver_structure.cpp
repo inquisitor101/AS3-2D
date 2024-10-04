@@ -123,6 +123,11 @@ void CDriver::InitializeData
 	NImportFile::ImportAS3Grid(mConfigContainer.get(), 
 			                       mGeometryContainer.get());
 
+	// Initialize the OpenMP container.
+	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
+			                                         mGeometryContainer.get(),
+																							 mSolverContainer);
+
 	// Report output.
 	std::cout << "----------------------------------------------"
 							 "----------------------------------------------\n";
@@ -301,9 +306,24 @@ as3double CDriver::ComputeTimeStep
 	// Max Mach number squared, used for monitoring.
 	as3double maxM2 = C_ZERO;
 
-	// Loop over all the solvers.
-	for( auto& solver: mSolverContainer )
+	// Get the total number of elements in all zones.
+	const size_t nElemTotal = mOpenMPContainer->GetnElemTotal();
+
+	// Loop over all the elements in all the solvers.
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static), reduction(max:dtinv), reduction(max:maxM2)
+#endif
+	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Deduce the current element's zone and index.
+		const unsigned short iZone = mOpenMPContainer->GetIndexVolume(i)->mZone;
+		const unsigned int   iElem = mOpenMPContainer->GetIndexVolume(i)->mElem;
+
+		// Extract the relevant solver.
+		auto& solver  = mSolverContainer[iZone];
+		// Extract the relevant physical element.
+		auto* element = solver->GetPhysicalElement(iElem);
+
 		// Extract the number of DOFs on each element in this zone. 
 		const size_t   nSol2D = solver->GetStandardElement()->GetnSol2D();
 		// Extract the polynomial order in this zone.
@@ -311,63 +331,63 @@ as3double CDriver::ComputeTimeStep
 		// Deduce the maximum inviscid polynomial coefficient.
 		const as3double f1    = npoly*npoly;
 
-		// Loop over each element in each solver/zone.
-		for( auto& element: solver->GetPhysicalElement() )
+		// Extract the solution.
+		const auto& sol = element->mSol2D;	
+
+		// Extract average normals, based on the surface directions (i and j).
+		const as3double *ni = element->mAvgNormIDir;
+		const as3double *nj = element->mAvgNormJDir;
+
+		// Compute the inverse of the average length scale in the i and j-direction.
+		const as3double ovli = C_ONE/element->mLengthScaleIDir;
+		const as3double ovlj = C_ONE/element->mLengthScaleJDir;
+
+		// Initialize the max of the inverse (inviscid) spectral radius on this element.
+		as3double maxsrinv = C_ZERO;
+		// Initialize the max of the Mach squared on this element. 
+		as3double maxm2    = C_ZERO;
+
+		// Loop over each DOF and compute the stability time limit.
+		for(size_t l=0; l<nSol2D; l++)
 		{
-			// Extract the solution.
-			const auto& sol = element->mSol2D;	
+  		// Compute the primitive variables.
+  		const as3double rho   = sol(0,l);
+  		const as3double ovrho = C_ONE/rho;
+  		const as3double u     = ovrho*sol(1,l);
+  		const as3double v     = ovrho*sol(2,l);
+  		const as3double p     = C_GM1*( sol(3,l) - C_HALF*(u*sol(1,l) + v*sol(2,l)) );
 
-			// Extract average normals, based on the surface directions (i and j).
-			const as3double *ni = element->mAvgNormIDir;
-			const as3double *nj = element->mAvgNormJDir;
+			// Compute the speed of sound  and its squared.
+			const as3double a2    = C_GMA*p*ovrho;
+			const as3double a     = std::sqrt(a2);
 
-			// Compute the inverse of the average length scale in the i and j-direction.
-			const as3double ovli = C_ONE/element->mLengthScaleIDir;
-			const as3double ovlj = C_ONE/element->mLengthScaleJDir;
+			// Compute the average i and j-projected velocities.
+			const as3double ui    = u*ni[0] + v*ni[1];
+			const as3double uj    = u*nj[0] + v*nj[1];
 
-			// Initialize the max of the inverse (inviscid) spectral radius on this element.
-			as3double maxsrinv = C_ZERO;
+			// Compute the maximum eigenvalues of the inviscid terms (which are acoustic).
+			const as3double lmbi  = std::abs(ui) + a;
+			const as3double lmbj  = std::abs(uj) + a;
 
-			// Loop over each DOF and compute the stability time limit.
-			for(size_t l=0; l<nSol2D; l++)
-			{
-  	  	// Compute the primitive variables.
-  	  	const as3double rho   = sol(0,l);
-  	  	const as3double ovrho = C_ONE/rho;
-  	  	const as3double u     = ovrho*sol(1,l);
-  	  	const as3double v     = ovrho*sol(2,l);
-  	  	const as3double p     = C_GM1*( sol(3,l) - C_HALF*(u*sol(1,l) + v*sol(2,l)) );
-
-				// Compute the speed of sound  and its squared.
-				const as3double a2    = C_GMA*p*ovrho;
-				const as3double a     = std::sqrt(a2);
-
-				// Compute the average i and j-projected velocities.
-				const as3double ui    = u*ni[0] + v*ni[1];
-				const as3double uj    = u*nj[0] + v*nj[1];
-
-				// Compute the maximum eigenvalues of the inviscid terms (which are acoustic).
-				const as3double lmbi  = std::abs(ui) + a;
-				const as3double lmbj  = std::abs(uj) + a;
-
-				// Compute the inverse of the spectral radius of the inviscid terms.
-				const as3double srinv = lmbi*ovli + lmbj*ovlj; 
-				
-				// Compute the max of the spectral radius inverted.
-				maxsrinv  = std::max( srinv, maxsrinv );
+			// Compute the inverse of the spectral radius of the inviscid terms.
+			const as3double srinv = lmbi*ovli + lmbj*ovlj; 
+			
+			// Compute the max of the spectral radius inverted.
+			maxsrinv  = std::max( srinv, maxsrinv );
 		
-    		// Compute the local Mach number squared.
-    		const as3double M2 = (u*u + v*v)/a2;
-    		// Check if this value is the largest.
-    		maxM2 = std::max(maxM2, M2);
+    	// Compute the local Mach number squared.
+    	const as3double M2 = (u*u + v*v)/a2;
+    	// Check if this value is the largest.
+    	maxm2 = std::max(maxm2, M2);
 
-				// Ensure the speed of sound is positive.
-				if( a2 < C_ZERO ) ERROR("Negative speed of sound encountered.");
-			}
-
-			// Assign the max of the inverse time step.
-			dtinv = std::max( f1*maxsrinv, dtinv );
+			// Ensure the speed of sound is positive.
+			if( a2 < C_ZERO ) ERROR("Negative speed of sound encountered.");
 		}
+
+		// Assign the max of the inverse time step.
+		dtinv = std::max( f1*maxsrinv, dtinv );
+		// Assign the max of the Mach squared.
+		maxM2 = std::max( maxm2, maxM2 );
 	}
 
 	// Update the monitored data.
@@ -437,7 +457,7 @@ void CDriver::ExecuteTimeSyncStep
 		mTemporalContainer->UpdateTime(mConfigContainer.get(),
 				                           mGeometryContainer.get(),
 																	 mIterationContainer.get(),
-																	 mMonitoringContainer.get(),
+																	 mOpenMPContainer.get(),
 																	 mSolverContainer,
 																	 mInterfaceContainer,
 																	 time, dt);
