@@ -8,8 +8,8 @@
 
 COpenMP::COpenMP
 (
- CConfig                              *config_container,
- CGeometry                            *geometry_container,
+ CConfig                               *config_container,
+ CGeometry                             *geometry_container,
  as3vector1d<std::unique_ptr<ISolver>> &solver_container
 )
  /*

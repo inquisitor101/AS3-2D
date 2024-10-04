@@ -177,6 +177,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 (
  CConfig                               *config_container,
  CGeometry                             *geometry_container,
+ COpenMP                               *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>> &solver_container
 )
  /*
@@ -308,6 +309,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 	// Note, this is done over all elements in all zones simulataneoously.
 	DetermineVisualizationData(config_container,
 			                       geometry_container, 
+														 openmp_container,
 														 solver_container, vars_buf); 
 	
 
@@ -454,6 +456,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 (
  CConfig                               *config_container,
  CGeometry                             *geometry_container,
+ COpenMP                               *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>> &solver_container,
  as3vector2d<float>                    &vars_buf
 )
@@ -461,11 +464,18 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 	* Function that computes the required data for visualization in binary format.
 	*/
 {
-	// Extract total number of zones.
-	const unsigned short nZone = config_container->GetnZone();
+	// Get the total number of elements in all zones.
+	const size_t nElemTotal = openmp_container->GetnElemTotal();
 
-	for(unsigned short iZone=0; iZone<nZone; iZone++)
+#ifdef HAVE_OPENMP
+#pragma omp parallel for schedule(static)
+#endif
+	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Deduce the current element's zone and index.
+		const unsigned short iZone  = openmp_container->GetIndexVolume(i)->mZone;
+		const unsigned int   ijElem = openmp_container->GetIndexVolume(i)->mElem;
+
 		// Extract current grid zone.
 		auto* zone   = geometry_container->GetZoneGeometry(iZone);
 		// Extract current solver.
@@ -478,262 +488,258 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 		// Total DOFs and sub-elements in this zone.
 		const size_t nDOFs = nNode*nElem;
 
+		// Extract solution in this element.
+		auto& sol = solver->GetPhysicalElement(ijElem)->mSol2D;
 
-		// Loop over every element and process the data for visualization.
-		for(size_t ijElem=0; ijElem<nElem; ijElem++)
+		// Allocate data for the primitive variables on the solution DOFs for this element.
+		// These contain: 1/rho, u, v, p. 
+		// Note, the inverse of rho is computed for convenience.
+		CMatrixAS3<as3double> primvar( 4, nNode );
+
+		// Loop over the element DOFs and compute the primitive variables needed.
+		for(size_t l=0; l<nNode; l++)
 		{
-			// Extract solution in this element.
-			auto& sol = solver->GetPhysicalElement(ijElem)->mSol2D;
-
-			// Allocate data for the primitive variables on the solution DOFs for this element.
-			// These contain: 1/rho, u, v, p. 
-			// Note, the inverse of rho is computed for convenience.
-			CMatrixAS3<as3double> primvar( 4, nNode );
-
-			// Loop over the element DOFs and compute the primitive variables needed.
-			for(size_t l=0; l<nNode; l++)
-			{
-				const as3double ovrho =  C_ONE/sol(0,l);
-				const as3double u     =  ovrho*sol(1,l);
-				const as3double v     =  ovrho*sol(2,l);
-				const as3double p     =  C_GM1*( sol(3,l) - C_HALF*sol(0,l)*(u*u + v*v) );
-				
-				// Store the values.
-				primvar(0,l) = ovrho;
-				primvar(1,l) = u;
-				primvar(2,l) = v;
-				primvar(3,l) = p;
-			}
-
-			// Counter for the number of variables.
-			unsigned int iVar = 0;
-
-			// Determine which variables to compute.
-			for( auto& var: config_container->GetWriteVisVar() )
-			{
-
-				// Check which variable to compute.
-				switch(var)
-				{
-
-					case(EWriteVariable::DENSITY): 
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-				
-						// Compute and store the density in each DOF.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( sol(0,l) ); 
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-
-						break;
-					}
-
-					case(EWriteVariable::MOMENTUM):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
-	
-						// Compute and store the momentum variables.
-						for(size_t l=0; l<nNode; l++)
-						{
-							const size_t l3 = 3*l;
-							buf[l3  ] = static_cast<float>( sol(1,l) );
-							buf[l3+1] = static_cast<float>( sol(2,l) );
-							buf[l3+2] = static_cast<float>(   0.0f   );
-						}
-	
-						// Update variable counter for a 3D vector.
-						iVar += 3;
-						
-						break;
-					}
-
-					case(EWriteVariable::TOTAL_ENERGY):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-	
-						// Compute and store the energy variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( sol(3,l) );
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-						
-						break;
-					}
-
-					case(EWriteVariable::PRESSURE):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-						
-						// Compute and store the pressure variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( primvar(3,l) );
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-
-						break;
-					}
-
-					case(EWriteVariable::VELOCITY):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
-	
-						// Compute and store the velocity variables.
-						for(size_t l=0; l<nNode; l++)
-						{
-							const size_t l3 = 3*l;
-							const as3double ovrho = primvar(0,l);
-							buf[l3  ] = static_cast<float>( ovrho*sol(1,l) );
-							buf[l3+1] = static_cast<float>( ovrho*sol(2,l) );
-							buf[l3+2] = static_cast<float>(      0.0f      );
-						}
-
-						// Update variable counter for a 3D vector.
-						iVar += 3;
-	
-						break;
-					}
-
-					case(EWriteVariable::TEMPERATURE):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-	
-						// Abbreviation for 1/R.
-						const as3double ovR = C_ONE/C_RGAS;
-	
-						// Compute and store the temperature variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( ovR*primvar(0,l)*primvar(3,l) );
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-
-						break;
-					}
-
-					case(EWriteVariable::MACH):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-	
-						// Compute and store the Mach number variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							const as3double a2    = C_GMA*primvar(0,l)*primvar(3,l);
-							const as3double umag2 = primvar(1,l)*primvar(1,l) 
-								                    + primvar(2,l)*primvar(2,l); 
-							buf[l] = static_cast<float>( std::sqrt( umag2/a2 ) ); 
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-
-						break;
-					}
-
-					case(EWriteVariable::ENTROPY):
-					{
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-	
-						// Compute and store the Mach number variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( std::log( primvar(3,l)*std::pow( primvar(0,l), C_GMA ) ) );
-						}
-
-						// Update variable counter for a scalar.
-						iVar++;
-
-						break;
-					}
-
-					case(EWriteVariable::VORTICITY):
-					{
-						// Allocate memory for the velocity gradient.
-						CMatrixAS3<as3double> dUDx( 2, nNode );
-						CMatrixAS3<as3double> dUDy( 2, nNode );
-
-						// Extract number of solution points in 1D.
-						const size_t nSol1D = solver->GetStandardElement()->GetnSol1D();
-
-						// Create an identity matrix, needed for the Lagrange interpolation over the DOFs.
-						CMatrixAS3<as3double> identity = NLinearAlgebra::CreateIdentityMatrix<as3double>( nSol1D ); 
-
-						// Extract the transposed differentiation matrix in 1D over the solution points.
-						CMatrixAS3<as3double> derLagrangeSol1DTrans = solver->GetStandardElement()->GetDerLagrangeSol1DTrans();
-
-						// Compute the gradient of the velocity.
-						solver->GetTensorProduct()->CustomVolume(nSol1D, 2, nSol1D,
-								                                     identity.data(), derLagrangeSol1DTrans.data(),
-																                     &primvar[nNode], nullptr,
-																                     dUDx.data(), dUDy.data());
-
-						// Extract the metrics at the volume solution points.
-						auto& metrics = solver->GetPhysicalElement(ijElem)->mMetricSol2D;
-
-						// Convert the derivatives from parametric space to Cartesian space.
-						for(size_t l=0; l<nNode; l++)
-						{
-							// Parametric derivatives.
-							const as3double dudr = dUDx(0,l);
-							const as3double dvdr = dUDx(1,l);
-							const as3double duds = dUDy(0,l);
-							const as3double dvds = dUDy(1,l);
-
-							// Metrics of transformation.
-							const as3double drdx = metrics(1,l);
-							const as3double drdy = metrics(2,l);
-							const as3double dsdx = metrics(3,l);
-							const as3double dsdy = metrics(4,l);
-
-							// Compute the Cartesian derivatives w.r.t. x.
-							//dUDx(0,l) = dudr*drdx + duds*dsdx; // dudx (not needed here)
-							dUDx(1,l) = dvdr*drdx + dvds*dsdx; // dvdx
-							
-							// Compute the Cartesian derivatives w.r.t. y.
-							dUDy(0,l) = dudr*drdy + duds*dsdy; // dudy
-							//dUDy(1,l) = dvdr*drdy + dvds*dsdy; // dvdy (not needed here)
-						}
-
-						// Set the pointer to the correct location.
-						float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
-
-						// Compute and store the Vorticity variable.
-						for(size_t l=0; l<nNode; l++)
-						{
-							buf[l] = static_cast<float>( dUDx(1,l) - dUDy(0,l) ); 
-						}
-
-						// Update variable counter for a scalar.
-						iVar += 1;
-	
-						break;
-					}
-
-
-					default: ERROR("Unknown variable detected.");
-				}
-			}
+			const as3double ovrho =  C_ONE/sol(0,l);
+			const as3double u     =  ovrho*sol(1,l);
+			const as3double v     =  ovrho*sol(2,l);
+			const as3double p     =  C_GM1*( sol(3,l) - C_HALF*sol(0,l)*(u*u + v*v) );
 			
+			// Store the values.
+			primvar(0,l) = ovrho;
+			primvar(1,l) = u;
+			primvar(2,l) = v;
+			primvar(3,l) = p;
 		}
+
+		// Counter for the number of variables.
+		unsigned int iVar = 0;
+
+		// Determine which variables to compute.
+		for( auto& var: config_container->GetWriteVisVar() )
+		{
+
+			// Check which variable to compute.
+			switch(var)
+			{
+
+				case(EWriteVariable::DENSITY): 
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+			
+					// Compute and store the density in each DOF.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( sol(0,l) ); 
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+
+					break;
+				}
+
+				case(EWriteVariable::MOMENTUM):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
+	
+					// Compute and store the momentum variables.
+					for(size_t l=0; l<nNode; l++)
+					{
+						const size_t l3 = 3*l;
+						buf[l3  ] = static_cast<float>( sol(1,l) );
+						buf[l3+1] = static_cast<float>( sol(2,l) );
+						buf[l3+2] = static_cast<float>(   0.0f   );
+					}
+	
+					// Update variable counter for a 3D vector.
+					iVar += 3;
+					
+					break;
+				}
+
+				case(EWriteVariable::TOTAL_ENERGY):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+	
+					// Compute and store the energy variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( sol(3,l) );
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+					
+					break;
+				}
+
+				case(EWriteVariable::PRESSURE):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+					
+					// Compute and store the pressure variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( primvar(3,l) );
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+
+					break;
+				}
+
+				case(EWriteVariable::VELOCITY):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode*3;
+	
+					// Compute and store the velocity variables.
+					for(size_t l=0; l<nNode; l++)
+					{
+						const size_t l3 = 3*l;
+						const as3double ovrho = primvar(0,l);
+						buf[l3  ] = static_cast<float>( ovrho*sol(1,l) );
+						buf[l3+1] = static_cast<float>( ovrho*sol(2,l) );
+						buf[l3+2] = static_cast<float>(      0.0f      );
+					}
+
+					// Update variable counter for a 3D vector.
+					iVar += 3;
+	
+					break;
+				}
+
+				case(EWriteVariable::TEMPERATURE):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+	
+					// Abbreviation for 1/R.
+					const as3double ovR = C_ONE/C_RGAS;
+	
+					// Compute and store the temperature variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( ovR*primvar(0,l)*primvar(3,l) );
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+
+					break;
+				}
+
+				case(EWriteVariable::MACH):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+	
+					// Compute and store the Mach number variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						const as3double a2    = C_GMA*primvar(0,l)*primvar(3,l);
+						const as3double umag2 = primvar(1,l)*primvar(1,l) 
+							                    + primvar(2,l)*primvar(2,l); 
+						buf[l] = static_cast<float>( std::sqrt( umag2/a2 ) ); 
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+
+					break;
+				}
+
+				case(EWriteVariable::ENTROPY):
+				{
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+	
+					// Compute and store the Mach number variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( std::log( primvar(3,l)*std::pow( primvar(0,l), C_GMA ) ) );
+					}
+
+					// Update variable counter for a scalar.
+					iVar++;
+
+					break;
+				}
+
+				case(EWriteVariable::VORTICITY):
+				{
+					// Allocate memory for the velocity gradient.
+					CMatrixAS3<as3double> dUDx( 2, nNode );
+					CMatrixAS3<as3double> dUDy( 2, nNode );
+
+					// Extract number of solution points in 1D.
+					const size_t nSol1D = solver->GetStandardElement()->GetnSol1D();
+
+					// Create an identity matrix, needed for the Lagrange interpolation over the DOFs.
+					CMatrixAS3<as3double> identity = NLinearAlgebra::CreateIdentityMatrix<as3double>( nSol1D ); 
+
+					// Extract the transposed differentiation matrix in 1D over the solution points.
+					CMatrixAS3<as3double> derLagrangeSol1DTrans = solver->GetStandardElement()->GetDerLagrangeSol1DTrans();
+
+					// Compute the gradient of the velocity.
+					solver->GetTensorProduct()->CustomVolume(nSol1D, 2, nSol1D,
+							                                     identity.data(), derLagrangeSol1DTrans.data(),
+															                     &primvar[nNode], nullptr,
+															                     dUDx.data(), dUDy.data());
+
+					// Extract the metrics at the volume solution points.
+					auto& metrics = solver->GetPhysicalElement(ijElem)->mMetricSol2D;
+
+					// Convert the derivatives from parametric space to Cartesian space.
+					for(size_t l=0; l<nNode; l++)
+					{
+						// Parametric derivatives.
+						const as3double dudr = dUDx(0,l);
+						const as3double dvdr = dUDx(1,l);
+						const as3double duds = dUDy(0,l);
+						const as3double dvds = dUDy(1,l);
+
+						// Metrics of transformation.
+						const as3double drdx = metrics(1,l);
+						const as3double drdy = metrics(2,l);
+						const as3double dsdx = metrics(3,l);
+						const as3double dsdy = metrics(4,l);
+
+						// Compute the Cartesian derivatives w.r.t. x.
+						//dUDx(0,l) = dudr*drdx + duds*dsdx; // dudx (not needed here)
+						dUDx(1,l) = dvdr*drdx + dvds*dsdx; // dvdx
+						
+						// Compute the Cartesian derivatives w.r.t. y.
+						dUDy(0,l) = dudr*drdy + duds*dsdy; // dudy
+						//dUDy(1,l) = dvdr*drdy + dvds*dsdy; // dvdy (not needed here)
+					}
+
+					// Set the pointer to the correct location.
+					float *buf = vars_buf[iZone].data() + iVar*nDOFs + ijElem*nNode;
+
+					// Compute and store the Vorticity variable.
+					for(size_t l=0; l<nNode; l++)
+					{
+						buf[l] = static_cast<float>( dUDx(1,l) - dUDy(0,l) ); 
+					}
+
+					// Update variable counter for a scalar.
+					iVar += 1;
+	
+					break;
+				}
+
+
+				default: ERROR("Unknown variable detected.");
+			}
+		}
+		
+		
 	}
 }
 

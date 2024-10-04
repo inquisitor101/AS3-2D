@@ -4,10 +4,12 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "solver_structure.hpp"
+#include "openmp_structure.hpp"
 
 
 // Forward declaration to avoid compiler issues.
 class ISolver;
+class COpenMP;
 
 /*!
  * @brief An interface class used for writing VTK files. 
@@ -33,10 +35,12 @@ class IFileVTK
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] geometry_container pointer to the geometry container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container reference to the solver container.
 		 */
 		virtual void WriteFileVTK(CConfig                               *config_container,
 															CGeometry                             *geometry_container,
+															COpenMP                               *openmp_container,
 															as3vector1d<std::unique_ptr<ISolver>> &solver_container) = 0;
 
 	protected:
@@ -87,10 +91,12 @@ class CLegacyBinaryVTK final : public IFileVTK
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] geometry_container pointer to the geometry container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container reference to the solver container.
 		 */
 		void WriteFileVTK(CConfig                               *config_container,
 											CGeometry                             *geometry_container,
+											COpenMP                               *openmp_container,
 											as3vector1d<std::unique_ptr<ISolver>> &solver_container) final;
 
 	protected:
@@ -106,11 +112,13 @@ class CLegacyBinaryVTK final : public IFileVTK
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] geometry_container pointer to geometry container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container reference to the solver container.
 		 * @param[in] vars_buf reference to the variables buffer data.
 		 */
 	  void DetermineVisualizationData(CConfig                               *config_container,
 				                            CGeometry                             *geometry_container,
+																		COpenMP                               *openmp_container,
 				                            as3vector1d<std::unique_ptr<ISolver>> &solver_container,
 																		as3vector2d<float>                    &vars_buf);
 };

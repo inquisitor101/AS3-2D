@@ -6,6 +6,7 @@
 #include "geometry_structure.hpp"
 #include "solver_structure.hpp"
 #include "vtk_structure.hpp"
+#include "openmp_structure.hpp"
 
 
 /*!
@@ -31,9 +32,12 @@ class COutput
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] geometry_container pointer to the geometry container.
+		 * @param[in] openmp_container OpenMP shared parallelization container.
+		 * @param[in] solver_container reference to the solver container.
 		 */
 		void WriteVisualFile(CConfig                               *config_container,
 											   CGeometry                             *geometry_container,
+												 COpenMP                               *openmp_container,
 												 as3vector1d<std::unique_ptr<ISolver>> &solver_structure);
 
 	protected:

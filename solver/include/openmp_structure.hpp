@@ -4,6 +4,9 @@
 #include "geometry_structure.hpp"
 #include "solver_structure.hpp"
 
+// Forward declaration to avoid compiler issues.
+class ISolver;
+
 
 struct CIndexElement
 {

@@ -36,6 +36,7 @@ void COutput::WriteVisualFile
 (
  CConfig                               *config_container,
  CGeometry                             *geometry_container,
+ COpenMP                               *openmp_container,
  as3vector1d<std::unique_ptr<ISolver>> &solver_container
 )
  /*
@@ -45,5 +46,6 @@ void COutput::WriteVisualFile
 	// Ensure the VTK container is initialized.
 	if( mVTKContainer ) mVTKContainer->WriteFileVTK(config_container, 
 			                                            geometry_container,
+																									openmp_container,
 																									solver_container);
 }

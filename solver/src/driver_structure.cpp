@@ -212,6 +212,7 @@ void CDriver::WriteOutput
 	{
 		mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
 				                              mGeometryContainer.get(),
+																			mOpenMPContainer.get(),
 																			mSolverContainer);
 	
 		// Update the visualization flag.
@@ -227,6 +228,7 @@ void CDriver::WriteOutput
 		{
 			mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
 					                              mGeometryContainer.get(),
+																				mOpenMPContainer.get(),
 																				mSolverContainer);
 		}
 	}
