@@ -249,5 +249,106 @@ void NLogger::MonitorOutput
 						<< std::endl;
 }
 
+//-----------------------------------------------------------------------------------
+
+void NLogger::DisplayOpenMPInfo
+(
+ COpenMP                               *openmp_container,
+ as3vector1d<std::unique_ptr<ISolver>> &solver_container
+)
+ /*
+	* Function that displays the OpenMP information, if any.
+	*/
+{
+  // Report output.
+	std::cout << "----------------------------------------------"
+							 "----------------------------------------------\n";
+#ifdef HAVE_OPENMP
+  // Get max number of threads specified.
+  const size_t nThreads = omp_get_max_threads();
+  std::cout << "This is a parallel implementation using: "
+            << nThreads << " threads." << std::endl;
+
+	// Get the total number of elements in all zones.
+	const size_t nElemTotal = openmp_container->GetnIndexVolume();
+	// Get the total number of internal i-faces in all zones.
+	const size_t nInternalIFace = openmp_container->GetnInternIFace();
+	// Get the total number of internal j-faces in all zones.
+	const size_t nInternalJFace = openmp_container->GetnInternJFace();
+
+  // Estimate computational work load of each thread.
+  as3vector1d<size_t> workloadDOFs(nThreads, 0);
+	as3vector1d<size_t> workloadElem(nThreads, 0);
+	as3vector1d<size_t> workloadIDir(nThreads, 0);
+	as3vector1d<size_t> workloadJDir(nThreads, 0);
+
+
+	// Estimate the internal i-surface workload.
+#pragma omp parallel for schedule(static)
+	for(size_t i=0; i<nInternalIFace; i++)
+	{
+    // Thread index.
+    const size_t iThread = omp_get_thread_num();
+
+		// Accumulate the number of elements per thread.
+		workloadIDir[iThread]++;
+	}
+
+	// Estimate the internal j-surface workload.
+#pragma omp parallel for schedule(static)
+	for(size_t i=0; i<nInternalJFace; i++)
+	{
+    // Thread index.
+    const size_t iThread = omp_get_thread_num();
+
+		// Accumulate the number of elements per thread.
+		workloadJDir[iThread]++;
+	}
+
+	// Estimate the elements' workload.
+#pragma omp parallel for schedule(static)
+  for(size_t i=0; i<nElemTotal; i++)
+	{
+		const auto iZone = openmp_container->GetIndexVolume(i)->mZone;
+		const auto iElem = openmp_container->GetIndexVolume(i)->mElem;
+
+    // Thread index.
+    const size_t iThread = omp_get_thread_num();
+
+		// Accumulate the number of elements per thread.
+		workloadElem[iThread]++;
+
+    // Accumulate the number of solution DOFs per thread.
+		workloadDOFs[iThread] += solver_container[iZone]->GetStandardElement()->GetnSol2D(); 
+  }
+
+  // Compute the number of max digits needed for the output.
+  size_t nDigits = 0;
+  for( auto& work: workloadDOFs ) nDigits = std::max( nDigits, work );
+  // Deduce the max value needed for the digits width.
+  nDigits = std::to_string(nDigits).size();
+
+  // Total number of work load.
+  std::cout << "The estimated workload shared among each thread is:\n";
+  for(size_t i=0; i<workloadDOFs.size(); i++)
+    std::cout << "  Thread(" << i << ") has:\n" 
+			        << "   (*) " << std::setw(nDigits)
+			        << workloadIDir[i] << " [nInternI/thread]\n"
+							<< "   (*) " << std::setw(nDigits)
+							<< workloadJDir[i] << " [nInternJ/thread]\n"
+							<< "   (*) " << std::setw(nDigits)
+			        << workloadElem[i] << " [nElement/thread]\n"
+							<< "   (*) " << std::setw(nDigits)
+              << workloadDOFs[i] << " [nSolDOFs/thread]" << std::endl;
+#else
+	std::cout << "This is a serial implementation." << std::endl;
+#endif
+}
+
+
+
+
+
+
 
 

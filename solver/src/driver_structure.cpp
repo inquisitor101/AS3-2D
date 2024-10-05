@@ -185,6 +185,9 @@ void CDriver::InitializeData
 	NLogger::DisplayBoundaryConditions(mConfigContainer.get(), 
 			                               mGeometryContainer.get(), 
 																		 mInterfaceContainer);
+
+	// Display the shared-memory parallelization information, if any.
+	NLogger::DisplayOpenMPInfo(mOpenMPContainer.get(), mSolverContainer);
 }
 
 //-----------------------------------------------------------------------------------
@@ -309,7 +312,7 @@ as3double CDriver::ComputeTimeStep
 	as3double maxM2 = C_ZERO;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = mOpenMPContainer->GetnElemTotal();
+	const size_t nElemTotal = mOpenMPContainer->GetnIndexVolume();
 
 	// Loop over all the elements in all the solvers.
 #ifdef HAVE_OPENMP

@@ -465,7 +465,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 	*/
 {
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = openmp_container->GetnElemTotal();
+	const size_t nElemTotal = openmp_container->GetnIndexVolume();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static)

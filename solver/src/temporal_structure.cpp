@@ -143,7 +143,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 																	 localtime);
 
 		// Get the total number of elements in all zones.
-		const size_t nElemTotal = openmp_container->GetnElemTotal();
+		const size_t nElemTotal = openmp_container->GetnIndexVolume();
 
 
 		// Update the solution in time. For computational efficiency, make a distinction 

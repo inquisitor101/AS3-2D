@@ -116,7 +116,7 @@ void CIteration::ComputeResidual
 	*/
 {
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = openmp_container->GetnElemTotal();
+	const size_t nElemTotal = openmp_container->GetnIndexVolume();
 	// Get the total number of internal i-faces in all zones.
 	const size_t nInternalIFace = openmp_container->GetnInternIFace();
 	// Get the total number of internal j-faces in all zones.

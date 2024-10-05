@@ -66,4 +66,18 @@ namespace NLogger
 	void DisplayBoundaryConditions(CConfig                                  *config_container,
 																 CGeometry                                *geometry_container,
 																 as3vector1d<std::unique_ptr<IInterface>> &interface_container);
+
+
+	/*!
+	 * @brief Function that displays the OpenMP information, if any.
+	 *
+	 * @param[in] openmp_container OpenMP shared parallelization container.
+	 * @param[in] solver_container input multizone solver container.
+	 */
+	void DisplayOpenMPInfo(COpenMP                               *openmp_container,
+			                   as3vector1d<std::unique_ptr<ISolver>> &solver_container);
 }
+
+
+
+

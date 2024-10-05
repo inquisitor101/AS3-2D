@@ -42,7 +42,7 @@ class COpenMP
 		/*!
 		 * @brief Getter function which returns the total number of volume elements.
 		 */
-		size_t GetnElemTotal(void) const {return mIndexVolume.size();}
+		size_t GetnIndexVolume(void) const {return mIndexVolume.size();}
 
 		/*!
 		 * @brief Getter function which returns the total number of internal IMAX faces.
