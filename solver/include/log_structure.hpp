@@ -14,6 +14,14 @@ namespace NLogger
 {
 
 	/*!
+	 * @brief Function that prints the correct usage of the executable.
+	 *
+	 * @param[in] argc input number argument.
+	 * @param[in] argv input char names.
+	 */
+	void PrintUsageInstruction(int argc, char **argv);
+
+	/*!
 	 * @brief Function that prints the entries of a matrix.
 	 *
 	 * @param[in] m reference to the matrix.

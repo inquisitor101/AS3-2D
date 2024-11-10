@@ -6,6 +6,31 @@
 //-----------------------------------------------------------------------------------
 
 
+void NLogger::PrintUsageInstruction
+(
+ int    argc,
+ char **argv
+)
+ /*
+	* Function that prints the correct usage of the executable.
+	*/
+{
+	// Check if correct usage is executed.
+  std::ostringstream message;
+  if (argc != 2)
+	{
+    // Create instructions on how to use the program.
+		message << "Usage: \n" 
+			      << argv[0] 
+            << "\n <input config file>";
+    
+		// Output the error message and exit.
+		ERROR(message.str());
+  }
+}
+
+//-----------------------------------------------------------------------------------
+
 void NLogger::PrintInitSolver
 (
  CConfig *config_container

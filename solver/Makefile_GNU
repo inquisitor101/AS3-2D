@@ -12,13 +12,13 @@ DEP_DIR := dep
 EXE := $(BIN_DIR)/AS3
 
 # Compiler and standard.
-CXX = g++ --std=c++20 -fopenmp
+CXX = mpicxx.mpich --std=c++20 -fopenmp
 
 # OpenMP flag.
 CXX_OMP = -DHAVE_OPENMP
 
 # MPI flag.
-CXX_MPI = 
+CXX_MPI = -DHAVE_MPI
 
 
 # Extract source files.

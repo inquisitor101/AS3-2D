@@ -16,6 +16,7 @@
 #include "interface_structure.hpp"
 #include "monitoring_structure.hpp"
 #include "initial_condition_structure.hpp"
+#include "mpi_structure.hpp"
 
 
 /*!
