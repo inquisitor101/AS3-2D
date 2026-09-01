@@ -40,12 +40,12 @@ const unsigned int AS3_MAGIC_NUMBER = 3735929054; ///< AS3 file magic number.
 const int          CGNS_STRING_SIZE = 33;         ///< CGNS string length.
 
 // Abbreviation of common floating values used in the code.
-const as3double C_PI   = static_cast<as3double>( 3.14159265358979323846264338327950288419 ); ///< Value of pi. 
-const as3double C_ZERO = static_cast<as3double>( 0.0 );                                      ///< Value of 0.
-const as3double C_HALF = static_cast<as3double>( 0.5 );                                      ///< Value of 0.5.
-const as3double C_ONE  = static_cast<as3double>( 1.0 );                                      ///< Value of 1.
-const as3double C_TWO  = static_cast<as3double>( 2.0 );                                      ///< Value of 2.
-const as3double C_180  = static_cast<as3double>( 180.0 );                                    ///< Value of 180.
+const as3double C_PI   = static_cast<as3double>( 3.14159265358979323846 ); ///< Value of pi. 
+const as3double C_ZERO = static_cast<as3double>( 0.0 );                    ///< Value of 0.
+const as3double C_HALF = static_cast<as3double>( 0.5 );                    ///< Value of 0.5.
+const as3double C_ONE  = static_cast<as3double>( 1.0 );                    ///< Value of 1.
+const as3double C_TWO  = static_cast<as3double>( 2.0 );                    ///< Value of 2.
+const as3double C_180  = static_cast<as3double>( 180.0 );                  ///< Value of 180.
 
 // Abbreviation for constant physical values.
 const as3double C_GMA  = static_cast<as3double>(1.4);     ///< Ratio of specific heats.
