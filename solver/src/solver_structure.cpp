@@ -551,7 +551,6 @@ void CEESolver::ComputeSurfaceResidualJDir
 	CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
 
 
-
 	// Deduce the indices of the left and right elements.
 	const size_t IT = iElem;
 	const size_t IB = IT-nxElem;

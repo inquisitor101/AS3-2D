@@ -179,7 +179,14 @@ void IInterface::ProcessMatchingMarkers
 				ERROR("Interface boundaries: " + mIName + ", " + mJName + " do not match.");
 			}
 		}
-	}
+	
+    // Additional consistency check.
+    if ( (mIndexElement[i].first != imarker[i].mIndex) or (mIndexElement[i].second != jmarker[j].mIndex) )
+    {
+      ERROR("Interface element indices do not coincide on a shared face.");
+    }
+  
+  }
 }
 
 
