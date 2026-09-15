@@ -10,6 +10,12 @@
 #include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
+#include "face_element.hpp"
+#include "interface_structure.hpp"
+
+
+// Forward declaration to avoid compiler problems.
+class IInterface;
 
 
 /*!
@@ -58,6 +64,11 @@ class ISolver
 		 */
 		virtual void InitBoundaryConditions(CConfig   *config_container,
 				                                CGeometry *geometry_container) = 0;
+
+    // TODO: comment me.
+    virtual void InitElementFaces(CConfig                                  *config_container,
+                                  CGeometry                                *geometry_container,
+                                  as3vector1d<std::unique_ptr<IInterface>> &interface_container) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the volume terms for a given element.
@@ -151,6 +162,12 @@ class ISolver
 		 */
 		CPhysicalElement *GetPhysicalElement(size_t index) const {return mPhysicalElementContainer[index].get();}
 
+    virtual void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
+                                            CPoolMatrixAS3<as3double> &workarray,
+                                            as3double                  localtime,
+                                            size_t                     index_face) = 0;
+   
+    as3vector1d<std::unique_ptr<IElementFace>>     mElementFaceIDir;
 
 	protected:
 		const unsigned short                           mZoneID;                    ///< Zone ID of this container.
@@ -221,6 +238,11 @@ class CEESolver : public ISolver
 		void InitBoundaryConditions(CConfig   *config_container,
 		                            CGeometry *geometry_container) override;
 
+    // TODO: comment me.
+    void InitElementFaces(CConfig                                  *config_container,
+                          CGeometry                                *geometry_container,
+                          as3vector1d<std::unique_ptr<IInterface>> &interface_container) override;
+
 		/*!
 		 * @brief Function that computes the volume terms for a given element, based on the EE.
 		 * 
@@ -271,6 +293,10 @@ class CEESolver : public ISolver
 		 */
 		unsigned short GetnVar(void) const override {return mNVar;}
 
+    void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
+                                    CPoolMatrixAS3<as3double> &workarray,
+                                    as3double                  localtime,
+                                    size_t                     index_face) override;
 	protected:
 
 	private:

@@ -147,7 +147,11 @@ void CDriver::InitializeData
 		mSolverContainer[iZone]->InitBoundaryConditions(mConfigContainer.get(),
 				                                            mGeometryContainer.get());
 
-		// Initialize the solution.
+		//// TODO: currently testing this new strategy for the faces.
+    //mSolverContainer[iZone]->InitElementFaces(mConfigContainer.get(),
+    //                                          mGeometryContainer.get());
+    
+    // Initialize the solution.
 		mInitialContainer->InitializeSolution(mConfigContainer.get(), zone, solver);
 	}
 
@@ -173,10 +177,26 @@ void CDriver::InitializeData
 		}
 	}
 
+  // This is done after initializing the interfaces, because we need them for interface element faces.
+	for(size_t iZone=0; iZone<mSolverContainer.size(); iZone++)
+	{
+		// Extract the solver and geometry in this zone.
+		auto* zone   = mGeometryContainer->GetZoneGeometry(iZone);
+		auto* solver = mSolverContainer[iZone].get();
+
+		// TODO: currently testing this new strategy for the faces.
+    mSolverContainer[iZone]->InitElementFaces(mConfigContainer.get(),
+                                              mGeometryContainer.get(),
+                                              mInterfaceContainer);
+	}
+
+
+
 	// Initialize the OpenMP container.
 	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
 			                                         mGeometryContainer.get(),
-																							 mSolverContainer);
+																							 mSolverContainer,
+                                               mInterfaceContainer);
 
 	// Report output.
 	std::cout << "Done." << std::endl;

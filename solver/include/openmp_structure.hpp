@@ -3,6 +3,8 @@
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "solver_structure.hpp"
+#include "interface_structure.hpp"
+
 
 // Forward declaration to avoid compiler issues.
 class ISolver;
@@ -13,6 +15,14 @@ struct CIndexElement
 	CIndexElement(unsigned short iZone, unsigned int iElem) : mZone(iZone), mElem(iElem) {}
 	unsigned short mZone;
 	unsigned int   mElem;
+};
+
+
+struct CFaceIndices
+{
+  CFaceIndices(size_t iZone, size_t iFace) : mIndexZone(iZone), mIndexFace(iFace) {}
+  size_t mIndexZone;
+  size_t mIndexFace;
 };
 
 
@@ -30,9 +40,10 @@ class COpenMP
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] solver_container input multizone solver container.
 		 */
-		COpenMP(CConfig                               *config_container,
-				    CGeometry                             *geometry_container,
-						as3vector1d<std::unique_ptr<ISolver>> &solver_container);
+		COpenMP(CConfig                                  *config_container,
+				    CGeometry                                *geometry_container,
+						as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
+            as3vector1d<std::unique_ptr<IInterface>> &interface_container);
 	
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -95,12 +106,17 @@ class COpenMP
 		 */
 		CMatrixAS3<as3double> &GetResJMin(size_t index) {return mResJMin[index];}
 
+
+    CIndexElement *GetFacesIDir(size_t index) const {return mFacesIDir[index].get();}
+    size_t GetnFacesIDir(void) const {return mFacesIDir.size();}
 	protected:
 
 	private:
 		as3vector1d<std::unique_ptr<CIndexElement>> mIndexVolume; ///< Global map for the volume indices.
 		as3vector1d<std::unique_ptr<CIndexElement>> mInternIFace; ///< Global map for the (IMAX) indices.
 		as3vector1d<std::unique_ptr<CIndexElement>> mInternJFace; ///< Global map for the (JMAX) indices.
+
+    as3vector1d<std::unique_ptr<CIndexElement>> mFacesIDir; // TESTING
 
 		as3vector1d<CMatrixAS3<as3double>> mResIMin;
 		as3vector1d<CMatrixAS3<as3double>> mResJMin;
@@ -121,8 +137,9 @@ class COpenMP
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 */
-		void InitializeSurfaceIFaces(CConfig   *config_container,
-				                         CGeometry *geometry_container);
+		void InitializeSurfaceIFaces(CConfig                                  *config_container,
+				                         CGeometry                                *geometry_container,
+                                 as3vector1d<std::unique_ptr<IInterface>> &interface_container);
 
 		/*!
 		 * @brief Function that initializes the internal face indices in the j-direction.

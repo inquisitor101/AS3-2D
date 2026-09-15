@@ -322,8 +322,17 @@ MapTypeRiemannSolver =
 	{ "ROE", ETypeRiemannSolver::ROE }
 };
 
+//--------------------------------------
 
-
+/*!
+ * @brief Enumerated type for the type of the element faces.
+ */
+enum class ETypeElementFace
+{
+	INTERNAL,
+	BOUNDARY,
+  INTERFACE
+};
 
 
 /* * * 

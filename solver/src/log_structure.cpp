@@ -121,8 +121,8 @@ void NLogger::DisplayBoundaryConditions
 					if( interface->GetIName() == m->GetNameMarker() )
 					{
 						// Extract zone indices.
-						auto  izone = interface->GetIZone();
-						auto  jzone = interface->GetJZone();
+						auto  izone = interface->GetiZone();
+						auto  jzone = interface->GetjZone();
 
 						// Extract marker names.
 						auto& iname = interface->GetIName();
@@ -149,8 +149,8 @@ void NLogger::DisplayBoundaryConditions
 					if( interface->GetJName() == m->GetNameMarker() )
 					{
 						// Extract zone indices.
-						auto  izone = interface->GetJZone();
-						auto  jzone = interface->GetIZone();
+						auto  izone = interface->GetjZone();
+						auto  jzone = interface->GetiZone();
 
 						// Extract marker names.
 						auto& iname = interface->GetJName();

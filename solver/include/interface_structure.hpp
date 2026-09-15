@@ -70,14 +70,14 @@ class IInterface
 		 *
 		 * @return mIZone.
 		 */
-		unsigned short GetIZone(void) const {return mIZone;}
+		unsigned short GetiZone(void) const {return mIZone;}
 
 		/*!
 		 * @brief Getter function which returns the ID of the matching zone.
 		 *
 		 * @return mJZone.
 		 */
-		unsigned short GetJZone(void) const {return mJZone;}
+		unsigned short GetjZone(void) const {return mJZone;}
 
 		/*!
 		 * @brief Getter function which returns the number of elements on this interface.
@@ -85,6 +85,11 @@ class IInterface
 		 * @return mNElem.
 		 */
 		unsigned int GetnElem(void) const {return mNElem;}
+
+    EFaceElement GetiFace(void) const {return mIFace;}
+    EFaceElement GetjFace(void) const {return mJFace;}
+
+    const as3vector1d<std::pair<unsigned int, unsigned int>> &GetIndexElement(void) const {return mIndexElement;}
 
 	protected:
 		unsigned short mNVar = 4; ///< Number of working variables.

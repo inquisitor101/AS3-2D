@@ -276,6 +276,156 @@ void CEESolver::InitBoundaryConditions
 
 //-----------------------------------------------------------------------------------
 
+void CEESolver::InitElementFaces
+(
+ CConfig                                  *config_container,
+ CGeometry                                *geometry_container,
+ as3vector1d<std::unique_ptr<IInterface>> &interface_container
+)
+ /*
+  *
+  */
+{
+  // Get a reference to the current zone.
+	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
+
+  // Extract the number of solution DOFs on an element in this zone.
+  const size_t nSol2D = mStandardElementContainer->GetnSol2D();
+
+  // Number of elements in the i- and j-directions.
+  const size_t niElem = zone->GetnxElem();
+  const size_t njElem = zone->GetnyElem();
+
+  // Total number of faces in the i-direction.
+  size_t nIFaces = njElem * (niElem+1) + niElem+1;
+  size_t nJFaces = niElem * (njElem+1) + njElem+1; 
+
+  // We start off by initializing the faces in the i-direction.
+  mElementFaceIDir.resize(nIFaces);
+
+  // Loop over the internal faces in the i-direction and initialize them.
+  for(size_t j=0; j<njElem; j++)
+  {
+    for(size_t i=1; i<niElem; i++)
+    {
+      // Deduce the flattened face index.
+      const size_t face_index = j*(niElem+1) + i;
+
+      // Deduce the flattened element indices on this face.
+      const size_t iElemL = j*niElem + i-1;
+      const size_t iElemR = iElemL + 1;
+
+      // Instantiate the internal face.
+      mElementFaceIDir[face_index] = std::make_unique<CInternalElementFace>(iElemL, iElemR, mNVar, nSol2D); 
+    }
+  }
+
+
+
+
+
+
+  // Extract the zone markers.
+  auto& zone_markers = geometry_container->GetZoneGeometry(mZoneID)->GetMarker();
+
+
+  // Helper lambdas.
+  const auto lSearchInterfaceMatching = [&](const std::string& marker_name) -> size_t
+  {
+    for(size_t iInterface=0; iInterface<interface_container.size(); iInterface++)
+    {
+      auto& interface = interface_container[iInterface];
+      
+      if( interface->GetIName() == marker_name or interface->GetJName() == marker_name )
+      {
+        return iInterface;
+      }
+    }
+    throw std::runtime_error("Could not find interface matching marker: " + marker_name); 
+  };
+
+
+
+
+
+  // Initialize the boundary faces next, in the i-direction.
+  for( auto& marker : zone_markers )
+  {
+    switch( marker->GetTypeBC() )
+    {
+      case( ETypeBC::INTERFACE ):
+      {
+        // Need to find the interface index, this element belongs too.
+        const size_t iIndexInterface = lSearchInterfaceMatching( marker->GetNameMarker() ); 
+
+        for( auto& [index_element, face_type] : marker->GetElementFaces() )
+        {
+          // Extract the i/j element indices.
+          const size_t jElem = index_element / niElem;
+          const size_t iElem = index_element % niElem;
+          
+
+
+
+          if( face_type == EFaceElement::IMIN ) 
+          {
+            const size_t face_index = jElem * (niElem+1) + iElem; 
+            mElementFaceIDir[face_index] = std::make_unique<CInterfaceElementFace>(iIndexInterface);
+
+            // Consistency check.
+            if( iElem != 0 ) ERROR("IMIN interface index must correspond to iElem = 0, encountered: " + std::to_string(iElem));
+          }
+          if( face_type == EFaceElement::IMAX )
+          {
+            const size_t face_index = jElem * (niElem+1) + iElem+1;
+            mElementFaceIDir[face_index] = std::make_unique<CInterfaceElementFace>(iIndexInterface);
+            
+            // Consistency check.
+            if( iElem != (niElem-1) ) ERROR("IMIN interface index must correspond to iElem = niElem-1, encountered: " + std::to_string(iElem));
+          }
+        }
+        WARNING("This is not implemented yet.");
+        break;
+      }
+
+      // TODO: implement this, based on some definition of ETypeBC::BOUNDARY (not defined yet).
+      //case( ETypeBC::BOUNDARY ):
+      //{
+      //  for( auto& [index_element, face_type] : marker->GetElementFaces() )
+      //  {
+      //    // Extract the i/j element indices.
+      //    const size_t iElem = index_element / niElem;
+      //    const size_t jElem = index_element % niElem;
+      //    
+      //    if( face_index == EFaceElement::IMIN ) 
+      //    {
+      //      const size_t face_index = jElem * (niElem+1) + i;  
+      //      mElementFaceIDir[face_index] = std::make_unique<CInterfaceElementFace>();
+
+      //      // Consistency check.
+      //      if( iElem != 0 ) ERROR("IMIN boundary index must correspond to iElem = 0.");
+      //    }
+      //    if( face_index == EFaceElement::IMAX )
+      //    {
+      //      const size_t face_index = jElem * (niElem+1) + i+1;
+      //      mElementFaceIDir[face_index] = std::make_unique<CInterfaceElementFace>();
+      //      
+      //      // Consistency check.
+      //      if( iElem != (niElem-1) ) ERROR("IMIN boundary index must correspond to iElem = niElem-1.");
+      //    }
+      //  }
+
+      //  break;
+      //}
+
+      default: ERROR("Unknown element face detected.");
+    }
+  }
+
+}
+
+//-----------------------------------------------------------------------------------
+
 void CEESolver::ComputeVolumeResidual
 (
  CZoneGeometry             *grid_zone,
@@ -521,6 +671,62 @@ void CEESolver::ComputeSurfaceResidualIDir
 //		mTensorProductContainer->ResidualSurfaceIMAX(mNVar, flux.data(), nullptr, nullptr, resL.data());
 //	}
 }
+
+// TESTING
+void CEESolver::ComputeSurfaceResidualIDir
+(
+ CZoneGeometry             *grid_zone,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime,
+ size_t                     index_face
+)
+ /*
+	* Function that computes the residual terms in the i-direction of an EE-type PDE. 
+	*/
+{
+	// Extract the number of integration points in 1D.
+	size_t nInt1D = mStandardElementContainer->GetnInt1D();
+  // Extract the quadrature integration weights in 1D on the standard element.
+	auto&  wInt1D = mStandardElementContainer->GetwInt1D();
+
+  
+  auto& idir_generic_face = mElementFaceIDir[index_face];
+  if( idir_generic_face->GetTypeElementFace() == ETypeElementFace::INTERNAL )
+  {
+    auto* idir_face = static_cast<CInternalElementFace*>(idir_generic_face.get());
+    
+    // Borrow memory for the solution on the two sides.
+    CWorkMatrixAS3<as3double> varL = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+    CWorkMatrixAS3<as3double> varR = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+    CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+
+    auto& elemL = mPhysicalElementContainer[idir_face->GetElementIndexM()];
+    auto& elemR = mPhysicalElementContainer[idir_face->GetElementIndexP()];
+
+    auto& metL = elemL->mMetricIntIMax1D;
+
+    auto& solL = elemL->mSol2D;
+    auto& resL = idir_face->GetResMinus();
+
+    auto& solR = elemR->mSol2D;
+    auto& resR = elemR->mRes2D;
+
+    // Reset the temporary residual.
+		for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
+
+    mTensorProductContainer->SurfaceIMAX(mNVar, solL.data(), varL.data(), nullptr, nullptr);
+    mTensorProductContainer->SurfaceIMIN(mNVar, solR.data(), varR.data(), nullptr, nullptr);
+
+    mRiemannSolverContainer->ComputeFlux(wInt1D, metL, varL, varR, flux);
+
+    mTensorProductContainer->ResidualSurfaceIMAX(mNVar, flux.data(), nullptr, nullptr, resL.data());
+
+    for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+    mTensorProductContainer->ResidualSurfaceIMIN(mNVar, flux.data(), nullptr, nullptr, resR.data());
+  } 
+}
+
 
 //-----------------------------------------------------------------------------------
 

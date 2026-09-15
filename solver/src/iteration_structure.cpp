@@ -141,28 +141,42 @@ void CIteration::ComputeResidual
 	}
 
 
+//#ifdef HAVE_OPENMP
+//#pragma omp for schedule(static)
+//#endif
+//	for(size_t i=0; i<nInternalIFace; i++)
+//	{
+//		// Deduce the right element's zone and index.
+//		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
+//		const unsigned int   iElem = openmp_container->GetInternIFace(i)->mElem;
+//
+//		// Extract the relevant solver.
+//		auto& solver  = solver_container[iZone];
+//		// Extract the relevant grid.
+//		auto* grid    = geometry_container->GetZoneGeometry(iZone);
+//		// Extract the left residual.
+//		auto& resL    = openmp_container->GetResIMin(i);
+//
+//		// Reset the left residual.
+//		for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
+//
+//		// Compute all surface terms in the i-direction.
+//		solver->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElem, resL);
+//	}
+
+
+  const size_t nFacesIDir = openmp_container->GetnFacesIDir();
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
-	for(size_t i=0; i<nInternalIFace; i++)
-	{
-		// Deduce the right element's zone and index.
-		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
-		const unsigned int   iElem = openmp_container->GetInternIFace(i)->mElem;
-
-		// Extract the relevant solver.
-		auto& solver  = solver_container[iZone];
-		// Extract the relevant grid.
-		auto* grid    = geometry_container->GetZoneGeometry(iZone);
-		// Extract the left residual.
-		auto& resL    = openmp_container->GetResIMin(i);
-
-		// Reset the left residual.
-		for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
-
-		// Compute all surface terms in the i-direction.
-		solver->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElem, resL);
-	}
+  for(size_t i=0; i<nFacesIDir; i++)
+  {
+    const auto iZone = openmp_container->GetFacesIDir(i)->mZone;
+    const auto iFace = openmp_container->GetFacesIDir(i)->mElem; // not really element, abusing names.
+    auto& solver     = solver_container[iZone];
+    auto* grid       = geometry_container->GetZoneGeometry(iZone);
+    solver->ComputeSurfaceResidualIDir(grid, workarray, localtime, iFace);
+  }
 
 
 #ifdef HAVE_OPENMP
@@ -189,28 +203,53 @@ void CIteration::ComputeResidual
 	}
 
 
+//#ifdef HAVE_OPENMP
+//#pragma omp for schedule(static)
+//#endif
+//	for(size_t i=0; i<nInternalIFace; i++)
+//	{
+//		// Deduce the right element's zone and index.
+//		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
+//		const unsigned int   IR    = openmp_container->GetInternIFace(i)->mElem;
+//
+//		// Deduce the left element's index.
+//		const unsigned int IL = IR-1;
+//
+//		// Extract the relevant solver.
+//		auto& solver  = solver_container[iZone];
+//		// Extract the temporary left residual.
+//		auto& tmpL    = openmp_container->GetResIMin(i);
+//		// Extract the actual left residual.
+//		auto& resL    = solver->GetPhysicalElement(IL)->mRes2D;
+//
+//		// Accumulate the left residual.
+//		for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
+//	}
+
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
-	for(size_t i=0; i<nInternalIFace; i++)
-	{
-		// Deduce the right element's zone and index.
-		const unsigned short iZone = openmp_container->GetInternIFace(i)->mZone;
-		const unsigned int   IR    = openmp_container->GetInternIFace(i)->mElem;
+  for(size_t i=0; i<nFacesIDir; i++)
+  {
+    const auto iZone = openmp_container->GetFacesIDir(i)->mZone;
+    const auto iFace = openmp_container->GetFacesIDir(i)->mElem; // not really element, abusing names.
+    auto& solver     = solver_container[iZone];
+    
+    auto& idir_generic_face = solver->mElementFaceIDir[iFace];
+    
+    if( idir_generic_face->GetTypeElementFace() == ETypeElementFace::INTERNAL )
+    {
+      auto* idir_face = static_cast<CInternalElementFace*>(idir_generic_face.get());
 
-		// Deduce the left element's index.
-		const unsigned int IL = IR-1;
-
-		// Extract the relevant solver.
-		auto& solver  = solver_container[iZone];
-		// Extract the temporary left residual.
-		auto& tmpL    = openmp_container->GetResIMin(i);
-		// Extract the actual left residual.
-		auto& resL    = solver->GetPhysicalElement(IL)->mRes2D;
-
-		// Accumulate the left residual.
-		for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
+      auto& tmpL = idir_face->GetResMinus();
+      auto& resL = solver->GetPhysicalElement(idir_face->GetElementIndexM())->mRes2D;
+		
+      // Accumulate the left residual.
+      for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
+    }
 	}
+
+
 
 
 #ifdef HAVE_OPENMP
