@@ -8,6 +8,7 @@
 // Forward declaration to avoid compiler problems.
 class CZoneGeometry;
 class CElementGeometry;
+class CFaceGeometry;
 
 
 /*!
@@ -49,6 +50,9 @@ class CGeometry
 	private:
 		const unsigned short                        mNZone;            ///< Total number of zones.
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
+
+    as3vector1d<CFaceGeometry> mFaceGeometryIDir;
+
 
 		/*!
 		 * @brief Function that checks the existance of the grid files and reports the output.
@@ -206,8 +210,8 @@ class CZoneGeometry
 		as3vector1d<std::unique_ptr<CMarker>>          mMarkerGeometry;   ///< Container with the marker data.
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
-
-		/*!
+		
+    /*!
 		 * @brief Function that generates all 4 nodal indices on a quadrilateral in this zone.
 		 */
 		void GenerateNodalFaceIndices(void);
@@ -260,5 +264,65 @@ class CElementGeometry
 		// Disable default copy operator.
 		CElementGeometry& operator=(CElementGeometry&) = delete;	
 };
+
+
+
+class CFaceGeometry
+{
+  public:
+    static constexpr size_t         INVALID_ELEMENT = std::numeric_limits<size_t>::max();
+    static constexpr unsigned short INVALID_ZONE    = std::numeric_limits<unsigned short>::max();
+
+    CFaceGeometry(void) = default;
+
+    CFaceGeometry(size_t         iElemM, 
+                  size_t         iElemP, 
+                  unsigned short iZone)
+      : mIndexElementM(iElemM),
+        mIndexElementP(iElemP),
+        mIndexZoneM(iZone),
+        mIndexZoneP(iZone)
+    {}
+
+    CFaceGeometry(size_t         iElemM, 
+                  size_t         iElemP, 
+                  unsigned short iZoneM, 
+                  unsigned short iZoneP)
+      : mIndexElementM(iElemM),
+        mIndexElementP(iElemP),
+        mIndexZoneM(iZoneM),
+        mIndexZoneP(iZoneP)
+    {}
+
+    bool IsBoundaryElement(void) const
+    {
+      return IsBoundaryMinus() || IsBoundaryPlus();
+    }
+
+    bool IsBoundaryMinus(void) const
+    {
+      return mIndexElementM == INVALID_ELEMENT;
+    }
+
+    bool IsBoundaryPlus(void) const
+    {
+      return mIndexElementP == INVALID_ELEMENT;
+    }
+
+    bool IsSameZone(void) const
+    {
+      return mIndexZoneM != INVALID_ZONE &&
+             mIndexZoneP != INVALID_ZONE &&
+             mIndexZoneM == mIndexZoneP;
+    }
+
+    size_t mIndexElementM = INVALID_ELEMENT;
+    size_t mIndexElementP = INVALID_ELEMENT;
+
+    unsigned short mIndexZoneM = INVALID_ZONE;
+    unsigned short mIndexZoneP = INVALID_ZONE;
+};
+
+
 
 
