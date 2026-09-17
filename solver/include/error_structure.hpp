@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <cstdlib>
 
 #ifdef ENABLE_NAN_CHECK
 #include <fenv.h>
@@ -33,6 +34,7 @@ namespace NError
 	 * @param[in] line line number where the error is found.
 	 * @param[in] error log message printed.
 	 */
+	[[noreturn]] 
 	void Terminate(const char        *func,
 	               const char        *file,
 	               const int          line,

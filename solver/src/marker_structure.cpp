@@ -8,11 +8,11 @@
 
 CMarker::CMarker
 (
- unsigned short            zone,
- ETypeBC                   type,
- std::string               name,
- as3vector1d<EFaceElement> face,
- as3vector1d<unsigned int> mark
+ unsigned short             zone,
+ ETypeBC                    type,
+ std::string                name,
+ as3vector1d<EFaceLocation> face,
+ as3vector1d<unsigned int>  mark
 )
 	:
 		mZoneID(zone),

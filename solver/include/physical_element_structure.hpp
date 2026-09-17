@@ -124,14 +124,14 @@ class CPhysicalElement
 		 *
 		 * @return corresponding surface metrics.
 		 */
-		const CMatrixAS3<as3double> &GetSurfaceMetricInt(EFaceElement face) const
+		const CMatrixAS3<as3double> &GetSurfaceMetricInt(EFaceLocation face) const
 		{
 			switch(face)
 			{
-				case(EFaceElement::IMIN): {return mMetricIntIMin1D; break;}
-				case(EFaceElement::IMAX): {return mMetricIntIMax1D; break;}
-				case(EFaceElement::JMIN): {return mMetricIntJMin1D; break;}
-				case(EFaceElement::JMAX): {return mMetricIntJMax1D; break;}
+				case(EFaceLocation::IMIN): {return mMetricIntIMin1D; break;}
+				case(EFaceLocation::IMAX): {return mMetricIntIMax1D; break;}
+				case(EFaceLocation::JMIN): {return mMetricIntJMin1D; break;}
+				case(EFaceLocation::JMAX): {return mMetricIntJMax1D; break;}
 				default: ERROR("Unknown face.");
 			}
 			// The program never reaches here, throw to avoid compiler issues.

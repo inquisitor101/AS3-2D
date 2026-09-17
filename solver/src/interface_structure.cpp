@@ -25,10 +25,10 @@ IInterface::IInterface
 	*/
 {
 	// Temporary lambda to find the face direction on a given marker.
-	auto lFaceDir = [=](const CMarker *marker_container) -> EFaceElement
+	auto lFaceDir = [=](const CMarker *marker_container) -> EFaceLocation
 	{
 		// Select the face direction based on the first element index.
-		EFaceElement iface = marker_container->GetElementFaces(0).mFace; 
+		EFaceLocation iface = marker_container->GetElementFaces(0).mFace; 
 		
 		// Loop over each element and ensure the face is constant.
 		for( auto& marker: marker_container->GetElementFaces() )

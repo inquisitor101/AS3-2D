@@ -27,10 +27,10 @@ auto IInterface::GetFuncPointerInterpFaceI
 	// Assign the appropriate interpolation functions for the (owner) iface.
 	switch(mIFace)
 	{
-		case(EFaceElement::IMIN): {FInterpFaceI = iSurfIMIN; break;}
-		case(EFaceElement::IMAX): {FInterpFaceI = iSurfIMAX; break;}
-		case(EFaceElement::JMIN): {FInterpFaceI = iSurfJMIN; break;}
-		case(EFaceElement::JMAX): {FInterpFaceI = iSurfJMAX; break;}
+		case(EFaceLocation::IMIN): {FInterpFaceI = iSurfIMIN; break;}
+		case(EFaceLocation::IMAX): {FInterpFaceI = iSurfIMAX; break;}
+		case(EFaceLocation::JMIN): {FInterpFaceI = iSurfJMIN; break;}
+		case(EFaceLocation::JMAX): {FInterpFaceI = iSurfJMAX; break;}
 		default: ERROR("Face is unknown.");
 	}
 
@@ -62,10 +62,10 @@ auto IInterface::GetFuncPointerInterpFaceJ
 	// Assign the appropriate interpolation functions for the (matching) jface.
 	switch(mJFace)
 	{
-		case(EFaceElement::IMIN): {FInterpFaceJ = jSurfIMIN; break;}
-		case(EFaceElement::IMAX): {FInterpFaceJ = jSurfIMAX; break;}
-		case(EFaceElement::JMIN): {FInterpFaceJ = jSurfJMIN; break;}
-		case(EFaceElement::JMAX): {FInterpFaceJ = jSurfJMAX; break;}
+		case(EFaceLocation::IMIN): {FInterpFaceJ = jSurfIMIN; break;}
+		case(EFaceLocation::IMAX): {FInterpFaceJ = jSurfIMAX; break;}
+		case(EFaceLocation::JMIN): {FInterpFaceJ = jSurfJMIN; break;}
+		case(EFaceLocation::JMAX): {FInterpFaceJ = jSurfJMAX; break;}
 		default: ERROR("Face is unknown.");
 	}
 
@@ -97,10 +97,10 @@ auto IInterface::GetFuncPointerResidualFaceI
 	// Assign the appropriate interpolation functions for the (owner) iface.
 	switch(mIFace)
 	{
-		case(EFaceElement::IMIN): {FResFaceI = iSurfIMIN; break;}
-		case(EFaceElement::IMAX): {FResFaceI = iSurfIMAX; break;}
-		case(EFaceElement::JMIN): {FResFaceI = iSurfJMIN; break;}
-		case(EFaceElement::JMAX): {FResFaceI = iSurfJMAX; break;}
+		case(EFaceLocation::IMIN): {FResFaceI = iSurfIMIN; break;}
+		case(EFaceLocation::IMAX): {FResFaceI = iSurfIMAX; break;}
+		case(EFaceLocation::JMIN): {FResFaceI = iSurfJMIN; break;}
+		case(EFaceLocation::JMAX): {FResFaceI = iSurfJMAX; break;}
 		default: ERROR("Face is unknown.");
 	}
 
@@ -132,10 +132,10 @@ auto IInterface::GetFuncPointerResidualFaceJ
 	// Assign the appropriate interpolation functions for the (matching) jface.
 	switch(mJFace)
 	{
-		case(EFaceElement::IMIN): {FResFaceJ = jSurfIMIN; break;}
-		case(EFaceElement::IMAX): {FResFaceJ = jSurfIMAX; break;}
-		case(EFaceElement::JMIN): {FResFaceJ = jSurfJMIN; break;}
-		case(EFaceElement::JMAX): {FResFaceJ = jSurfJMAX; break;}
+		case(EFaceLocation::IMIN): {FResFaceJ = jSurfIMIN; break;}
+		case(EFaceLocation::IMAX): {FResFaceJ = jSurfIMAX; break;}
+		case(EFaceLocation::JMIN): {FResFaceJ = jSurfJMIN; break;}
+		case(EFaceLocation::JMAX): {FResFaceJ = jSurfJMAX; break;}
 		default: ERROR("Face is unknown.");
 	}
 

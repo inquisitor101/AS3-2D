@@ -150,14 +150,14 @@ void NImportFile::ImportAS3GridBinary
 		}
 
 		// Explicitly map the values, according to the expected written convention.
-		EFaceElement imin = MapFaceElement.at( iconv[0] );
-		EFaceElement imax = MapFaceElement.at( iconv[1] );
-		EFaceElement jmin = MapFaceElement.at( iconv[2] );
-		EFaceElement jmax = MapFaceElement.at( iconv[3] );
+		EFaceLocation imin = MapFaceElement.at( iconv[0] );
+		EFaceLocation imax = MapFaceElement.at( iconv[1] );
+		EFaceLocation jmin = MapFaceElement.at( iconv[2] );
+		EFaceLocation jmax = MapFaceElement.at( iconv[3] );
 
 		// Ensure the correctness of the convention.
-		if( (imin != EFaceElement::IMIN) || (imax != EFaceElement::IMAX) ||
-				(jmin != EFaceElement::JMIN) || (jmax != EFaceElement::JMAX) )
+		if( (imin != EFaceLocation::IMIN) || (imax != EFaceLocation::IMAX) ||
+				(jmin != EFaceLocation::JMIN) || (jmax != EFaceLocation::JMAX) )
 		{
 			ERROR(filename + " adopts a difference element face convention.");
 		}
@@ -172,8 +172,8 @@ void NImportFile::ImportAS3GridBinary
 		as3vector1d<std::string> buf_name;
 
 		// Allocate vectors of marker indices and local face orientation.
-		as3vector2d<unsigned int> buf_mark(nmark);
-		as3vector2d<EFaceElement> buf_face(nmark);
+		as3vector2d<unsigned int>  buf_mark(nmark);
+		as3vector2d<EFaceLocation> buf_face(nmark);
 
 		// Loop over each marker and read its information.
 		for(size_t i=0; i<nmark; i++)

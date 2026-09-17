@@ -4,11 +4,11 @@
 #include "config_structure.hpp"
 #include "input_structure.hpp"
 #include "marker_structure.hpp"
+#include "face_structure.hpp"
 
 // Forward declaration to avoid compiler problems.
 class CZoneGeometry;
 class CElementGeometry;
-class CFaceGeometry;
 
 
 /*!
@@ -51,8 +51,9 @@ class CGeometry
 		const unsigned short                        mNZone;            ///< Total number of zones.
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
 
-    as3vector1d<CFaceGeometry> mFaceGeometryIDir;
+    CMultizoneFaceGeometry mMultizoneFacesIDir;
 
+		void InitializeFacesIDir(const CConfig *config_container);
 
 		/*!
 		 * @brief Function that checks the existance of the grid files and reports the output.
@@ -108,7 +109,7 @@ class CZoneGeometry
 		 */
 		void InitializeMarkers(CConfig                   *config_container,
 				                   as3vector2d<unsigned int> &mark,
-				                   as3vector2d<EFaceElement> &face,
+				                   as3vector2d<EFaceLocation> &face,
 				                   as3vector1d<std::string>  &name);
 
 		/*!
@@ -181,14 +182,14 @@ class CZoneGeometry
 		 *
 		 * @return mFaceNodalIndices[matching index].
 		 */
-		const as3vector1d<unsigned short> &GetFaceNodalIndices(EFaceElement face) const
+		const as3vector1d<unsigned short> &GetFaceNodalIndices(EFaceLocation face) const
 		{
 			switch( face )
 			{
-				case(EFaceElement::IMIN): {return mFaceNodalIndices[0]; break;}
-				case(EFaceElement::IMAX): {return mFaceNodalIndices[1]; break;}
-				case(EFaceElement::JMIN): {return mFaceNodalIndices[2]; break;}
-				case(EFaceElement::JMAX): {return mFaceNodalIndices[3]; break;}
+				case(EFaceLocation::IMIN): {return mFaceNodalIndices[0]; break;}
+				case(EFaceLocation::IMAX): {return mFaceNodalIndices[1]; break;}
+				case(EFaceLocation::JMIN): {return mFaceNodalIndices[2]; break;}
+				case(EFaceLocation::JMAX): {return mFaceNodalIndices[3]; break;}
 				default: ERROR("Face is unknown.");
 			}
 
@@ -267,61 +268,6 @@ class CElementGeometry
 
 
 
-class CFaceGeometry
-{
-  public:
-    static constexpr size_t         INVALID_ELEMENT = std::numeric_limits<size_t>::max();
-    static constexpr unsigned short INVALID_ZONE    = std::numeric_limits<unsigned short>::max();
-
-    CFaceGeometry(void) = default;
-
-    CFaceGeometry(size_t         iElemM, 
-                  size_t         iElemP, 
-                  unsigned short iZone)
-      : mIndexElementM(iElemM),
-        mIndexElementP(iElemP),
-        mIndexZoneM(iZone),
-        mIndexZoneP(iZone)
-    {}
-
-    CFaceGeometry(size_t         iElemM, 
-                  size_t         iElemP, 
-                  unsigned short iZoneM, 
-                  unsigned short iZoneP)
-      : mIndexElementM(iElemM),
-        mIndexElementP(iElemP),
-        mIndexZoneM(iZoneM),
-        mIndexZoneP(iZoneP)
-    {}
-
-    bool IsBoundaryElement(void) const
-    {
-      return IsBoundaryMinus() || IsBoundaryPlus();
-    }
-
-    bool IsBoundaryMinus(void) const
-    {
-      return mIndexElementM == INVALID_ELEMENT;
-    }
-
-    bool IsBoundaryPlus(void) const
-    {
-      return mIndexElementP == INVALID_ELEMENT;
-    }
-
-    bool IsSameZone(void) const
-    {
-      return mIndexZoneM != INVALID_ZONE &&
-             mIndexZoneP != INVALID_ZONE &&
-             mIndexZoneM == mIndexZoneP;
-    }
-
-    size_t mIndexElementM = INVALID_ELEMENT;
-    size_t mIndexElementP = INVALID_ELEMENT;
-
-    unsigned short mIndexZoneM = INVALID_ZONE;
-    unsigned short mIndexZoneP = INVALID_ZONE;
-};
 
 
 

@@ -151,7 +151,7 @@ MapFormatFile =
 /*!
  * @brief Enumerated values for the (quadrilateral) element face indices.
  */
-enum class EFaceElement 
+enum class EFaceLocation 
 {
 	IMIN,
 	IMAX,
@@ -162,13 +162,13 @@ enum class EFaceElement
 /*!
  * @brief Map for the element face values.
  */
-const std::map<unsigned int, EFaceElement>
+const std::map<unsigned int, EFaceLocation>
 MapFaceElement = 
 {
-	{ 0, EFaceElement::IMIN },
-	{ 1, EFaceElement::IMAX },
-	{ 2, EFaceElement::JMIN },
-	{ 3, EFaceElement::JMAX }
+	{ 0, EFaceLocation::IMIN },
+	{ 1, EFaceLocation::IMAX },
+	{ 2, EFaceLocation::JMIN },
+	{ 3, EFaceLocation::JMAX }
 };
 
 //--------------------------------------
@@ -323,6 +323,17 @@ MapTypeRiemannSolver =
 };
 
 
+//--------------------------------------
+
+/*!
+ * @brief Enumerated type for the type of the element faces.
+ */
+enum class ETypeFaceGeometry
+{
+	INTERNAL,
+	BOUNDARY,
+  INTERFACE
+};
 
 
 

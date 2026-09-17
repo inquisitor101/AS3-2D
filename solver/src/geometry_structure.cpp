@@ -86,103 +86,105 @@ void CGeometry::CheckExistanceGridFiles
 	std::cout << "Done." << std::endl;
 }
 
+//-----------------------------------------------------------------------------------
 
 void CGeometry::InitializeFacesIDir
+(
+ const CConfig *config_container
+)
+ /*
+	*
+	*/
 {
-  size_t nFacesIDir = 0;
-  for( const auto& zone : mZoneGeometry )
-  {
-    const size_t  iZone = zone->GetZoneID();
-    const size_t niElem = zone->GetnxElem();
-    const size_t njElem = zone->GetnjElem();
+	// Initialize the internal faces.
+	mMultizoneFacesIDir.InitializeInternalFaces(this);
 
-    // Step 1: determine all the faces in the i-direction in this zone.
-    nFacesIDir += njElem * (niElem+1);
-  }
- 
-  // Step 2: allocate the memory and then initialize the internal faces.  
-  mFaceGeometryIDir.reserve( nFacesIDir );
-
-  // Create a helper lambda to flatten the face indices.
-  auto lFlattenIndexIFace = [=](const size_t i, 
-                                const size_t j, 
-                                const size_t niElem) -> size_t
-  {
-    return j * (niElem+1) + i;
-  };
+	// Initialize the interface faces.
+	mMultizoneFacesIDir.InitializeInterfaceFaces(config_container, this);
 
 
-  // Loop over the zones and define each face.
-  for( const auto& zone : mZoneGeometry )
-  {
-    const size_t  iZone = zone->GetZoneID();
-    const size_t niElem = zone->GetnxElem();
-    const size_t njElem = zone->GetnjElem();
+  //mFaceGeometryIDir.reserve( nFacesIDir );
 
-    
-    // First, we loop over the internal faces in the i-direction only.
-    for(size_t j=0; j<njElem; j++)
-    {
-      for(size_t i=1; i<niElem; i++)
-      {
-        // Flatten the indices.
-        //const size_t ijFace = lFlattenIndexIFace(i, j, niElem); 
-        const size_t ijElemR = j * mNxElem + i;
-        const size_t ijElemL = ijElemR - 1;
-        mFaceGeometryIDir.emplace_back( ijElemL, ijElemR, iZone ); 
-      }
-    }
+  //// Create a helper lambda to flatten the face indices.
+  //auto lFlattenIndexIFace = [=](const size_t i, 
+  //                              const size_t j, 
+  //                              const size_t niElem) -> size_t
+  //{
+  //  return j * (niElem+1) + i;
+  //};
 
 
-    // Next, we define the interfaces and boundaries in the i-direction only.
-    for(size_t j=0; j<njElem; j++)
-    {
-      // IMIN face.
-      {
-        const size_t i=0; 
-    
-        switch( face type ):
-        {
-          case( BOUNDARY_FACE ):
-          {
-            const size_t ijElemR = j * mNxElem + i;
-            mFaceGeometryIDir.emplace_back( CFaceGeometry::INVALID_ELEMENT, ijElemR, iZone );
-          }
+  //// Loop over the zones and define each face.
+  //for( const auto& zone : mZoneGeometry )
+  //{
+  //  const size_t  iZone = zone->GetZoneID();
+  //  const size_t niElem = zone->GetnxElem();
+  //  const size_t njElem = zone->GetnjElem();
 
-          case( INTERFACE_FACE ):
-          {
+  //  
+  //  // First, we loop over the internal faces in the i-direction only.
+  //  for(size_t j=0; j<njElem; j++)
+  //  {
+  //    for(size_t i=1; i<niElem; i++)
+  //    {
+  //      // Flatten the indices.
+  //      //const size_t ijFace = lFlattenIndexIFace(i, j, niElem); 
+  //      const size_t ijElemR = j * mNxElem + i;
+  //      const size_t ijElemL = ijElemR - 1;
+  //      mFaceGeometryIDir.emplace_back( ijElemL, ijElemR, iZone ); 
+  //    }
+  //  }
 
-            break;
-          }
 
-          default: ERROR("Unknown face type.");
-        }
-      } // End of IMIN scope.
-      
-      // IMAX face.
-      {
-        const size_t i=niElem; 
-    
-        switch( face type )
-        {
-          case( BOUNDARY_FACE ):
-          {
-            const size_t ijElemL = j * mNxElem + i-1;
-            mFaceGeometryIDir.emplace_back( ijElemL, CFaceGeometry::INVALID_ELEMENT, iZone );
-            break;
-          }
-          
-          case( INTERFACE_FACE ):
-          {
+  //  // Next, we define the interfaces and boundaries in the i-direction only.
+  //  for(size_t j=0; j<njElem; j++)
+  //  {
+  //    // IMIN face.
+  //    {
+  //      const size_t i=0; 
+  //  
+  //      switch( face type ):
+  //      {
+  //        case( BOUNDARY_FACE ):
+  //        {
+  //          const size_t ijElemR = j * mNxElem + i;
+  //          mFaceGeometryIDir.emplace_back( CFaceGeometry::INVALID_ELEMENT, ijElemR, iZone );
+  //        }
 
-            break;
-          }
+  //        case( INTERFACE_FACE ):
+  //        {
 
-          default: ERROR("Unknown face type.");
-        } 
-      } // End of IMAX scope.
-    }
-  }
+  //          break;
+  //        }
+
+  //        default: ERROR("Unknown face type.");
+  //      }
+  //    } // End of IMIN scope.
+  //    
+  //    // IMAX face.
+  //    {
+  //      const size_t i=niElem; 
+  //  
+  //      switch( face type )
+  //      {
+  //        case( BOUNDARY_FACE ):
+  //        {
+  //          const size_t ijElemL = j * mNxElem + i-1;
+  //          mFaceGeometryIDir.emplace_back( ijElemL, CFaceGeometry::INVALID_ELEMENT, iZone );
+  //          break;
+  //        }
+  //        
+  //        case( INTERFACE_FACE ):
+  //        {
+
+  //          break;
+  //        }
+
+  //        default: ERROR("Unknown face type.");
+  //      } 
+  //    } // End of IMAX scope.
+  //  }
+  //}
 }
 
 
@@ -302,9 +304,9 @@ void CZoneGeometry::InitializeElements
 void CZoneGeometry::InitializeMarkers
 (
  CConfig                   *config_container,
- as3vector2d<unsigned int> &mark,
- as3vector2d<EFaceElement> &face,
- as3vector1d<std::string>  &name
+ as3vector2d<unsigned int>  &mark,
+ as3vector2d<EFaceLocation> &face,
+ as3vector1d<std::string>   &name
 )
  /*
 	* Function that defines all the interface markers in this zone..
@@ -386,3 +388,5 @@ CElementGeometry::~CElementGeometry
 {
 
 }
+
+

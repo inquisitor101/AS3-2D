@@ -10,8 +10,8 @@
  */
 struct CFaceMarker
 {
-	unsigned int mIndex; ///< Element index containing this face marker.
-	EFaceElement mFace;  ///< Face location for this marker.
+	unsigned int  mIndex; ///< Element index containing this face marker.
+	EFaceLocation mFace;  ///< Face location for this marker.
 };
 
 
@@ -31,11 +31,11 @@ class CMarker
 		 * @param[in] face face locations on each element of this marker.
 		 * @param[in] element element indices on this marker. 
 		 */
-		CMarker(unsigned short            zone,
-				    ETypeBC                   type,
-				    std::string               name,	
-						as3vector1d<EFaceElement> face,
-						as3vector1d<unsigned int> mark);
+		CMarker(unsigned short             zone,
+				    ETypeBC                    type,
+				    std::string                name,	
+						as3vector1d<EFaceLocation> face,
+						as3vector1d<unsigned int>  mark);
 	
 		/*!
 		 * @brief Destructor, which frees any allocated memory.

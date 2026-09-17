@@ -156,35 +156,35 @@ void CEESolver::InitBoundaryConditions
 		{
 			// Make sure that the marker data is written in the correct order.
 			static_assert( std::is_same_v<const unsigned int, decltype(index)> );
-			static_assert( std::is_same_v<const EFaceElement, decltype(face )> );
+			static_assert( std::is_same_v<const EFaceLocation, decltype(face )> );
 
 			// Based on the face type, initialzie the boundary surface.
 			switch( face )
 			{
 
 				// Check the IMIN boundary.
-				case(EFaceElement::IMIN): 
+				case(EFaceLocation::IMIN): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
 					if( nimin++ > zone->GetnyElem() ) {ERROR("Incorrect number of IMIN faces.");} break;
 				}
 
 				// Check the IMAX boundary.
-				case(EFaceElement::IMAX): 
+				case(EFaceLocation::IMAX): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
 					if( nimax++ > zone->GetnyElem() ) {ERROR("Incorrect number of IMAX faces.");} break;
 				}
 
 				// Check the JMIN boundary.
-				case(EFaceElement::JMIN): 
+				case(EFaceLocation::JMIN): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
 					if( njmin++ > zone->GetnxElem() ) {ERROR("Incorrect number of JMIN faces.");} break;
 				}
 
 				// Check the JMAX boundary.
-				case(EFaceElement::JMAX): 
+				case(EFaceLocation::JMAX): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
 					if( njmax++ > zone->GetnxElem() ) {ERROR("Incorrect number of JMAX faces.");} break;
@@ -216,7 +216,7 @@ void CEESolver::InitBoundaryConditions
 			switch( face )
 			{
 				// Check the IMIN boundary.
-				case(EFaceElement::IMIN): 
+				case(EFaceLocation::IMIN): 
 				{
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryIMINContainer.emplace_back
@@ -228,7 +228,7 @@ void CEESolver::InitBoundaryConditions
 				}
 
 				// Check the IMAX boundary.
-				case(EFaceElement::IMAX): 
+				case(EFaceLocation::IMAX): 
 				{
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryIMAXContainer.emplace_back
@@ -240,7 +240,7 @@ void CEESolver::InitBoundaryConditions
 				}
 
 				// Check the JMIN boundary.
-				case(EFaceElement::JMIN): 
+				case(EFaceLocation::JMIN): 
 				{
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryJMINContainer.emplace_back
@@ -252,7 +252,7 @@ void CEESolver::InitBoundaryConditions
 				}
 
 				// Check the JMAX boundary.
-				case(EFaceElement::JMAX): 
+				case(EFaceLocation::JMAX): 
 				{
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryJMAXContainer.emplace_back

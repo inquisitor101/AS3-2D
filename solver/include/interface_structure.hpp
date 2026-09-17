@@ -92,8 +92,8 @@ class IInterface
 		std::string    mJName;    ///< Name of the matching interface marker.
 		unsigned short mIZone;    ///< Zone ID of the owner interface marker.
 		unsigned short mJZone;    ///< Zone ID of the matching interface marker.
-		EFaceElement   mIFace;    ///< Face ID of the owner interface marker.
-		EFaceElement   mJFace;    ///< Face ID of the matching interface marker.
+		EFaceLocation  mIFace;    ///< Face ID of the owner interface marker.
+		EFaceLocation  mJFace;    ///< Face ID of the matching interface marker.
 		
 		unsigned int   mNElem;    ///< Number of elements on this marker.
 		unsigned short mNInt1D;   ///< Number of integration points on this marker.	
