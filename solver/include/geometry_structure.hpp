@@ -45,16 +45,18 @@ class CGeometry
 		 */
 		CZoneGeometry *GetZoneGeometry(size_t iZone) const {return mZoneGeometry[iZone].get();}
 
-	protected:
+    void InitializeFaces(const CConfig *config_container);
+	
+  protected:
 
 	private:
 		const unsigned short                        mNZone;            ///< Total number of zones.
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
 
-    CMultizoneFaceGeometry mMultizoneFacesIDir;
+    CMultizoneFaceGeometry mMultizoneFacesIDir{ETypeDirection::IDIR};
+    CMultizoneFaceGeometry mMultizoneFacesJDir{ETypeDirection::JDIR};
 
-		void InitializeFacesIDir(const CConfig *config_container);
-
+		
 		/*!
 		 * @brief Function that checks the existance of the grid files and reports the output.
 		 *
@@ -101,8 +103,8 @@ class CZoneGeometry
 		 */
 		void InitializeElements(as3vector2d<double> &x, 
 				                    as3vector2d<double> &y,
-														unsigned int         nxElem,
-														unsigned int         nyElem);
+														unsigned int         niElem,
+														unsigned int         njElem);
 
 		/*!
 		 * @brief Function that defines all the interface markers in this zone.
@@ -150,16 +152,16 @@ class CZoneGeometry
 		/*!
 		 * @brief Getter function which returns the number of elements in the x-direction.
 		 *
-		 * @return mNxElem.
+		 * @return mNiElem.
 		 */
-		unsigned int GetnxElem(void) const {return mNxElem;}
+		unsigned int GetniElem(void) const {return mNiElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of elements in the y-direction.
 		 *
-		 * @return mNyElem.
+		 * @return mNjElem.
 		 */
-		unsigned int GetnyElem(void) const {return mNyElem;}
+		unsigned int GetnjElem(void) const {return mNjElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of grid nodes in 2D.
@@ -203,8 +205,8 @@ class CZoneGeometry
 		const unsigned short                           mZoneID;           ///< Current zone index.
 		const std::string															 mGridFile;				  ///< Associated grid file name of this zone.
 		unsigned short                                 mNPolyGrid;        ///< Polynomial order of the grid element.
-		unsigned int                                   mNxElem;           ///< Number of elements in x-direction.
-		unsigned int                                   mNyElem;           ///< Number of elements in y-direction.	
+		unsigned int                                   mNiElem;           ///< Number of elements in i-direction.
+		unsigned int                                   mNjElem;           ///< Number of elements in j-direction.	
 
 		as3vector2d<unsigned short>                    mFaceNodalIndices; ///< Container with the nodal face indices.
 																																			///< [iFace][iNode].

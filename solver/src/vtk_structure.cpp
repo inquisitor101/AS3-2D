@@ -232,14 +232,14 @@ void CLegacyBinaryVTK::WriteFileVTK
 		const unsigned int nSubElem = nPoly*nPoly;
 
 		// Extract number of elements in x and y in this zone.
-		const unsigned int nxElem = zone->GetnxElem();
-		const unsigned int nyElem = zone->GetnyElem();
+		const unsigned int niElem = zone->GetniElem();
+		const unsigned int njElem = zone->GetnjElem();
 
 		// Deduce number of nodes for the DOFs in 1D.
 		const unsigned int nDOFsSol1D = nPoly + 1;
 
 		// Ensure the number of elements is correct.
-		if( nxElem*nyElem != nElem ) ERROR("Inconsistency in the number of elements being written.");
+		if( niElem*njElem != nElem ) ERROR("Inconsistency in the number of elements being written.");
 
 		// Initialize and specify the coordinates. Note, ParaView expects them in 3D.
 		coor_buf[iZone].resize( 3*nDOFsTot );
@@ -253,8 +253,8 @@ void CLegacyBinaryVTK::WriteFileVTK
   	for(unsigned int ijElem=0; ijElem<nElem; ++ijElem)
   	{
 			// Deduce the local element indices in x and y.
-			//const int jElem = ijElem/nxElem;
-			//const int iElem = ijElem - jElem*nxElem;
+			//const int jElem = ijElem/niElem;
+			//const int iElem = ijElem - jElem*niElem;
 
 			// Deduce the current element coordinate array location.
 			float        *coorelem = coor_buf[iZone].data() + ijElem*3*nNode;  

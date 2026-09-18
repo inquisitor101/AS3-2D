@@ -173,6 +173,9 @@ void CDriver::InitializeData
 		}
 	}
 
+  // TESTING
+  mGeometryContainer->InitializeFaces(mConfigContainer.get()); // TODO: put this in the appropriate place.
+
 	// Initialize the OpenMP container.
 	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
 			                                         mGeometryContainer.get(),

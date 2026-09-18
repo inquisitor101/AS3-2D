@@ -88,7 +88,7 @@ void CGeometry::CheckExistanceGridFiles
 
 //-----------------------------------------------------------------------------------
 
-void CGeometry::InitializeFacesIDir
+void CGeometry::InitializeFaces
 (
  const CConfig *config_container
 )
@@ -97,94 +97,15 @@ void CGeometry::InitializeFacesIDir
 	*/
 {
 	// Initialize the internal faces.
-	mMultizoneFacesIDir.InitializeInternalFaces(this);
+	mMultizoneFacesIDir.InitializeInternalFacesIDir(this);
 
 	// Initialize the interface faces.
-	mMultizoneFacesIDir.InitializeInterfaceFaces(config_container, this);
+	mMultizoneFacesIDir.InitializeInterfaceFacesIDir(config_container, this);
 
+  std::cout << "nInterfaceGroups in the IDir are: " << mMultizoneFacesIDir.GetnInterfaceGroups() << std::endl;
 
-  //mFaceGeometryIDir.reserve( nFacesIDir );
+  // TODO: boundary + JDIR functions
 
-  //// Create a helper lambda to flatten the face indices.
-  //auto lFlattenIndexIFace = [=](const size_t i, 
-  //                              const size_t j, 
-  //                              const size_t niElem) -> size_t
-  //{
-  //  return j * (niElem+1) + i;
-  //};
-
-
-  //// Loop over the zones and define each face.
-  //for( const auto& zone : mZoneGeometry )
-  //{
-  //  const size_t  iZone = zone->GetZoneID();
-  //  const size_t niElem = zone->GetnxElem();
-  //  const size_t njElem = zone->GetnjElem();
-
-  //  
-  //  // First, we loop over the internal faces in the i-direction only.
-  //  for(size_t j=0; j<njElem; j++)
-  //  {
-  //    for(size_t i=1; i<niElem; i++)
-  //    {
-  //      // Flatten the indices.
-  //      //const size_t ijFace = lFlattenIndexIFace(i, j, niElem); 
-  //      const size_t ijElemR = j * mNxElem + i;
-  //      const size_t ijElemL = ijElemR - 1;
-  //      mFaceGeometryIDir.emplace_back( ijElemL, ijElemR, iZone ); 
-  //    }
-  //  }
-
-
-  //  // Next, we define the interfaces and boundaries in the i-direction only.
-  //  for(size_t j=0; j<njElem; j++)
-  //  {
-  //    // IMIN face.
-  //    {
-  //      const size_t i=0; 
-  //  
-  //      switch( face type ):
-  //      {
-  //        case( BOUNDARY_FACE ):
-  //        {
-  //          const size_t ijElemR = j * mNxElem + i;
-  //          mFaceGeometryIDir.emplace_back( CFaceGeometry::INVALID_ELEMENT, ijElemR, iZone );
-  //        }
-
-  //        case( INTERFACE_FACE ):
-  //        {
-
-  //          break;
-  //        }
-
-  //        default: ERROR("Unknown face type.");
-  //      }
-  //    } // End of IMIN scope.
-  //    
-  //    // IMAX face.
-  //    {
-  //      const size_t i=niElem; 
-  //  
-  //      switch( face type )
-  //      {
-  //        case( BOUNDARY_FACE ):
-  //        {
-  //          const size_t ijElemL = j * mNxElem + i-1;
-  //          mFaceGeometryIDir.emplace_back( ijElemL, CFaceGeometry::INVALID_ELEMENT, iZone );
-  //          break;
-  //        }
-  //        
-  //        case( INTERFACE_FACE ):
-  //        {
-
-  //          break;
-  //        }
-
-  //        default: ERROR("Unknown face type.");
-  //      } 
-  //    } // End of IMAX scope.
-  //  }
-  //}
 }
 
 
@@ -265,8 +186,8 @@ void CZoneGeometry::InitializeElements
 (
  as3vector2d<double> &x,
  as3vector2d<double> &y,
- unsigned int         nxElem,
- unsigned int         nyElem
+ unsigned int         niElem,
+ unsigned int         njElem
 )
  /*
 	* Function that initializes and defines all the element geometry in this zone..
@@ -276,11 +197,11 @@ void CZoneGeometry::InitializeElements
 	if( x.size() != y.size() ) ERROR("Number of coordinates in x and y is not identical.");
 
 	// Ensure the total number of elements is correct.
-	if( static_cast<size_t>(nxElem*nyElem) != x.size() ) ERROR("Inconsistency in number of elements.");
+	if( static_cast<size_t>(niElem*njElem) != x.size() ) ERROR("Inconsistency in number of elements.");
 
 	// Set the number of elements in each dimension.
-	mNxElem = nxElem;
-	mNyElem = nyElem;
+	mNiElem = niElem;
+	mNjElem = njElem;
 
 	// Allocate memory for the total elements.
 	mElementGeometry.resize( x.size() );

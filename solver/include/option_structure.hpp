@@ -335,6 +335,18 @@ enum class ETypeFaceGeometry
   INTERFACE
 };
 
+//--------------------------------------
+
+/*!
+ * @brief Enumerated type for the type of the direction.
+ */
+enum class ETypeDirection
+{
+  IDIR,
+  JDIR
+};
+
+
 
 
 /* * * 

@@ -166,28 +166,28 @@ void CEESolver::InitBoundaryConditions
 				case(EFaceLocation::IMIN): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
-					if( nimin++ > zone->GetnyElem() ) {ERROR("Incorrect number of IMIN faces.");} break;
+					if( nimin++ > zone->GetnjElem() ) {ERROR("Incorrect number of IMIN faces.");} break;
 				}
 
 				// Check the IMAX boundary.
 				case(EFaceLocation::IMAX): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
-					if( nimax++ > zone->GetnyElem() ) {ERROR("Incorrect number of IMAX faces.");} break;
+					if( nimax++ > zone->GetnjElem() ) {ERROR("Incorrect number of IMAX faces.");} break;
 				}
 
 				// Check the JMIN boundary.
 				case(EFaceLocation::JMIN): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
-					if( njmin++ > zone->GetnxElem() ) {ERROR("Incorrect number of JMIN faces.");} break;
+					if( njmin++ > zone->GetniElem() ) {ERROR("Incorrect number of JMIN faces.");} break;
 				}
 
 				// Check the JMAX boundary.
 				case(EFaceLocation::JMAX): 
 				{
 					// If the number of faces exceeds the expected, issue an error.
-					if( njmax++ > zone->GetnxElem() ) {ERROR("Incorrect number of JMAX faces.");} break;
+					if( njmax++ > zone->GetniElem() ) {ERROR("Incorrect number of JMAX faces.");} break;
 				}
 
 				// Something went wrong, issue an error.
@@ -384,8 +384,8 @@ void CEESolver::ComputeSurfaceResidualIDir
 	*/
 {
 	// Extract the number of elements in this zone.
-	const size_t nxElem = grid_zone->GetnxElem();	
-	const size_t nyElem = grid_zone->GetnyElem();
+	const size_t niElem = grid_zone->GetniElem();	
+	const size_t njElem = grid_zone->GetnjElem();
 
 	// Extract the number of integration points in 1D.
 	size_t nInt1D = mStandardElementContainer->GetnInt1D();
@@ -537,8 +537,8 @@ void CEESolver::ComputeSurfaceResidualJDir
 	*/
 {
 	// Extract the number of elements in this zone.
-	const size_t nxElem = grid_zone->GetnxElem();	
-	const size_t nyElem = grid_zone->GetnyElem();
+	const size_t niElem = grid_zone->GetniElem();	
+	const size_t njElem = grid_zone->GetnjElem();
 
 	// Extract the number of integration points in 1D.
 	size_t nInt1D = mStandardElementContainer->GetnInt1D();
@@ -553,7 +553,7 @@ void CEESolver::ComputeSurfaceResidualJDir
 
 	// Deduce the indices of the left and right elements.
 	const size_t IT = iElem;
-	const size_t IB = IT-nxElem;
+	const size_t IB = IT-niElem;
 	
 	// Get a pointer to the respective bottom and top element, w.r.t. this face.
 	auto& elemB = mPhysicalElementContainer[IB];

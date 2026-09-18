@@ -223,7 +223,7 @@ void CIteration::ComputeResidual
 		const unsigned int   IT    = openmp_container->GetInternJFace(i)->mElem;
 
 		// Deduce the bottom element's index.
-		const size_t IB = IT - geometry_container->GetZoneGeometry(iZone)->GetnxElem();
+		const size_t IB = IT - geometry_container->GetZoneGeometry(iZone)->GetniElem();
 
 		// Extract the relevant solver.
 		auto& solver  = solver_container[iZone];

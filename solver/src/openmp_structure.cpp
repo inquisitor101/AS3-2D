@@ -113,7 +113,7 @@ void COpenMP::InitializeSurfaceIFaces
 	size_t nElem = 0;
 	for( auto& zone: geometry_container->GetZoneGeometry() )
 	{
-		nElem += zone->GetnElem() - zone->GetnyElem();
+		nElem += zone->GetnElem() - zone->GetnjElem();
 	}
 
 	// Allocate the memory for the (right) i-surface indices.
@@ -124,15 +124,15 @@ void COpenMP::InitializeSurfaceIFaces
 	size_t II = 0;
 	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
-		const unsigned int nxElem = geometry_container->GetZoneGeometry(iZone)->GetnxElem();
-		const unsigned int nyElem = geometry_container->GetZoneGeometry(iZone)->GetnyElem();
+		const unsigned int niElem = geometry_container->GetZoneGeometry(iZone)->GetniElem();
+		const unsigned int njElem = geometry_container->GetZoneGeometry(iZone)->GetnjElem();
 		
-		for(size_t jElem=0; jElem<nyElem; jElem++)
+		for(size_t jElem=0; jElem<njElem; jElem++)
 		{
-			for(size_t iElem=1; iElem<nxElem; iElem++)
+			for(size_t iElem=1; iElem<niElem; iElem++)
 			{
 				// Right-element index (IMAX).
-				const unsigned int iElemIMAX = jElem*nxElem + iElem;
+				const unsigned int iElemIMAX = jElem*niElem + iElem;
 				mInternIFace[II++] = std::make_unique<CIndexElement>(iZone, iElemIMAX);
 			}
 		}
@@ -157,7 +157,7 @@ void COpenMP::InitializeSurfaceJFaces
 	size_t nElem = 0;
 	for( auto& zone: geometry_container->GetZoneGeometry() )
 	{
-		nElem += zone->GetnElem() - zone->GetnyElem();
+		nElem += zone->GetnElem() - zone->GetnjElem();
 	}
 
 	// Allocate the memory for the internal (top) j-surface indices.
@@ -167,15 +167,15 @@ void COpenMP::InitializeSurfaceJFaces
 	size_t II = 0;
 	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
-		const unsigned int nxElem = geometry_container->GetZoneGeometry(iZone)->GetnxElem();
-		const unsigned int nyElem = geometry_container->GetZoneGeometry(iZone)->GetnyElem();
+		const unsigned int niElem = geometry_container->GetZoneGeometry(iZone)->GetniElem();
+		const unsigned int njElem = geometry_container->GetZoneGeometry(iZone)->GetnjElem();
 		
-		for(size_t jElem=1; jElem<nyElem; jElem++)
+		for(size_t jElem=1; jElem<njElem; jElem++)
 		{
-			for(size_t iElem=0; iElem<nxElem; iElem++)
+			for(size_t iElem=0; iElem<niElem; iElem++)
 			{
 				// Top-element index (JMAX).
-				const unsigned int iElemJMAX = jElem*nxElem + iElem;
+				const unsigned int iElemJMAX = jElem*niElem + iElem;
 				mInternJFace[II++] = std::make_unique<CIndexElement>(iZone, iElemJMAX);
 			}
 		}

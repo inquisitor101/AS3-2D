@@ -5,6 +5,7 @@
 
 // Forward declaration to avoid compiler problems.
 class CGeometry;
+class CMarker;
 
 
 struct CInternalFaceGeometry
@@ -35,17 +36,35 @@ struct CInterfaceFaceGeometry
 	EFaceLocation mFaceLocationP;
 };
 
+struct CInterfaceGroup
+{
+  unsigned short mIndexZoneM;
+  unsigned short mIndexZoneP;
+
+  EFaceLocation mFaceLocationM;
+  EFaceLocation mFaceLocationP;
+
+  std::string mFaceNameM;
+  std::string mFaceNameP;
+  
+  size_t mIndexBegin;
+  size_t mIndexEnd;
+
+  size_t GetnElem(void) const { return mIndexEnd - mIndexBegin; }
+  size_t GetFaceIndex(size_t i) const { return mIndexBegin + i; }
+};
 
 
 class CMultizoneFaceGeometry
 {
 	public:
+    CMultizoneFaceGeometry(ETypeDirection direction) : mDirection(direction) {}
 
+		void InitializeInternalFacesIDir(const CGeometry *geometry_container);
+    void InitializeInternalFacesJDir(const CGeometry *geometry_container);
 
-		void InitializeInternalFaces(const CGeometry *geometry_container);
-
-		void InitializeInterfaceFaces(const CConfig   *config_container,
-				                          const CGeometry *geometry_structure);
+		void InitializeInterfaceFacesIDir(const CConfig   *config_container,
+				                              const CGeometry *geometry_structure);
 
 
 		ETypeFaceGeometry GetFaceTypeFromIndex(size_t i) const
@@ -111,10 +130,44 @@ class CMultizoneFaceGeometry
 			return GetnInternalFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
 		}
 
+    size_t GetnInterfaceGroups(void) const
+    {
+      return mInterfaceGroups.size();
+    }
+
 	private:
-		as3vector1d<CInternalFaceGeometry>  mInternalFaces;
+    ETypeDirection mDirection;
+
+    as3vector1d<CInternalFaceGeometry>  mInternalFaces;
 		as3vector1d<CBoundaryFaceGeometry>  mBoundaryFaces;
 		as3vector1d<CInterfaceFaceGeometry> mInterfaceFaces;
+
+    as3vector1d<CInterfaceGroup> mInterfaceGroups; // Family of interfaces, each containing the element faces on it.
+
+
+    const CMarker* GetMatchingMarker(const CGeometry   *geometry_container,
+                                     const std::string &marker_name);
+
+    const EFaceLocation GetMarkerFaceLocation(const CMarker *marker_container);
+
+		void CheckConformityMarkers(const CConfig         *config_container,
+				                        const CGeometry       *geometry_container,
+																const CMarker         *owner_marker,
+																const CMarker         *match_marker,
+																CInterfaceParamMarker *param_interface,
+                                CInterfaceGroup       *interface_group);
+
+    as3vector1d<size_t> GetIndexInterfacesAlongDirection(const CConfig   *config_container,
+                                                         const CGeometry *geometry_container);
+
+    ETypeDirection GetDirectionFromFaceLocation(EFaceLocation location) const
+    {
+      if( location == EFaceLocation::IMIN || location == EFaceLocation::IMAX ) return ETypeDirection::IDIR;
+      if( location == EFaceLocation::JMIN || location == EFaceLocation::JMAX ) return ETypeDirection::JDIR;
+
+      ERROR("Cannot deduce direction from face location.");
+    }
+
 };
 
 
