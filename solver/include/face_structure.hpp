@@ -29,10 +29,10 @@ struct CInterfaceFaceGeometry
 	size_t mIndexElementM;
 	size_t mIndexElementP;
 	
-	unsigned short mIndexZoneM;
-	unsigned short mIndexZoneP;
+	unsigned short mIndexZoneM; // TODO: remove these, since they are in CInterfaceGroup  
+	unsigned short mIndexZoneP; 
 
-	EFaceLocation mFaceLocationM;
+	EFaceLocation mFaceLocationM; // TODO: remove these, since they are in CInterfaceGroup
 	EFaceLocation mFaceLocationP;
 };
 
@@ -60,11 +60,10 @@ class CMultizoneFaceGeometry
 	public:
     CMultizoneFaceGeometry(ETypeDirection direction) : mDirection(direction) {}
 
-		void InitializeInternalFacesIDir(const CGeometry *geometry_container);
-    void InitializeInternalFacesJDir(const CGeometry *geometry_container);
+		void InitializeInternalFaces(const CGeometry *geometry_container);
 
-		void InitializeInterfaceFacesIDir(const CConfig   *config_container,
-				                              const CGeometry *geometry_structure);
+		void InitializeInterfaceFaces(const CConfig   *config_container,
+				                          const CGeometry *geometry_structure);
 
 
 		ETypeFaceGeometry GetFaceTypeFromIndex(size_t i) const
@@ -167,7 +166,6 @@ class CMultizoneFaceGeometry
 
       ERROR("Cannot deduce direction from face location.");
     }
-
 };
 
 

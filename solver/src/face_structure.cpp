@@ -6,7 +6,7 @@
 // CZoneGeometry member functions.
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeInternalFacesIDir
+void CMultizoneFaceGeometry::InitializeInternalFaces
 (
  const CGeometry *geometry_container
 )
@@ -14,93 +14,92 @@ void CMultizoneFaceGeometry::InitializeInternalFacesIDir
 	*
 	*/
 {
-  // Consistency check.
-  if( mDirection != ETypeDirection::IDIR ) ERROR("Wrong function called.");
-
-	// Determine total number of internal faces in the i-direction.
-	size_t nInternalFacesIDir = 0;
-	for( const auto& zone : geometry_container->GetZoneGeometry() )
+	// Decide which indexing to use, based on the face direction.
+	switch(mDirection)
 	{
-		const size_t niElem = zone->GetniElem();
-    const size_t njElem = zone->GetnjElem();
-	
-		nInternalFacesIDir += njElem * (niElem-1);
-	}
-	
-	// Reserve the needed amount of memory for the internal faces.
-	mInternalFaces.reserve(nInternalFacesIDir);
+		case(ETypeDirection::IDIR):
+		{
+			// Determine total number of internal faces in the i-direction.
+			size_t nInternalFacesIDir = 0;
+			for( const auto& zone : geometry_container->GetZoneGeometry() )
+			{
+				const size_t niElem = zone->GetniElem();
+  		  const size_t njElem = zone->GetnjElem();
+			
+				nInternalFacesIDir += njElem * (niElem-1);
+			}
+			
+			// Reserve the needed amount of memory for the internal faces.
+			mInternalFaces.reserve(nInternalFacesIDir);
 
-	// Loop over the internal faces in all the zones and instantiate them.
-  for( const auto& zone : geometry_container->GetZoneGeometry() )
-  {
-    const unsigned short iZone = zone->GetZoneID();
-    const size_t niElem = zone->GetniElem();
-    const size_t njElem = zone->GetnjElem();
+			// Loop over the internal faces in all the zones and instantiate them.
+  		for( const auto& zone : geometry_container->GetZoneGeometry() )
+  		{
+  		  const unsigned short iZone = zone->GetZoneID();
+  		  const size_t niElem = zone->GetniElem();
+  		  const size_t njElem = zone->GetnjElem();
 
-    for(size_t j=0; j<njElem; j++)
-    {
-      for(size_t i=1; i<niElem; i++)
-      {
-        // Deduce the flattened element indices.
-        const size_t ijElemR = j * niElem + i;
-        const size_t ijElemL = ijElemR - 1;
-        
-				mInternalFaces.emplace_back( ijElemL, ijElemR, iZone ); 
-      }
-    }
+  		  for(size_t j=0; j<njElem; j++)
+  		  {
+  		    for(size_t i=1; i<niElem; i++)
+  		    {
+  		      // Deduce the flattened element indices.
+  		      const size_t ijElemR = j * niElem + i;
+  		      const size_t ijElemL = ijElemR - 1;
+  		      
+						mInternalFaces.emplace_back( ijElemL, ijElemR, iZone ); 
+  		    }
+  		  }
+			}
+
+			break;
+		}
+
+		case(ETypeDirection::JDIR ):
+		{
+			// Determine total number of internal faces in the j-direction.
+			size_t nInternalFacesJDir = 0;
+			for( const auto& zone : geometry_container->GetZoneGeometry() )
+			{
+				const size_t niElem = zone->GetniElem();
+  		  const size_t njElem = zone->GetnjElem();
+			
+				nInternalFacesJDir += niElem * (njElem-1);
+			}
+			
+			// Reserve the needed amount of memory for the internal faces.
+			mInternalFaces.reserve(nInternalFacesJDir);
+
+			// Loop over the internal faces in all the zones and instantiate them.
+  		for( const auto& zone : geometry_container->GetZoneGeometry() )
+  		{
+  		  const unsigned short iZone = zone->GetZoneID();
+  		  const size_t niElem = zone->GetniElem();
+  		  const size_t njElem = zone->GetnjElem();
+
+  		  for(size_t j=1; j<njElem; j++)
+  		  {
+  		    for(size_t i=0; i<niElem; i++)
+  		    {
+  		      // Deduce the flattened element indices.
+  		      const size_t ijElemT = j * niElem + i;
+  		      const size_t ijElemB = ijElemT - niElem;
+  		      
+						mInternalFaces.emplace_back( ijElemB, ijElemT, iZone ); 
+  		    }
+  		  }
+			}
+
+			break;
+		}
+
+		default: ERROR("Unknown face direction detected.");
 	}
 }
 
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeInternalFacesJDir
-(
- const CGeometry *geometry_container
-)
- /*
-	*
-	*/
-{
-  // Consistency check.
-  if( mDirection != ETypeDirection::JDIR ) ERROR("Wrong function called.");
-
-	// Determine total number of internal faces in the j-direction.
-	size_t nInternalFacesJDir = 0;
-	for( const auto& zone : geometry_container->GetZoneGeometry() )
-	{
-		const size_t niElem = zone->GetniElem();
-    const size_t njElem = zone->GetnjElem();
-	
-		nInternalFacesJDir += niElem * (njElem-1);
-	}
-	
-	// Reserve the needed amount of memory for the internal faces.
-	mInternalFaces.reserve(nInternalFacesJDir);
-
-	// Loop over the internal faces in all the zones and instantiate them.
-  for( const auto& zone : geometry_container->GetZoneGeometry() )
-  {
-    const unsigned short iZone = zone->GetZoneID();
-    const size_t niElem = zone->GetniElem();
-    const size_t njElem = zone->GetnjElem();
-
-    for(size_t j=1; j<njElem; j++)
-    {
-      for(size_t i=0; i<niElem; i++)
-      {
-        // Deduce the flattened element indices.
-        const size_t ijElemT = j * niElem + i;
-        const size_t ijElemB = ijElemT - niElem;
-        
-				mInternalFaces.emplace_back( ijElemB, ijElemT, iZone ); 
-      }
-    }
-	}
-}
-
-//-----------------------------------------------------------------------------------
-
-void CMultizoneFaceGeometry::InitializeInterfaceFacesIDir
+void CMultizoneFaceGeometry::InitializeInterfaceFaces
 (
  const CConfig   *config_container,
  const CGeometry *geometry_container
@@ -110,16 +109,13 @@ void CMultizoneFaceGeometry::InitializeInterfaceFacesIDir
   * only doing so for ith components who have faces in the i-direction.
 	*/
 {
-  // Consistency check.
-  if( mDirection != ETypeDirection::IDIR ) ERROR("Wrong function called.");
-
 	// Extract the interface boundaries, specified by the user.
 	auto& param_interface_total = config_container->GetInterfaceParamMarker();
 
-  // Get the number of valid interfaces for this direction.
-  //const size_t nInterfacesConsidered = GetnInterfacesAlongDirection(config_container, geometry_container);
-  const as3vector1d<size_t> interfaces_considered = GetIndexInterfacesAlongDirection(config_container, geometry_container);
-  
+  // Get the valid interfaces, based on the ith face and the direction in this class.
+	const as3vector1d<size_t> interfaces_considered = GetIndexInterfacesAlongDirection(config_container, geometry_container);
+ 
+	// Get the number of valid interfaces for this direction.
   const size_t nInterfacesConsidered = interfaces_considered.size();
 
 	// If there are no valid interfaces, return without any initialization.
@@ -212,6 +208,12 @@ void CMultizoneFaceGeometry::CheckConformityMarkers
 	* Function that processes each pair of markers, such that their common face coincides.
 	*/
 {
+	// Consistency check.
+	if( GetDirectionFromFaceLocation( interface_group->mFaceLocationM ) != mDirection )
+	{
+		ERROR("Inconsistency between the ith (Minus) face direction and this class's direction.");
+	}
+
   // Extract the relevant information in this marker.
   const unsigned short iZone = interface_group->mIndexZoneM;
   const unsigned short jZone = interface_group->mIndexZoneP;
