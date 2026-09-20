@@ -75,6 +75,10 @@ class CMultizoneFaceGeometry
 			ERROR("Invalid face index specified.");
 		}
 
+		const as3vector1d<CInternalFaceGeometry>  &GetInternalFaces(void)  const { return mInternalFaces; }
+		const as3vector1d<CBoundaryFaceGeometry>  &GetBoundaryFaces(void)  const { return mBoundaryFaces; }
+		const as3vector1d<CInterfaceFaceGeometry> &GetInterfaceFaces(void) const { return mInterfaceFaces; }
+
 		CInternalFaceGeometry& GetInternalFace(size_t i)
 		{
 #if DEBUG

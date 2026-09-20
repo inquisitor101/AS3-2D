@@ -54,6 +54,9 @@ CPhysicalElement::CPhysicalElement
 
 	// Compute the average length scales and normals per direction.
 	ComputeElementProperties(standard_element);
+
+	// Allocate memory for the temporary residuals (needed to avoid race conditions only when computing faces).
+	mResMinus.resize( nVar, nSol2D );
 }
 
 //-----------------------------------------------------------------------------------

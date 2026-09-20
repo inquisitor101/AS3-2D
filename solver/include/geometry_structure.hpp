@@ -46,7 +46,10 @@ class CGeometry
 		CZoneGeometry *GetZoneGeometry(size_t iZone) const {return mZoneGeometry[iZone].get();}
 
     void InitializeFaces(const CConfig *config_container);
-	
+
+		const CMultizoneFaceGeometry &GetMultizoneFacesIDir(void) const { return mMultizoneFacesIDir; }
+		const CMultizoneFaceGeometry &GetMultizoneFacesJDir(void) const { return mMultizoneFacesJDir; }
+
   protected:
 
 	private:

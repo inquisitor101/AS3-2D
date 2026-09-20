@@ -41,6 +41,8 @@ class CPhysicalElement
 																						///< [0]: ||n||, [1]: nx, [2]: ny, [3]: drdx, [4]: drdy, [5]: dsdx, [6]: dsdy.
 
 
+		// TESTING
+		CMatrixAS3<as3double> mResMinus;
 
 		/*!
 		 * @brief Default constructor of CPhysicalElement, which initializes a CPhysicalElement class.

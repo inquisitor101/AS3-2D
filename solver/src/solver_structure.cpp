@@ -524,6 +524,79 @@ void CEESolver::ComputeSurfaceResidualIDir
 
 //-----------------------------------------------------------------------------------
 
+void CEESolver::ComputeSurfaceResidualIDir_NEW
+(
+ const CZoneGeometry       *grid_zone,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime,
+ size_t                     iElemL,
+ size_t                     iElemR
+)
+ /*
+	* Function that computes the residual terms in the i-direction of an EE-type PDE. 
+	*/
+{
+	// Extract the number of elements in this zone.
+	const size_t niElem = grid_zone->GetniElem();	
+	const size_t njElem = grid_zone->GetnjElem();
+
+	// Extract the number of integration points in 1D.
+	size_t nInt1D = mStandardElementContainer->GetnInt1D();
+	// Extract the quadrature integration weights in 1D on the standard element.
+	auto&  wInt1D = mStandardElementContainer->GetwInt1D();
+
+	// Borrow memory for the solution on the two sides.
+	CWorkMatrixAS3<as3double> varL = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+	CWorkMatrixAS3<as3double> varR = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+	CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
+
+	// Consistency check.
+	if( iElemR != (iElemL+1) ) ERROR("Elements sharing current face in i-direction are wrong.");
+
+	// Get a pointer to the respective left and right element, w.r.t. this face.
+	auto& elemL = mPhysicalElementContainer[iElemL];
+	auto& elemR = mPhysicalElementContainer[iElemR];
+
+	// Extract the metrics at the integration points on the imax face of the left element.
+	auto& metL = elemL->mMetricIntIMax1D;
+	// Reference to the left element solution.
+	auto& solL = elemL->mSol2D;
+	// Reference to the right element residual (temporary).
+	auto& resL = elemL->mResMinus;
+
+	// Reset the values in the resL, before proceeding.
+	for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
+
+	// Reference to the right element solution.
+	auto& solR = elemR->mSol2D;
+	// Reference to the right element residual.
+	auto& resR = elemR->mRes2D;
+
+	// Compute the solution on the integration nodes of the left element.
+	mTensorProductContainer->SurfaceIMAX(mNVar, solL.data(),
+		                                   varL.data(), nullptr, nullptr); 
+
+	// Compute the solution on the integration nodes of the right element.
+	mTensorProductContainer->SurfaceIMIN(mNVar, solR.data(),
+		                                   varR.data(), nullptr, nullptr); 
+
+	// Compute the flux state, weighted by the integration nodes and metrics. 
+	// Notice, this is based on the left state, which is the outward-pointing
+	// normal vector.
+	mRiemannSolverContainer->ComputeFlux(wInt1D, metL, varL, varR, flux);
+
+	// Compute the residual on the left  element, which is on the IMAX boundary.
+	mTensorProductContainer->ResidualSurfaceIMAX(mNVar, flux.data(), nullptr, nullptr, resL.data());
+
+	// For local conservation, negate the flux, since it leaves the left element to enter the right element.
+	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+	// Compute the residual on the right element, which is on the IMIN boundary.
+	mTensorProductContainer->ResidualSurfaceIMIN(mNVar, flux.data(), nullptr, nullptr, resR.data());
+}
+
+//-----------------------------------------------------------------------------------
+
 void CEESolver::ComputeSurfaceResidualJDir
 (
  CZoneGeometry             *grid_zone,

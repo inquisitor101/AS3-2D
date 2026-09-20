@@ -87,6 +87,13 @@ class ISolver
 																						size_t                     iElem,
 																						CMatrixAS3<as3double>     &resL) = 0;
 
+		// TESTING
+		virtual void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
+				                                        CPoolMatrixAS3<as3double> &workarray,
+																								as3double                  localtime,
+																								size_t                     iElemL,
+																								size_t                     iElemR) = 0;
+
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
 		 *
@@ -249,6 +256,15 @@ class CEESolver : public ISolver
 																		size_t                     iElem,
 																		CMatrixAS3<as3double>     &resL) override;
 
+		// TESTING
+		void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
+		                                    CPoolMatrixAS3<as3double> &workarray,
+																				as3double                  localtime,
+																				size_t                     iElemL,
+																				size_t                     iElemR) final;
+
+
+
 		/*!
 		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
 		 *
@@ -275,6 +291,10 @@ class CEESolver : public ISolver
 
 	private:
 		unsigned short mNVar = 4; ///< Number of working variables
+
 };
+
+
+
 
 
