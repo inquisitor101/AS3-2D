@@ -118,11 +118,11 @@ void NError::CheckFloatingError
 {
   std::string message;
   // Check what error has been raised.
-  if( std::fetestexcept(FE_DIVBYZERO) ) message += "Error... FE_DIVBYZERO,";
-  // if( std::fetestexcept(FE_INEXACT)   ) message += "Error... FE_INEXACT,";
-  if( std::fetestexcept(FE_INVALID)   ) message += "Error... FE_INVALID,";
-  if( std::fetestexcept(FE_OVERFLOW)  ) message += "Error... FE_OVERFLOW,";
-  //if( std::fetestexcept(FE_UNDERFLOW) ) message += "Error... FE_UNDERFLOW,";
+  if( fetestexcept(FE_DIVBYZERO) ) message += "Error... FE_DIVBYZERO,";
+  // if( fetestexcept(FE_INEXACT)   ) message += "Error... FE_INEXACT,";
+  if( fetestexcept(FE_INVALID)   ) message += "Error... FE_INVALID,";
+  if( fetestexcept(FE_OVERFLOW)  ) message += "Error... FE_OVERFLOW,";
+  //if( fetestexcept(FE_UNDERFLOW) ) message += "Error... FE_UNDERFLOW,";
 
   if( !message.empty() ) ERROR(message);
 }

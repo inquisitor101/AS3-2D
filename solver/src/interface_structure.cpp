@@ -322,7 +322,6 @@ void CEEInterface::ComputeInterfaceResidual
 	CWorkMatrixAS3<as3double> varJ = workarray.GetWorkMatrixAS3(mNVar, mNInt1D);
 	CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, mNInt1D);
 
-
 	// Loop over the owned elements on this interface.
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -367,8 +366,192 @@ void CEEInterface::ComputeInterfaceResidual
 	}
 }
 
+//-----------------------------------------------------------------------------------
+
+void CEEInterface::ComputeInterfaceResidual_NEW
+(
+ as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+ const CInterfaceFaceGeometry          &interface_face,
+ CPoolMatrixAS3<as3double>             &workarray,
+ as3double                              localtime
+)
+ /*
+	* Function that computes the residual on a single element interface face. 
+	*/
+{
+  // Extract the relevant information.
+  const unsigned short iZoneM = interface_face.mIndexZoneM;
+  const unsigned short iZoneP = interface_face.mIndexZoneP;
+
+  const size_t iElemM = interface_face.mIndexElementM;
+  const size_t iElemP = interface_face.mIndexElementP;
+
+  const EFaceLocation face_location_m = interface_face.mFaceLocationM;
+  const EFaceLocation face_location_p = interface_face.mFaceLocationP;
+
+	// Get the solvers of this class.
+	auto& solver_m = solver_container[iZoneM];
+	auto& solver_p = solver_container[iZoneP];
+
+  // Get the respective standard elements.
+  const auto* standard_element_m = solver_m->GetStandardElement();
+  const auto* standard_element_p = solver_p->GetStandardElement();
+
+  // Get the respective number of integration points and weights on each face.
+  const size_t nInt1D = standard_element_m->GetnInt1D();
+  auto&        wInt1D = standard_element_m->GetwInt1D();
+  // Also the number of solution variables.
+  const size_t nVar   = solver_m->GetnVar();
+
+  // Consistency check.
+  if( standard_element_m->GetnInt1D() != standard_element_p->GetnInt1D() 
+      ||
+      solver_m->GetnVar() != solver_p->GetnVar() )
+  {
+    ERROR("Interface contains faces with different properties.");
+  }
+
+	// Borrow memory for the solution on the two sides.
+	CWorkMatrixAS3<as3double> var_m = workarray.GetWorkMatrixAS3(nVar, nInt1D);
+	CWorkMatrixAS3<as3double> var_p = workarray.GetWorkMatrixAS3(nVar, nInt1D);
+	CWorkMatrixAS3<as3double> flux  = workarray.GetWorkMatrixAS3(nVar, nInt1D);
+
+	// Get a pointer to the respective elements sharing this face.
+	auto* elem_m = solver_m->GetPhysicalElement(iElemM);
+	auto* elem_p = solver_p->GetPhysicalElement(iElemP);
+
+	// Extract the metrics at the integration points on the owner face.
+	auto& met_m = elem_m->GetSurfaceMetricInt(face_location_m);
+	// Reference to the owner element solution.
+	auto& sol_m = elem_m->mSol2D;
+	// Reference to the owner element residual.
+  CMatrixAS3<as3double>* res_m;
+  if( face_location_m == EFaceLocation::IMAX || face_location_m == EFaceLocation::JMAX )
+  {
+    res_m = &elem_m->mResMinus;
+    res_m->reset();
+  }
+  else
+  {
+    res_m = &elem_m->mRes2D;
+  }
+  
+
+	// Reference to the matching element solution.
+	auto& sol_p = elem_p->mSol2D;
+	// Reference to the matching element residual.
+  CMatrixAS3<as3double>* res_p;
+  if( face_location_p == EFaceLocation::IMAX || face_location_p == EFaceLocation::JMAX )
+  {
+    res_p = &elem_p->mResMinus;
+    res_p->reset();
+  }
+  else
+  {
+    res_p = &elem_p->mRes2D;
+  }
+
+  // TODO: need to preprocess faces once based on their parent group interface 
+  // (e.g., create their CTensorProduct and IRiemannSolver).
+  
+  // XXX: DEBUGGING start
+  // For now, we assume both faces have identical polynomials, riemann solvers, equations and integration rules.
+
+  // Get relevant tensor products.
+  auto* tensor_container_m = solver_m->GetTensorProduct();
+  auto* tensor_container_p = solver_p->GetTensorProduct();
+
+  // Get relevant Riemann solvers.
+  auto* riemann_solver_m = solver_m->GetRiemannSolver();
+  auto* riemann_solver_p = solver_p->GetRiemannSolver();
 
 
+  // Temporary lambda to determine which surface interpolation function to use.
+  auto lGetFuncPointerInterpFace = [](auto* tensor_container, EFaceLocation face_location)
+  {
+	  // Create a function pointer for the iface in the imarker.
+	  std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FInterpFace;
+
+	  // Definitions of the four interpolation functions on the (owner) iface, 
+	  // which are given as lambda's that bind to std::function.
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->SurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->SurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->SurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->SurfaceJMAX(in...); };
+
+	  // Assign the appropriate interpolation functions for the (owner) iface.
+	  switch(face_location)
+	  {
+	  	case(EFaceLocation::IMIN): {FInterpFace = iSurfIMIN; break;}
+	  	case(EFaceLocation::IMAX): {FInterpFace = iSurfIMAX; break;}
+	  	case(EFaceLocation::JMIN): {FInterpFace = iSurfJMIN; break;}
+	  	case(EFaceLocation::JMAX): {FInterpFace = iSurfJMAX; break;}
+	  	default: ERROR("Face is unknown.");
+	  }
+
+	  // Return the function pointer.
+	  return FInterpFace;
+  };
+
+  auto InterpSurface_M = lGetFuncPointerInterpFace(tensor_container_m, face_location_m);
+  auto InterpSurface_P = lGetFuncPointerInterpFace(tensor_container_p, face_location_p);
+
+
+  // Temporary lambda to determine which surface residual function to use.
+  auto lGetSurfaceResidualFace = [](auto* tensor_container, EFaceLocation face_location)
+  {
+	  // Create a function pointer for the iface in the imarker.
+	  std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FResFace;
+
+	  // Definitions of the four interpolation functions on the (owner) iface, 
+	  // which are given as lambda's that bind to std::function.
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->ResidualSurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->ResidualSurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->ResidualSurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->ResidualSurfaceJMAX(in...); };
+
+	  // Assign the appropriate interpolation functions for the (owner) iface.
+	  switch(face_location)
+	  {
+	  	case(EFaceLocation::IMIN): {FResFace = iSurfIMIN; break;}
+	  	case(EFaceLocation::IMAX): {FResFace = iSurfIMAX; break;}
+	  	case(EFaceLocation::JMIN): {FResFace = iSurfJMIN; break;}
+	  	case(EFaceLocation::JMAX): {FResFace = iSurfJMAX; break;}
+	  	default: ERROR("Face is unknown.");
+	  }
+
+	  // Return the function pointer.
+	  return FResFace;
+  };
+
+  auto ComputeResFace_M = lGetSurfaceResidualFace(tensor_container_m, face_location_m);
+  auto ComputeResFace_P = lGetSurfaceResidualFace(tensor_container_p, face_location_p);
+
+
+	// Compute the solution on the integration nodes of the owner element.
+	InterpSurface_M(nVar, sol_m.data(), var_m.data(), nullptr, nullptr); 
+
+	// Compute the solution on the integration nodes of the matching element.
+	InterpSurface_P(nVar, sol_p.data(), var_p.data(), nullptr, nullptr); 
+
+
+
+  // Compute the flux state, weighted by the integration nodes and metrics. 
+  riemann_solver_m->ComputeFlux(wInt1D, met_m, var_m, var_p, flux);
+
+  // Compute the residual on the owned element, which is on the iface boundary.
+  ComputeResFace_M(nVar, flux.data(), nullptr, nullptr, res_m->data());
+
+	// For local conservation, negate the flux, since it leaves the owner element 
+	// to enter the matching element.
+	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+	// Compute the residual on the matching element, which is on the jface boundary.
+	ComputeResFace_P(nVar, flux.data(), nullptr, nullptr, res_p->data());
+
+
+  // XXX: DEBUGGING end 
+}
 
 
 

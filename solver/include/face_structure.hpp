@@ -75,6 +75,21 @@ class CMultizoneFaceGeometry
 			ERROR("Invalid face index specified.");
 		}
 
+    size_t GetIndexInternalFace(size_t iGlobal) const
+    {
+      return iGlobal;
+    }
+    
+    size_t GetIndexBoundaryFace(size_t iGlobal) const
+    {
+      return iGlobal - GetnInternalFaces();
+    }
+    
+    size_t GetIndexInterfaceFace(size_t iGlobal) const
+    {
+      return iGlobal - GetnInternalFaces() - GetnBoundaryFaces();
+    }
+
 		const as3vector1d<CInternalFaceGeometry>  &GetInternalFaces(void)  const { return mInternalFaces; }
 		const as3vector1d<CBoundaryFaceGeometry>  &GetBoundaryFaces(void)  const { return mBoundaryFaces; }
 		const as3vector1d<CInterfaceFaceGeometry> &GetInterfaceFaces(void) const { return mInterfaceFaces; }
@@ -137,6 +152,8 @@ class CMultizoneFaceGeometry
     {
       return mInterfaceGroups.size();
     }
+
+    ETypeDirection GetDirection(void) const { return mDirection; }
 
 	private:
     ETypeDirection mDirection;

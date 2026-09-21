@@ -51,6 +51,11 @@ class IInterface
 		virtual void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
 				                                  CPoolMatrixAS3<as3double>             &workarray) = 0;
 
+    virtual void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+                                              const CInterfaceFaceGeometry          &interface_face,
+                                              CPoolMatrixAS3<as3double>             &workarray,
+                                              as3double                              localtime) = 0;
+
 		/*!
 		 * @brief Getter function which returns the name of the owner marker.
 		 *
@@ -192,6 +197,11 @@ class CEEInterface : public IInterface
 				                          CPoolMatrixAS3<as3double>             &workarray) override;
 
 
+
+    void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+                                      const CInterfaceFaceGeometry          &interface_face,
+                                      CPoolMatrixAS3<as3double>             &workarray,
+                                      as3double                              localtime) final;
 	protected:
 
 	private:

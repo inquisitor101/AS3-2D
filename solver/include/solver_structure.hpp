@@ -93,6 +93,14 @@ class ISolver
 																								as3double                  localtime,
 																								size_t                     iElemL,
 																								size_t                     iElemR) = 0;
+		
+    virtual void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
+				                                        CPoolMatrixAS3<as3double> &workarray,
+																								as3double                  localtime,
+																								size_t                     iElemB,
+																								size_t                     iElemT) = 0;
+
+
 
 		/*!
 		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
@@ -262,6 +270,12 @@ class CEESolver : public ISolver
 																				as3double                  localtime,
 																				size_t                     iElemL,
 																				size_t                     iElemR) final;
+
+		void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
+		                                    CPoolMatrixAS3<as3double> &workarray,
+																				as3double                  localtime,
+																				size_t                     iElemB,
+																				size_t                     iElemT) final;
 
 
 
