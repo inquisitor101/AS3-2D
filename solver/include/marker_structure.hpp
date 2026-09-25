@@ -85,13 +85,18 @@ class CMarker
 		 */
 		const CFaceMarker &GetElementFaces(size_t index) const {return mElementFaces[index];}
 
+    EFaceLocation GetFaceLocation(void) const {return mFaceLocation;}
+    ETypeFace     GetTypeFace(void)     const {return mFaceType;}
+
 	protected:
 
 	private:
 		unsigned short           mZoneID;       ///< Current zone index.
 		ETypeBC                  mTypeBC;       ///< Type of boundary condition.
 		std::string              mNameMarker;   ///< Name of the marker tag.
-		as3vector1d<CFaceMarker> mElementFaces; ///< Elements and their faces on this marker.
+		EFaceLocation            mFaceLocation; 
+    ETypeFace                mFaceType;
+    as3vector1d<CFaceMarker> mElementFaces; ///< Elements and their faces on this marker.
 
 		// Disable default constructor.
 		CMarker(void) = delete;

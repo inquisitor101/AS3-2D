@@ -91,14 +91,12 @@ class ISolver
 		virtual void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
 				                                        CPoolMatrixAS3<as3double> &workarray,
 																								as3double                  localtime,
-																								size_t                     iElemL,
-																								size_t                     iElemR) = 0;
+																								size_t                     iElemL) = 0;
 		
     virtual void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
 				                                        CPoolMatrixAS3<as3double> &workarray,
 																								as3double                  localtime,
-																								size_t                     iElemB,
-																								size_t                     iElemT) = 0;
+																								size_t                     iElemB) = 0;
 
 
 
@@ -268,14 +266,12 @@ class CEESolver : public ISolver
 		void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
 		                                    CPoolMatrixAS3<as3double> &workarray,
 																				as3double                  localtime,
-																				size_t                     iElemL,
-																				size_t                     iElemR) final;
+																				size_t                     iElemL) final;
 
 		void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
 		                                    CPoolMatrixAS3<as3double> &workarray,
 																				as3double                  localtime,
-																				size_t                     iElemB,
-																				size_t                     iElemT) final;
+																				size_t                     iElemB) final;
 
 
 

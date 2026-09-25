@@ -371,7 +371,8 @@ void CEEInterface::ComputeInterfaceResidual
 void CEEInterface::ComputeInterfaceResidual_NEW
 (
  as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- const CInterfaceFaceGeometry          &interface_face,
+ const CInterfaceFacesFamily           &family_face,
+ CElementFaceIndex                      face_info,
  CPoolMatrixAS3<as3double>             &workarray,
  as3double                              localtime
 )
@@ -380,14 +381,17 @@ void CEEInterface::ComputeInterfaceResidual_NEW
 	*/
 {
   // Extract the relevant information.
-  const unsigned short iZoneM = interface_face.mIndexZoneM;
-  const unsigned short iZoneP = interface_face.mIndexZoneP;
+  const unsigned short iZoneM = family_face.GetiZone();
+  const unsigned short iZoneP = family_face.GetjZone();
 
-  const size_t iElemM = interface_face.mIndexElementM;
-  const size_t iElemP = interface_face.mIndexElementP;
+  // Extract the actual face.
+  const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
 
-  const EFaceLocation face_location_m = interface_face.mFaceLocationM;
-  const EFaceLocation face_location_p = interface_face.mFaceLocationP;
+  const size_t iElemM = interface_face.mIndexElementI;
+  const size_t iElemP = interface_face.mIndexElementJ;
+
+  const EFaceLocation face_location_m = family_face.GetiFaceLocation();
+  const EFaceLocation face_location_p = family_face.GetjFaceLocation();
 
 	// Get the solvers of this class.
 	auto& solver_m = solver_container[iZoneM];

@@ -529,8 +529,7 @@ void CEESolver::ComputeSurfaceResidualIDir_NEW
  const CZoneGeometry       *grid_zone,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- size_t                     iElemL,
- size_t                     iElemR
+ size_t                     iElemL
 )
  /*
 	* Function that computes the residual terms in the i-direction of an EE-type PDE. 
@@ -539,6 +538,9 @@ void CEESolver::ComputeSurfaceResidualIDir_NEW
 	// Extract the number of elements in this zone.
 	const size_t niElem = grid_zone->GetniElem();	
 	const size_t njElem = grid_zone->GetnjElem();
+
+  // Deduce the right element's index.
+  const size_t iElemR = iElemL + 1;
 
 	// Extract the number of integration points in 1D.
 	size_t nInt1D = mStandardElementContainer->GetnInt1D();
@@ -602,8 +604,7 @@ void CEESolver::ComputeSurfaceResidualJDir_NEW
  const CZoneGeometry       *grid_zone,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- size_t                     iElemB,
- size_t                     iElemT
+ size_t                     iElemB
 )
  /*
 	* Function that computes the residual terms in the j-direction of an EE-type PDE. 
@@ -612,6 +613,9 @@ void CEESolver::ComputeSurfaceResidualJDir_NEW
 	// Extract the number of elements in this zone.
 	const size_t niElem = grid_zone->GetniElem();	
 	const size_t njElem = grid_zone->GetnjElem();
+
+  // Deduce the top element's index.
+  const size_t iElemT = iElemB + niElem;
 
 	// Extract the number of integration points in 1D.
 	size_t nInt1D = mStandardElementContainer->GetnInt1D();

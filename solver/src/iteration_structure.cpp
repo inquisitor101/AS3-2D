@@ -143,8 +143,8 @@ void CIteration::ComputeResidual
 
 	// TESTING: start
 	//----------------------------------------------------------------
-	const auto& idir_faces_multizone = geometry_container->GetMultizoneFacesIDir();
-	const auto& jdir_faces_multizone = geometry_container->GetMultizoneFacesJDir();
+	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
+	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
 	
   const size_t nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
   const size_t nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
@@ -170,16 +170,22 @@ void CIteration::ComputeResidual
 			{
         // Extract the local index.
         const size_t iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
-				// Extract the current face.
-				const auto& internal_face = idir_faces_multizone.GetInternalFace(iFaceLocal);
+			
+        // Extract the face information, essentially its indices.
+        const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
 
-				const unsigned short iZone  = internal_face.mIndexZone;
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+       
+        // Extract the current face.
+				const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
+				
+        const unsigned short iZone  = family_face.GetiZone();
 				const size_t         iElemL = internal_face.mIndexElementM;
-				const size_t         iElemR = internal_face.mIndexElementP;
 
 				const auto* grid = geometry_container->GetZoneGeometry(iZone);
 
-				solver_container[iZone]->ComputeSurfaceResidualIDir_NEW(grid, workarray, localtime, iElemL, iElemR);
+				solver_container[iZone]->ComputeSurfaceResidualIDir_NEW(grid, workarray, localtime, iElemL);
 
 				break;
 			}
@@ -188,17 +194,15 @@ void CIteration::ComputeResidual
       {
         // Extract the local index.
         const size_t iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
-        // Extract the current face.
-        const auto& interface_face = idir_faces_multizone.GetInterfaceFace(iFaceLocal);
+			
+        // Extract the face information, essentially its indices.
+        const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
 
-        const unsigned short iZoneL = interface_face.mIndexZoneM;
-        const unsigned short iZoneR = interface_face.mIndexZoneP;
-
-        const size_t iElemL = interface_face.mIndexElementM;
-        const size_t iElemR = interface_face.mIndexElementP;
-
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
+       
         // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, interface_face, workarray, localtime);
+        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, family_face, face_info, workarray, localtime);
         break;
       }
 
@@ -222,10 +226,17 @@ void CIteration::ComputeResidual
 			{
         // Extract the local index.
         const size_t iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
-				// Extract the current face.
-				const auto& internal_face = idir_faces_multizone.GetInternalFace(iFaceLocal);
 
-				const unsigned short iZone  = internal_face.mIndexZone;
+        // Extract the face information, essentially its indices.
+        const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
+
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+        
+        // Extract the current face.
+        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
+
+				const unsigned short iZone  = family_face.GetiZone();
 				const size_t         iElemL = internal_face.mIndexElementM;
 
         auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemL);
@@ -242,17 +253,24 @@ void CIteration::ComputeResidual
       {
         // Extract the local index.
         const size_t iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
-        // Extract the current face.
-        const auto& interface_face = idir_faces_multizone.GetInterfaceFace(iFaceLocal);
 
-        const unsigned short iZoneM = interface_face.mIndexZoneM;
-        const unsigned short iZoneP = interface_face.mIndexZoneP;
+        // Extract the face information, essentially its indices.
+        const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
 
-        const size_t iElemM = interface_face.mIndexElementM;
-        const size_t iElemP = interface_face.mIndexElementP;
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
-        const EFaceLocation iFaceM = interface_face.mFaceLocationM;
-        const EFaceLocation iFaceP = interface_face.mFaceLocationP;
+        // Extract the actual face.
+        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
+
+        const unsigned short iZoneM = family_face.GetiZone();
+        const unsigned short iZoneP = family_face.GetjZone();
+
+        const size_t iElemM = interface_face.mIndexElementI;
+        const size_t iElemP = interface_face.mIndexElementJ;
+
+        const EFaceLocation iFaceM = family_face.GetiFaceLocation();
+        const EFaceLocation iFaceP = family_face.GetjFaceLocation();
 
         auto* physical_element_m = solver_container[iZoneM]->GetPhysicalElement(iElemM);
         auto* physical_element_p = solver_container[iZoneP]->GetPhysicalElement(iElemP);
@@ -300,16 +318,22 @@ void CIteration::ComputeResidual
 			{
         // Extract the local index.
         const size_t iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
-				// Extract the current face.
-				const auto& internal_face = jdir_faces_multizone.GetInternalFace(iFaceLocal);
+				
+        // Extract the face information, essentially its indices.
+        const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
 
-				const unsigned short iZone  = internal_face.mIndexZone;
-				const size_t         iElemB = internal_face.mIndexElementM;
-				const size_t         iElemT = internal_face.mIndexElementP;
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+       
+        // Extract the current face.
+        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 
-				const auto* grid = geometry_container->GetZoneGeometry(iZone);
+        const unsigned short iZone  = family_face.GetiZone();
+        const size_t         iElemB = internal_face.mIndexElementM;
 
-				solver_container[iZone]->ComputeSurfaceResidualJDir_NEW(grid, workarray, localtime, iElemB, iElemT);
+        const auto* grid = geometry_container->GetZoneGeometry(iZone);
+
+				solver_container[iZone]->ComputeSurfaceResidualJDir_NEW(grid, workarray, localtime, iElemB);
 
 				break;
 			}
@@ -318,17 +342,15 @@ void CIteration::ComputeResidual
       {
         // Extract the local index.
         const size_t iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
-        // Extract the current face.
-        const auto& interface_face = jdir_faces_multizone.GetInterfaceFace(iFaceLocal);
+        
+        // Extract the face information, essentially its indices.
+        const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
 
-        const unsigned short iZoneB = interface_face.mIndexZoneM;
-        const unsigned short iZoneT = interface_face.mIndexZoneP;
-
-        const size_t iElemB = interface_face.mIndexElementM;
-        const size_t iElemT = interface_face.mIndexElementP;
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
         // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, interface_face, workarray, localtime);
+        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, family_face, face_info, workarray, localtime);
         break;
       }
 
@@ -351,10 +373,17 @@ void CIteration::ComputeResidual
 			{
         // Extract the local index.
         const size_t iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
-				// Extract the current face.
-				const auto& internal_face = jdir_faces_multizone.GetInternalFace(iFaceLocal);
+				
+        // Extract the face information, essentially its indices.
+        const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
 
-				const unsigned short iZone  = internal_face.mIndexZone;
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+       
+        // Extract the current face.
+        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
+
+				const unsigned short iZone  = family_face.GetiZone();
 				const size_t         iElemB = internal_face.mIndexElementM;
 
         auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemB);
@@ -371,17 +400,24 @@ void CIteration::ComputeResidual
       {
         // Extract the local index.
         const size_t iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
-        // Extract the current face.
-        const auto& interface_face = jdir_faces_multizone.GetInterfaceFace(iFaceLocal);
+        
+        // Extract the face information, essentially its indices.
+        const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
 
-        const unsigned short iZoneM = interface_face.mIndexZoneM;
-        const unsigned short iZoneP = interface_face.mIndexZoneP;
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
-        const size_t iElemM = interface_face.mIndexElementM;
-        const size_t iElemP = interface_face.mIndexElementP;
+        // Extract the actual face.
+        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
 
-        const EFaceLocation iFaceM = interface_face.mFaceLocationM;
-        const EFaceLocation iFaceP = interface_face.mFaceLocationP;
+        const unsigned short iZoneM = family_face.GetiZone();
+        const unsigned short iZoneP = family_face.GetjZone();
+
+        const size_t iElemM = interface_face.mIndexElementI;
+        const size_t iElemP = interface_face.mIndexElementJ;
+
+        const EFaceLocation iFaceM = family_face.GetiFaceLocation();
+        const EFaceLocation iFaceP = family_face.GetjFaceLocation();
 
         auto* physical_element_m = solver_container[iZoneM]->GetPhysicalElement(iElemM);
         auto* physical_element_p = solver_container[iZoneP]->GetPhysicalElement(iElemP);

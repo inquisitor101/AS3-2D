@@ -33,6 +33,21 @@ CMarker::CMarker
 	{
 		mElementFaces.emplace_back( mark[i], face[i] );
 	}
+
+  // Ensure the element markers have the same face location, as assumed is the case.
+  mFaceLocation = mElementFaces[0].mFace;
+  for(const auto& face_marker : mElementFaces)
+  {
+    if(face_marker.mFace != mFaceLocation) ERROR(mNameMarker + " must have the same face location on all its elements.");
+  }
+
+  // Deduce the face type, based on its location.
+  switch( mFaceLocation )
+  {
+    case( EFaceLocation::IMIN ) : case( EFaceLocation::IMAX ):  mFaceType = ETypeFace::IFACE; break;
+    case( EFaceLocation::JMIN ) : case( EFaceLocation::JMAX ):  mFaceType = ETypeFace::JFACE; break;
+    default: ERROR("Cannot deduce face type from face location.");
+  }
 }
 
 //-----------------------------------------------------------------------------------

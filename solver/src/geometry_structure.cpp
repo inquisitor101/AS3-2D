@@ -97,17 +97,15 @@ void CGeometry::InitializeFaces
 	*/
 {
 	// Initialize the faces in the i-direction.
-	mMultizoneFacesIDir.InitializeInternalFaces(this);
-	mMultizoneFacesIDir.InitializeInterfaceFaces(config_container, this);
+	mMultizoneIFaces.InitializeFaces(config_container, this);
 
 	// Initialize the faces in the j-direction.
-	mMultizoneFacesJDir.InitializeInternalFaces(this);
-	mMultizoneFacesJDir.InitializeInterfaceFaces(config_container, this);
+	mMultizoneJFaces.InitializeFaces(config_container, this);
 
 
 	// DEBUGGING
-  std::cout << "nInterfaceGroups in the IDir are: " << mMultizoneFacesIDir.GetnInterfaceGroups() << "\n" 
-		        << "nInterfaceGroups in the JDir are: " << mMultizoneFacesJDir.GetnInterfaceGroups() << std::endl;
+  std::cout << "nInterfaceGroups in the IFaces are: " << mMultizoneIFaces.GetnInterfaceGroups() << "\n" 
+		        << "nInterfaceGroups in the JFaces are: " << mMultizoneJFaces.GetnInterfaceGroups() << std::endl;
 
   // TODO: boundary 
 

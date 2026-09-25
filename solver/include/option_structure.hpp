@@ -338,12 +338,12 @@ enum class ETypeFaceGeometry
 //--------------------------------------
 
 /*!
- * @brief Enumerated type for the type of the direction.
+ * @brief Enumerated type for the face type.
  */
-enum class ETypeDirection
+enum class ETypeFace
 {
-  IDIR,
-  JDIR
+  IFACE,
+  JFACE
 };
 
 

@@ -52,7 +52,8 @@ class IInterface
 				                                  CPoolMatrixAS3<as3double>             &workarray) = 0;
 
     virtual void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                              const CInterfaceFaceGeometry          &interface_face,
+                                              const CInterfaceFacesFamily           &family_face,
+                                              CElementFaceIndex                      face_info,
                                               CPoolMatrixAS3<as3double>             &workarray,
                                               as3double                              localtime) = 0;
 
@@ -199,7 +200,8 @@ class CEEInterface : public IInterface
 
 
     void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                      const CInterfaceFaceGeometry          &interface_face,
+                                      const CInterfaceFacesFamily           &family_face,
+                                      CElementFaceIndex                      face_info,
                                       CPoolMatrixAS3<as3double>             &workarray,
                                       as3double                              localtime) final;
 	protected:

@@ -47,8 +47,10 @@ class CGeometry
 
     void InitializeFaces(const CConfig *config_container);
 
-		const CMultizoneFaceGeometry &GetMultizoneFacesIDir(void) const { return mMultizoneFacesIDir; }
-		const CMultizoneFaceGeometry &GetMultizoneFacesJDir(void) const { return mMultizoneFacesJDir; }
+		const CMultizoneFaceGeometry &GetMultizoneIFaces(void) const { return mMultizoneIFaces; }
+		const CMultizoneFaceGeometry &GetMultizoneJFaces(void) const { return mMultizoneJFaces; }
+
+    unsigned short GetnZone(void) const { return mNZone; }
 
   protected:
 
@@ -56,8 +58,8 @@ class CGeometry
 		const unsigned short                        mNZone;            ///< Total number of zones.
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
 
-    CMultizoneFaceGeometry mMultizoneFacesIDir{ETypeDirection::IDIR};
-    CMultizoneFaceGeometry mMultizoneFacesJDir{ETypeDirection::JDIR};
+    CMultizoneFaceGeometry mMultizoneIFaces{ETypeFace::IFACE};
+    CMultizoneFaceGeometry mMultizoneJFaces{ETypeFace::JFACE};
 
 		
 		/*!
