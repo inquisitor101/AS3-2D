@@ -254,6 +254,7 @@ void NLogger::MonitorOutput
 void NLogger::DisplayOpenMPInfo
 (
  COpenMP                               *openmp_container,
+ const CGeometry                       *geometry_container,
  as3vector1d<std::unique_ptr<ISolver>> &solver_container
 )
  /*
@@ -270,11 +271,11 @@ void NLogger::DisplayOpenMPInfo
             << nThreads << " threads." << std::endl;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = openmp_container->GetnIndexVolume();
-	// Get the total number of internal i-faces in all zones.
-	const size_t nInternalIFace = openmp_container->GetnInternIFace();
-	// Get the total number of internal j-faces in all zones.
-	const size_t nInternalJFace = openmp_container->GetnInternJFace();
+	const size_t nElemTotal = geometry_container->GetnElemTotal();
+	// Get the total number of i-faces in all zones.
+	const size_t nIFace     = geometry_container->GetnIFace();
+	// Get the total number of j-faces in all zones.
+	const size_t nJFace     = geometry_container->GetnJFace();
 
   // Estimate computational work load of each thread.
   as3vector1d<size_t> workloadDOFs(nThreads, 0);
@@ -283,9 +284,9 @@ void NLogger::DisplayOpenMPInfo
 	as3vector1d<size_t> workloadJDir(nThreads, 0);
 
 
-	// Estimate the internal i-surface workload.
+	// Estimate the i-surface workload.
 #pragma omp parallel for schedule(static)
-	for(size_t i=0; i<nInternalIFace; i++)
+	for(size_t i=0; i<nIFace; i++)
 	{
     // Thread index.
     const size_t iThread = omp_get_thread_num();
@@ -294,9 +295,9 @@ void NLogger::DisplayOpenMPInfo
 		workloadIDir[iThread]++;
 	}
 
-	// Estimate the internal j-surface workload.
+	// Estimate the j-surface workload.
 #pragma omp parallel for schedule(static)
-	for(size_t i=0; i<nInternalJFace; i++)
+	for(size_t i=0; i<nJFace; i++)
 	{
     // Thread index.
     const size_t iThread = omp_get_thread_num();
@@ -309,8 +310,12 @@ void NLogger::DisplayOpenMPInfo
 #pragma omp parallel for schedule(static)
   for(size_t i=0; i<nElemTotal; i++)
 	{
-		const auto iZone = openmp_container->GetIndexVolume(i)->mZone;
-		const auto iElem = openmp_container->GetIndexVolume(i)->mElem;
+		// Extract the element indices.
+		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
+		// Deduce the current element's zone and index.
+		const auto iZone = elem_info.mIndexZone; 
+		const auto iElem = elem_info.mIndexElem; 
 
     // Thread index.
     const size_t iThread = omp_get_thread_num();
@@ -333,9 +338,9 @@ void NLogger::DisplayOpenMPInfo
   for(size_t i=0; i<workloadDOFs.size(); i++)
     std::cout << "  Thread(" << i << ") has:\n" 
 			        << "   (*) " << std::setw(nDigits)
-			        << workloadIDir[i] << " [nInternI/thread]\n"
+			        << workloadIDir[i] << " [nIFace/thread]\n"
 							<< "   (*) " << std::setw(nDigits)
-							<< workloadJDir[i] << " [nInternJ/thread]\n"
+							<< workloadJDir[i] << " [nJFace/thread]\n"
 							<< "   (*) " << std::setw(nDigits)
 			        << workloadElem[i] << " [nElement/thread]\n"
 							<< "   (*) " << std::setw(nDigits)

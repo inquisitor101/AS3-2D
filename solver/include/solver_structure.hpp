@@ -72,48 +72,16 @@ class ISolver
 																			 as3double                  localtime,
 																			 size_t                     iElem) = 0;
 
-		/*!
-		 * @brief Pure virtual function that computes the surface terms in the i-direction in the entire solver.
-		 *
-		 * @param[in] grid_zone geometry of the current grid zone. 
-		 * @param[in] workarray memory for the working array.
-		 * @param[in] localtime current physical time.
-		 * @param[in] iElem current right element index.
-		 * @param[in] resL residual on the left element.
-		 */
-		virtual void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
+		virtual void ComputeSurfaceResidualIDir(const CZoneGeometry       *grid_zone,
 				                                    CPoolMatrixAS3<as3double> &workarray,
-																						as3double                  localtime,
-																						size_t                     iElem,
-																						CMatrixAS3<as3double>     &resL) = 0;
-
-		// TESTING
-		virtual void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
-				                                        CPoolMatrixAS3<as3double> &workarray,
-																								as3double                  localtime,
-																								size_t                     iElemL) = 0;
+																					  as3double                  localtime,
+																					  size_t                     iElemL) = 0;
 		
-    virtual void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
-				                                        CPoolMatrixAS3<as3double> &workarray,
-																								as3double                  localtime,
-																								size_t                     iElemB) = 0;
-
-
-
-		/*!
-		 * @brief Pure virtual function that computes the surface terms in the j-direction in the entire solver.
-		 *
-		 * @param[in] grid_zone geometry of the current grid zone. 
-		 * @param[in] workarray memory for the working array.
-		 * @param[in] localtime current physical time.
-		 * @param[in] iElem current right element index.
-		 * @param[in] resB residual on the bottom element.
-		 */
-		virtual void ComputeSurfaceResidualJDir(CZoneGeometry             *grid_zone,
+    virtual void ComputeSurfaceResidualJDir(const CZoneGeometry       *grid_zone,
 				                                    CPoolMatrixAS3<as3double> &workarray,
-																						as3double                  localtime,
-																						size_t                     iElem,
-																						CMatrixAS3<as3double>     &resB) = 0;
+																					  as3double                  localtime,
+																					  size_t                     iElemB) = 0;
+
 
 		/*!
 		 * @brief Pure virtual getter function which returns the number of working variables. Must be overridden.
@@ -247,48 +215,16 @@ class CEESolver : public ISolver
 															 as3double                  localtime,
 															 size_t                     iElem) override;
 
-		/*!
-		 * @brief Function that computes the surface terms in the i-direction in the entire solver, based on the EE.
-		 *
-		 * @param[in] grid_zone geometry of the current grid zone. 
-		 * @param[in] workarray memory for the working array.
-		 * @param[in] localtime current physical time.
-		 * @param[in] iElem current right element index.
-		 * @param[in] resL residual on the left element.
-		 */
-		void ComputeSurfaceResidualIDir(CZoneGeometry             *grid_zone,
-				                            CPoolMatrixAS3<as3double> &workarray,
-																		as3double                  localtime,
-																		size_t                     iElem,
-																		CMatrixAS3<as3double>     &resL) override;
 
-		// TESTING
-		void ComputeSurfaceResidualIDir_NEW(const CZoneGeometry       *grid_zone,
-		                                    CPoolMatrixAS3<as3double> &workarray,
-																				as3double                  localtime,
-																				size_t                     iElemL) final;
+		void ComputeSurfaceResidualIDir(const CZoneGeometry       *grid_zone,
+		                                CPoolMatrixAS3<as3double> &workarray,
+																	  as3double                  localtime,
+																	  size_t                     iElemL) final;
 
-		void ComputeSurfaceResidualJDir_NEW(const CZoneGeometry       *grid_zone,
-		                                    CPoolMatrixAS3<as3double> &workarray,
-																				as3double                  localtime,
-																				size_t                     iElemB) final;
-
-
-
-		/*!
-		 * @brief Function that computes the surface terms in the j-direction in the entire solver, based on the EE.
-		 *
-		 * @param[in] grid_zone geometry of the current grid zone. 
-		 * @param[in] workarray memory for the working array.
-		 * @param[in] localtime current physical time.
-		 * @param[in] iElem current right element index.
-		 * @param[in] resB residual on the bottom element.
-		 */
-		void ComputeSurfaceResidualJDir(CZoneGeometry             *grid_zone,
-				                            CPoolMatrixAS3<as3double> &workarray,
-																		as3double                  localtime,
-																		size_t                     iElem,
-																		CMatrixAS3<as3double>     &resB) override;
+		void ComputeSurfaceResidualJDir(const CZoneGeometry       *grid_zone,
+		                                CPoolMatrixAS3<as3double> &workarray,
+																	  as3double                  localtime,
+																	  size_t                     iElemB) final;
 
 		/*!
 		 * @brief Getter function which returns the number of working variables.

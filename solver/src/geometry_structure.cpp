@@ -88,7 +88,7 @@ void CGeometry::CheckExistanceGridFiles
 
 //-----------------------------------------------------------------------------------
 
-void CGeometry::InitializeFaces
+void CGeometry::InitializeGridTopology
 (
  const CConfig *config_container
 )
@@ -103,12 +103,21 @@ void CGeometry::InitializeFaces
 	mMultizoneJFaces.InitializeFaces(config_container, this);
 
 
-	// DEBUGGING
-  std::cout << "nInterfaceGroups in the IFaces are: " << mMultizoneIFaces.GetnInterfaceGroups() << "\n" 
-		        << "nInterfaceGroups in the JFaces are: " << mMultizoneJFaces.GetnInterfaceGroups() << std::endl;
+	// Deduce the total number of elements in the entire multizone grid.
+	mNElemTotal = 0;
+	for( const auto& zone : mZoneGeometry ) mNElemTotal += zone->GetnElem();
 
-  // TODO: boundary 
+	// Reserve the needed memory for the element indices.
+	mFlattenedIndexVolumeElement.reserve( mNElemTotal );
 
+	// Deduce the flattening strategy of the elements.
+	for(unsigned short iZone=0; iZone<mZoneGeometry.size(); iZone++)
+	{
+		for(size_t iElem=0; iElem<mZoneGeometry[iZone]->GetnElem(); iElem++)
+		{
+			mFlattenedIndexVolumeElement.emplace_back( CElementIndex{iZone, iElem} ); 
+		}
+	}
 }
 
 

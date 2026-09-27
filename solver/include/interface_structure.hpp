@@ -41,21 +41,11 @@ class IInterface
 		 */
 		virtual ~IInterface(void);
 
-
-		/*!
-		 * @brief Pure virtual function that computes the residual on the zone interface marker. Must be overridden.
-		 *
-		 * @param[in] solver_container input vector of solver containers.
-		 * @param[in] workarray memory for the working array.
-		 */
-		virtual void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                                  CPoolMatrixAS3<as3double>             &workarray) = 0;
-
-    virtual void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                              const CInterfaceFacesFamily           &family_face,
-                                              CElementFaceIndex                      face_info,
-                                              CPoolMatrixAS3<as3double>             &workarray,
-                                              as3double                              localtime) = 0;
+    virtual void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+                                          const CInterfaceFacesFamily           &family_face,
+                                          CElementFaceIndex                      face_info,
+                                          CPoolMatrixAS3<as3double>             &workarray,
+                                          as3double                              localtime) = 0;
 
 		/*!
 		 * @brief Getter function which returns the name of the owner marker.
@@ -188,22 +178,11 @@ class CEEInterface : public IInterface
 		 */
 		~CEEInterface(void) override;
 
-		/*!
-		 * @brief Function that computes the residual on the zone interface marker.
-		 *
-		 * @param[in] solver_container input vector of solver containers.
-		 * @param[in] workarray memory for the working array.
-		 */
-		void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-				                          CPoolMatrixAS3<as3double>             &workarray) override;
-
-
-
-    void ComputeInterfaceResidual_NEW(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                      const CInterfaceFacesFamily           &family_face,
-                                      CElementFaceIndex                      face_info,
-                                      CPoolMatrixAS3<as3double>             &workarray,
-                                      as3double                              localtime) final;
+    void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
+                                  const CInterfaceFacesFamily           &family_face,
+                                  CElementFaceIndex                      face_info,
+                                  CPoolMatrixAS3<as3double>             &workarray,
+                                  as3double                              localtime) final;
 	protected:
 
 	private:

@@ -9,53 +9,6 @@ class CZoneGeometry;
 class CMarker;
 
 
-struct CInternalFaceGeometry
-{
-	size_t mIndexElementM;
-	size_t mIndexElementP;
-	
-	unsigned short mIndexZone;
-};
-
-struct CBoundaryFaceGeometry
-{
-	size_t mIndexElement;
-	size_t mIndexZone;
-
-	EFaceLocation mFaceLocation;
-};
-
-struct CInterfaceFaceGeometry
-{
-	size_t mIndexElementM;
-	size_t mIndexElementP;
-	
-	unsigned short mIndexZoneM; // TODO: remove these, since they are in CInterfaceGroup  
-	unsigned short mIndexZoneP; 
-
-	EFaceLocation mFaceLocationM; // TODO: remove these, since they are in CInterfaceGroup
-	EFaceLocation mFaceLocationP;
-};
-
-struct CInterfaceGroup
-{
-  unsigned short mIndexZoneM;
-  unsigned short mIndexZoneP;
-
-  EFaceLocation mFaceLocationM;
-  EFaceLocation mFaceLocationP;
-
-  std::string mFaceNameM;
-  std::string mFaceNameP;
-  
-  size_t mIndexBegin;
-  size_t mIndexEnd;
-
-  size_t GetnElem(void) const { return mIndexEnd - mIndexBegin; }
-  size_t GetFaceIndex(size_t i) const { return mIndexBegin + i; }
-};
-
-
 
 
 
@@ -66,6 +19,8 @@ struct CInternalElementFaceGeometry
 {
   size_t mIndexElementM;
 };
+
+//-----------------------------------------------------------------------------------
 
 class CInternalFacesFamily
 {
@@ -95,11 +50,14 @@ class CInternalFacesFamily
     void InitializeInternalFaces(const CZoneGeometry *zone_geometry);
 };
 
+//-----------------------------------------------------------------------------------
 
 struct CBoundaryElementFaceGeometry
 {
   size_t mIndexElement;
 };
+
+//-----------------------------------------------------------------------------------
 
 class CBoundaryFacesFamily
 {
@@ -127,12 +85,15 @@ class CBoundaryFacesFamily
     ABoundaryFaceVector mBoundaryFaces;
 };
 
+//-----------------------------------------------------------------------------------
 
 struct CInterfaceElementFaceGeometry
 {
   size_t mIndexElementI;
   size_t mIndexElementJ;
 };
+
+//-----------------------------------------------------------------------------------
 
 class CInterfaceFacesFamily
 {
@@ -166,6 +127,9 @@ class CInterfaceFacesFamily
     EFaceLocation GetiFaceLocation(void) const {return mFaceLocationI;}
     EFaceLocation GetjFaceLocation(void) const {return mFaceLocationJ;}
 
+		bool GetisMaxFaceI(void) const {return mIsMaxFaceI;}
+		bool GetisMaxFaceJ(void) const {return mIsMaxFaceJ;}
+
   private:
     ETypeFace   mTypeFaceI;
     ETypeFace   mTypeFaceJ;
@@ -179,6 +143,9 @@ class CInterfaceFacesFamily
     unsigned short mIndexZoneI;
     unsigned short mIndexZoneJ;
 
+		bool mIsMaxFaceI;
+		bool mIsMaxFaceJ;
+
     AInterfaceFaceVector mInterfaceFaces;
 
 		void CheckConformityMarkers(const CGeometry       *geometry_container,
@@ -187,14 +154,15 @@ class CInterfaceFacesFamily
 																CInterfaceParamMarker *param_interface);
 };
 
-
-
+//-----------------------------------------------------------------------------------
 
 struct CElementFaceIndex
 {
   size_t mIndexFamily;
   size_t mIndexFace;
 };
+
+//-----------------------------------------------------------------------------------
 
 template<typename TFamily>
 class CGroupFaces
@@ -298,7 +266,7 @@ class CGroupFaces
     }
 };
 
-
+//-----------------------------------------------------------------------------------
 
 
 class CMultizoneFaceGeometry
@@ -338,6 +306,17 @@ class CMultizoneFaceGeometry
     const auto& GetBoundaryFacesGroup(void)  const {return mBoundaryFacesGroup;}
     const auto& GetInterfaceFacesGroup(void) const {return mInterfaceFacesGroup;}
 
+		size_t GetnInternalFaces(void)  const { return mInternalFacesGroup.GetnFace();  }
+		size_t GetnBoundaryFaces(void)  const { return mBoundaryFacesGroup.GetnFace();  }
+		size_t GetnInterfaceFaces(void) const { return mInterfaceFacesGroup.GetnFace(); }
+
+		size_t GetnFacesTotal(void) const
+		{
+			return GetnInternalFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
+		}
+
+    ETypeFace GetTypeFace(void) const { return mTypeFace; }
+
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
@@ -357,25 +336,6 @@ class CMultizoneFaceGeometry
       return mInternalFacesGroup.GetFamily(i);
     }
 
-
-
-
-//		CBoundaryFaceGeometry& GetBoundaryFace(size_t i)
-//		{ 
-//#if DEBUG
-//			if( i >= GetnBoundaryFaces() ) ERROR("Index exceeds maximum data size."); 
-//#endif
-//			return mBoundaryFaces[i]; 
-//		}
-//		const CBoundaryFaceGeometry& GetBoundaryFace(size_t i) const 
-//		{ 
-//#if DEBUG
-//			if( i >= GetnBoundaryFaces() ) ERROR("Index exceeds maximum data size."); 
-//#endif
-//			return mBoundaryFaces[i]; 
-//		}
-
-
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
     CElementFaceIndex GetInterfaceElementFaceIndex(size_t i) const
@@ -394,103 +354,19 @@ class CMultizoneFaceGeometry
       return mInterfaceFacesGroup.GetFamily(i);
     }
 
-
-
-		CInterfaceFaceGeometry& GetInterfaceFace(size_t i)
-		{
-#if DEBUG
-			if( i >= GetnInterfaceFaces() ) ERROR("Index exceeds maximum data size."); 
-#endif
-			return mInterfaceFaces[i]; 
-		}
-		const CInterfaceFaceGeometry& GetInterfaceFace(size_t i) const 
-		{
-#if DEBUG
-			if( i >= GetnInterfaceFaces() ) ERROR("Index exceeds maximum data size."); 
-#endif
-			return mInterfaceFaces[i]; 
-		}
-
-		size_t GetnInternalFaces(void)  const { return mInternalFacesGroup.GetnFace();  }
-		size_t GetnBoundaryFaces(void)  const { return mBoundaryFacesGroup.GetnFace();  }
-		size_t GetnInterfaceFaces(void) const { return mInterfaceFacesGroup.GetnFace(); }
-
-
-		size_t GetnFacesTotal(void) const
-		{
-			return GetnInternalFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
-		}
-
-    size_t GetnInterfaceGroups(void) const
-    {
-      return mInterfaceGroups.size();
-    }
-
-    ETypeFace GetTypeFace(void) const { return mTypeFace; }
-
 	private:
-    
     ETypeFace mTypeFace;
 
-    as3vector1d<CInternalFaceGeometry>  mInternalFaces;
-		as3vector1d<CBoundaryFaceGeometry>  mBoundaryFaces;
-		as3vector1d<CInterfaceFaceGeometry> mInterfaceFaces;
-
-    as3vector1d<CInterfaceGroup> mInterfaceGroups; // Family of interfaces, each containing the element faces on it.
-
-
-    // TODO: remove the previous versions and their respective functions and use the below.
+		// A Group is made up of: [iFamily][iFace].
     CGroupFaces<CInternalFacesFamily>  mInternalFacesGroup;
     CGroupFaces<CBoundaryFacesFamily>  mBoundaryFacesGroup;
     CGroupFaces<CInterfaceFacesFamily> mInterfaceFacesGroup;
-
-
-
-    // TODO: CHANGE this or put it somewhere elegantly? or even use it!
-    size_t GetFaceStartIndexOffset(ETypeFaceGeometry type) const
-    {
-      switch(type)
-      {
-        case(ETypeFaceGeometry::INTERNAL ): return 0;
-        case(ETypeFaceGeometry::BOUNDARY ): return GetnInternalFaces();
-        case(ETypeFaceGeometry::INTERFACE): return GetnInternalFaces() + GetnBoundaryFaces();
-      }
-      ERROR("Invalid face type.");
-    }
 
 
 		void InitializeInternalFaces(const CGeometry *geometry_container);
 
 		void InitializeInterfaceFaces(const CConfig   *config_container,
 				                          const CGeometry *geometry_structure);
-
-
-    // TODO: remove this.
-    const CMarker* GetMatchingMarker(const CGeometry   *geometry_container,
-                                     const std::string &marker_name);
-
-    // TODO: remove this.
-    const EFaceLocation GetMarkerFaceLocation(const CMarker *marker_container);
-
-		void CheckConformityMarkers(const CConfig         *config_container,
-				                        const CGeometry       *geometry_container,
-																const CMarker         *owner_marker,
-																const CMarker         *match_marker,
-																CInterfaceParamMarker *param_interface,
-                                CInterfaceGroup       *interface_group);
-
-    // TODO: remove this.
-    as3vector1d<size_t> GetIndexInterfacesAlongDirection(const CConfig   *config_container,
-                                                         const CGeometry *geometry_container);
-
-    // TODO: remove this.
-    ETypeFace GetFaceTypeFromFaceLocation(EFaceLocation location) const
-    {
-      if( location == EFaceLocation::IMIN || location == EFaceLocation::IMAX ) return ETypeFace::IFACE;
-      if( location == EFaceLocation::JMIN || location == EFaceLocation::JMAX ) return ETypeFace::JFACE;
-
-      ERROR("Cannot deduce face type from face location.");
-    }
 };
 
 

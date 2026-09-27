@@ -143,7 +143,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 																	 localtime);
 
 		// Get the total number of elements in all zones.
-		const size_t nElemTotal = openmp_container->GetnIndexVolume();
+		const size_t nElemTotal = geometry_container->GetnElemTotal();
 
 
 		// Update the solution in time. For computational efficiency, make a distinction 
@@ -159,9 +159,12 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 #endif
 			for(size_t i=0; i<nElemTotal; i++)
 			{
+				// Extract the element indices.
+				const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
 				// Deduce the current element's zone and index.
-				const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
-				const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+				const auto iZone = elem_info.mIndexZone; 
+				const auto iElem = elem_info.mIndexElem; 
 
 				// Extract the relevant solver.
 				auto& solver  = solver_container[iZone];
@@ -195,9 +198,12 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 #endif
 			for(size_t i=0; i<nElemTotal; i++)
 			{
+				// Extract the element indices.
+				const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
 				// Deduce the current element's zone and index.
-				const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
-				const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+				const auto iZone = elem_info.mIndexZone; 
+				const auto iElem = elem_info.mIndexElem; 
 
 				// Extract the relevant solver.
 				auto& solver  = solver_container[iZone];

@@ -11,6 +11,13 @@ class CZoneGeometry;
 class CElementGeometry;
 
 
+struct CElementIndex
+{
+	unsigned short mIndexZone;
+	size_t         mIndexElem;
+};
+
+
 /*!
  * @brief A class used for storing the entire (multi-zone) grid.
  */
@@ -36,27 +43,44 @@ class CGeometry
 		 *
 		 * @return mZoneGeometry
 		 */
-		const as3vector1d<std::unique_ptr<CZoneGeometry>> &GetZoneGeometry(void) const {return mZoneGeometry;}
+		const as3vector1d<std::unique_ptr<CZoneGeometry>> &GetZoneGeometry(void) const { return mZoneGeometry; }
 
 		/*!
 		 * @brief Getter function which returns a specific grid zone container.
 		 *
 		 * @return mZoneGeometry[iZone]
 		 */
-		CZoneGeometry *GetZoneGeometry(size_t iZone) const {return mZoneGeometry[iZone].get();}
+		CZoneGeometry *GetZoneGeometry(size_t iZone) const { return mZoneGeometry[iZone].get(); }
 
-    void InitializeFaces(const CConfig *config_container);
+    void InitializeGridTopology(const CConfig *config_container);
 
 		const CMultizoneFaceGeometry &GetMultizoneIFaces(void) const { return mMultizoneIFaces; }
 		const CMultizoneFaceGeometry &GetMultizoneJFaces(void) const { return mMultizoneJFaces; }
 
     unsigned short GetnZone(void) const { return mNZone; }
 
-  protected:
+		size_t GetnIFace(void) const { return mMultizoneIFaces.GetnFacesTotal(); }
+		size_t GetnJFace(void) const { return mMultizoneJFaces.GetnFacesTotal(); }
+
+		size_t GetnElemTotal(void) const { return mNElemTotal; }
+
+		CElementIndex GetFlattenedIndexVolumeElement(size_t i) const
+		{
+#if DEBUG
+			if( i >= mNElemTotal ) ERROR("Index is out of range.");
+#endif
+			return mFlattenedIndexVolumeElement[i];
+		}
+
+	protected:
 
 	private:
 		const unsigned short                        mNZone;            ///< Total number of zones.
+		size_t                                      mNElemTotal = 0;
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
+
+
+		as3vector1d<CElementIndex> mFlattenedIndexVolumeElement;
 
     CMultizoneFaceGeometry mMultizoneIFaces{ETypeFace::IFACE};
     CMultizoneFaceGeometry mMultizoneJFaces{ETypeFace::JFACE};
@@ -210,8 +234,8 @@ class CZoneGeometry
 		const unsigned short                           mZoneID;           ///< Current zone index.
 		const std::string															 mGridFile;				  ///< Associated grid file name of this zone.
 		unsigned short                                 mNPolyGrid;        ///< Polynomial order of the grid element.
-		unsigned int                                   mNiElem;           ///< Number of elements in i-direction.
-		unsigned int                                   mNjElem;           ///< Number of elements in j-direction.	
+		unsigned int                                   mNiElem = 0;       ///< Number of elements in i-direction.
+		unsigned int                                   mNjElem = 0;       ///< Number of elements in j-direction.	
 
 		as3vector2d<unsigned short>                    mFaceNodalIndices; ///< Container with the nodal face indices.
 																																			///< [iFace][iNode].

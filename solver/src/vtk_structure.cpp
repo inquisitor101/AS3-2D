@@ -465,16 +465,19 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 	*/
 {
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = openmp_container->GetnIndexVolume();
+	const size_t nElemTotal = geometry_container->GetnElemTotal();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static)
 #endif
 	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Extract the element indices.
+		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
 		// Deduce the current element's zone and index.
-		const unsigned short iZone  = openmp_container->GetIndexVolume(i)->mZone;
-		const unsigned int   ijElem = openmp_container->GetIndexVolume(i)->mElem;
+		const auto iZone  = elem_info.mIndexZone; 
+		const auto ijElem = elem_info.mIndexElem; 
 
 		// Extract current grid zone.
 		auto* zone   = geometry_container->GetZoneGeometry(iZone);

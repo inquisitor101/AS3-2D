@@ -116,20 +116,27 @@ void CIteration::ComputeResidual
 	*/
 {
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = openmp_container->GetnIndexVolume();
-	// Get the total number of internal i-faces in all zones.
-	const size_t nInternalIFace = openmp_container->GetnInternIFace();
-	// Get the total number of internal j-faces in all zones.
-	const size_t nInternalJFace = openmp_container->GetnInternJFace();
+	const auto nElemTotal = geometry_container->GetnElemTotal();
+
+	// Get the total faces in the i- and j-directions.
+	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
+	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
+	
+	// Get the total number faces in the i- and j-directions.
+  const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
+  const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
 	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Extract the element indices.
+		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
 		// Deduce the current element's zone and index.
-		const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
-		const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+		const auto iZone = elem_info.mIndexZone; 
+		const auto iElem = elem_info.mIndexElem; 
 
 		// Extract the relevant solver.
 		auto& solver  = solver_container[iZone];
@@ -141,19 +148,7 @@ void CIteration::ComputeResidual
 	}
 
 
-	// TESTING: start
-	//----------------------------------------------------------------
-	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
-	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
-	
-  const size_t nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
-  const size_t nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
-	
-  // NOTE, mResMinus is always known how much to allocate in each zone, since it is the convention
-	// that, regardless if the face is internal, boundary or interface, mResMin are always book-keeped
-	// to avoid race conditions. Hence, can allocate them per zone without additional information.
-
-	// TODO: move the compute residuals to a separate numerics_container and pass each solver to it.
+		
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -169,7 +164,7 @@ void CIteration::ComputeResidual
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
         // Extract the local index.
-        const size_t iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
+        const auto iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
 			
         // Extract the face information, essentially its indices.
         const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
@@ -180,12 +175,13 @@ void CIteration::ComputeResidual
         // Extract the current face.
 				const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 				
-        const unsigned short iZone  = family_face.GetiZone();
-				const size_t         iElemL = internal_face.mIndexElementM;
+        const auto iZone  = family_face.GetiZone();
+				const auto iElemL = internal_face.mIndexElementM;
 
 				const auto* grid = geometry_container->GetZoneGeometry(iZone);
 
-				solver_container[iZone]->ComputeSurfaceResidualIDir_NEW(grid, workarray, localtime, iElemL);
+				// TODO: move the compute residuals to a separate numerics_container and pass each solver to it??
+				solver_container[iZone]->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElemL);
 
 				break;
 			}
@@ -193,7 +189,7 @@ void CIteration::ComputeResidual
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the local index.
-        const size_t iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
+        const auto iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
 			
         // Extract the face information, essentially its indices.
         const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
@@ -202,14 +198,14 @@ void CIteration::ComputeResidual
         const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
        
         // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, family_face, face_info, workarray, localtime);
+        interface_container[0]->ComputeInterfaceResidual(solver_container, family_face, face_info, workarray, localtime);
         break;
       }
 
 			default: ERROR("Unknown face type, could not compute its residual.");
 		}
-
 	}
+
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -225,7 +221,7 @@ void CIteration::ComputeResidual
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
         // Extract the local index.
-        const size_t iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
+        const auto iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
 
         // Extract the face information, essentially its indices.
         const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
@@ -236,8 +232,8 @@ void CIteration::ComputeResidual
         // Extract the current face.
         const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 
-				const unsigned short iZone  = family_face.GetiZone();
-				const size_t         iElemL = internal_face.mIndexElementM;
+				const auto iZone  = family_face.GetiZone();
+				const auto iElemL = internal_face.mIndexElementM;
 
         auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemL);
 
@@ -252,7 +248,7 @@ void CIteration::ComputeResidual
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the local index.
-        const size_t iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
+        const auto iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
 
         // Extract the face information, essentially its indices.
         const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
@@ -263,11 +259,11 @@ void CIteration::ComputeResidual
         // Extract the actual face.
         const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
 
-        const unsigned short iZoneM = family_face.GetiZone();
-        const unsigned short iZoneP = family_face.GetjZone();
+        const auto iZoneM = family_face.GetiZone();
+        const auto iZoneP = family_face.GetjZone();
 
-        const size_t iElemM = interface_face.mIndexElementI;
-        const size_t iElemP = interface_face.mIndexElementJ;
+        const auto iElemM = interface_face.mIndexElementI;
+        const auto iElemP = interface_face.mIndexElementJ;
 
         const EFaceLocation iFaceM = family_face.GetiFaceLocation();
         const EFaceLocation iFaceP = family_face.GetjFaceLocation();
@@ -281,12 +277,12 @@ void CIteration::ComputeResidual
         auto& tmp_p = physical_element_p->mResMinus;
         auto& res_p = physical_element_p->mRes2D;
 
-        if( iFaceM == EFaceLocation::IMAX || iFaceM == EFaceLocation::JMAX )
+        if( family_face.GetisMaxFaceI() )
         {
           for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
         }
 
-        if( iFaceP == EFaceLocation::IMAX || iFaceP == EFaceLocation::JMAX )
+        if( family_face.GetisMaxFaceJ() )
         {
           for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
         }
@@ -301,8 +297,6 @@ void CIteration::ComputeResidual
 
 
 
-
-
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
@@ -317,7 +311,7 @@ void CIteration::ComputeResidual
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
         // Extract the local index.
-        const size_t iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
+        const auto iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
 				
         // Extract the face information, essentially its indices.
         const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
@@ -328,12 +322,13 @@ void CIteration::ComputeResidual
         // Extract the current face.
         const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 
-        const unsigned short iZone  = family_face.GetiZone();
-        const size_t         iElemB = internal_face.mIndexElementM;
+        const auto iZone  = family_face.GetiZone();
+        const auto iElemB = internal_face.mIndexElementM;
 
         const auto* grid = geometry_container->GetZoneGeometry(iZone);
 
-				solver_container[iZone]->ComputeSurfaceResidualJDir_NEW(grid, workarray, localtime, iElemB);
+				// TODO: move the compute residuals to a separate numerics_container and pass each solver to it??
+				solver_container[iZone]->ComputeSurfaceResidualJDir(grid, workarray, localtime, iElemB);
 
 				break;
 			}
@@ -341,7 +336,7 @@ void CIteration::ComputeResidual
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the local index.
-        const size_t iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
+        const auto iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
         
         // Extract the face information, essentially its indices.
         const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
@@ -350,13 +345,15 @@ void CIteration::ComputeResidual
         const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
         // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual_NEW(solver_container, family_face, face_info, workarray, localtime);
+        interface_container[0]->ComputeInterfaceResidual(solver_container, family_face, face_info, workarray, localtime);
         break;
       }
 
 			default: ERROR("Unknown face type, could not compute its residual.");
 		}
 	}
+
+
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -372,7 +369,7 @@ void CIteration::ComputeResidual
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
         // Extract the local index.
-        const size_t iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
+        const auto iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
 				
         // Extract the face information, essentially its indices.
         const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
@@ -383,8 +380,8 @@ void CIteration::ComputeResidual
         // Extract the current face.
         const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 
-				const unsigned short iZone  = family_face.GetiZone();
-				const size_t         iElemB = internal_face.mIndexElementM;
+				const auto iZone  = family_face.GetiZone();
+				const auto iElemB = internal_face.mIndexElementM;
 
         auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemB);
 
@@ -399,7 +396,7 @@ void CIteration::ComputeResidual
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the local index.
-        const size_t iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
+        const auto iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
         
         // Extract the face information, essentially its indices.
         const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
@@ -410,11 +407,11 @@ void CIteration::ComputeResidual
         // Extract the actual face.
         const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
 
-        const unsigned short iZoneM = family_face.GetiZone();
-        const unsigned short iZoneP = family_face.GetjZone();
+        const auto iZoneM = family_face.GetiZone();
+        const auto iZoneP = family_face.GetjZone();
 
-        const size_t iElemM = interface_face.mIndexElementI;
-        const size_t iElemP = interface_face.mIndexElementJ;
+        const auto iElemM = interface_face.mIndexElementI;
+        const auto iElemP = interface_face.mIndexElementJ;
 
         const EFaceLocation iFaceM = family_face.GetiFaceLocation();
         const EFaceLocation iFaceP = family_face.GetjFaceLocation();
@@ -428,12 +425,12 @@ void CIteration::ComputeResidual
         auto& tmp_p = physical_element_p->mResMinus;
         auto& res_p = physical_element_p->mRes2D;
 
-        if( iFaceM == EFaceLocation::IMAX || iFaceM == EFaceLocation::JMAX )
+        if( family_face.GetisMaxFaceI() )
         {
           for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
         }
 
-        if( iFaceP == EFaceLocation::IMAX || iFaceP == EFaceLocation::JMAX )
+        if( family_face.GetisMaxFaceJ() )
         {
           for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
         }
@@ -446,31 +443,18 @@ void CIteration::ComputeResidual
 	}
 
 
-
-
-
-
-
-	//// Loop over the interface boundaries, if need be.
-	//for( auto& interface: interface_container )
-	//{
-	//	interface->ComputeInterfaceResidual(solver_container, workarray);
-	//}
-	//----------------------------------------------------------------
-	// TESTING: over
-
-
-
-
 	// Multiply by the inverse mass matrix.
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
 	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Extract the element indices.
+		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+
 		// Deduce the current element's zone and index.
-		const unsigned short iZone = openmp_container->GetIndexVolume(i)->mZone;
-		const unsigned int   iElem = openmp_container->GetIndexVolume(i)->mElem;
+		const auto iZone = elem_info.mIndexZone; 
+		const auto iElem = elem_info.mIndexElem; 
 
 		// Extract the relevant solver.
 		auto& solver  = solver_container[iZone];

@@ -119,6 +119,8 @@ void CDriver::InitializeData
 	* Function that initializes the data for the simulation. 
 	*/
 {
+	// TODO: this should be moved from here and placed in the ctor of CGeometry,
+	//       otherwise, we might have a serious bug.
 	// Import an AS3-type grid.
 	NImportFile::ImportAS3Grid(mConfigContainer.get(), 
 			                       mGeometryContainer.get());
@@ -174,7 +176,9 @@ void CDriver::InitializeData
 	}
 
   // TESTING
-  mGeometryContainer->InitializeFaces(mConfigContainer.get()); // TODO: put this in the appropriate place.
+  // Initializes the grid topology (element and faces).
+	mGeometryContainer->InitializeGridTopology(mConfigContainer.get());
+
 
 	// Initialize the OpenMP container.
 	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
@@ -190,7 +194,7 @@ void CDriver::InitializeData
 																		 mInterfaceContainer);
 
 	// Display the shared-memory parallelization information, if any.
-	NLogger::DisplayOpenMPInfo(mOpenMPContainer.get(), mSolverContainer);
+	NLogger::DisplayOpenMPInfo(mOpenMPContainer.get(), mGeometryContainer.get(), mSolverContainer);
 }
 
 //-----------------------------------------------------------------------------------
@@ -315,7 +319,7 @@ as3double CDriver::ComputeTimeStep
 	as3double maxM2 = C_ZERO;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = mOpenMPContainer->GetnIndexVolume();
+	const size_t nElemTotal = mGeometryContainer->GetnElemTotal();
 
 	// Loop over all the elements in all the solvers.
 #ifdef HAVE_OPENMP
@@ -323,9 +327,12 @@ as3double CDriver::ComputeTimeStep
 #endif
 	for(size_t i=0; i<nElemTotal; i++)
 	{
+		// Extract the element indices.
+		const auto elem_info = mGeometryContainer->GetFlattenedIndexVolumeElement(i);
+
 		// Deduce the current element's zone and index.
-		const unsigned short iZone = mOpenMPContainer->GetIndexVolume(i)->mZone;
-		const unsigned int   iElem = mOpenMPContainer->GetIndexVolume(i)->mElem;
+		const auto iZone = elem_info.mIndexZone; 
+		const auto iElem = elem_info.mIndexElem; 
 
 		// Extract the relevant solver.
 		auto& solver  = mSolverContainer[iZone];
