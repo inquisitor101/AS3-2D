@@ -2,20 +2,20 @@
 
 #include "option_structure.hpp"
 #include "config_structure.hpp"
+#include "openmp_structure.hpp"
 #include "input_structure.hpp"
 #include "marker_structure.hpp"
 #include "face_structure.hpp"
+#include "load_balance_faces.hpp"
+#include "flattened_index_structure.hpp"
 
 // Forward declaration to avoid compiler problems.
 class CZoneGeometry;
 class CElementGeometry;
 
 
-struct CElementIndex
-{
-	unsigned short mIndexZone;
-	size_t         mIndexElem;
-};
+
+
 
 
 /*!
@@ -52,10 +52,11 @@ class CGeometry
 		 */
 		CZoneGeometry *GetZoneGeometry(size_t iZone) const { return mZoneGeometry[iZone].get(); }
 
-    void InitializeGridTopology(const CConfig *config_container);
+    void InitializeGridTopology(const CConfig *config_container,
+                                const COpenMP *openmp_container);
 
-		const CMultizoneFaceGeometry &GetMultizoneIFaces(void) const { return mMultizoneIFaces; }
-		const CMultizoneFaceGeometry &GetMultizoneJFaces(void) const { return mMultizoneJFaces; }
+		const CMultizoneFaceGeometry& GetMultizoneIFaces(void) const { return mMultizoneIFaces; }
+		const CMultizoneFaceGeometry& GetMultizoneJFaces(void) const { return mMultizoneJFaces; }
 
     unsigned short GetnZone(void) const { return mNZone; }
 
@@ -64,13 +65,55 @@ class CGeometry
 
 		size_t GetnElemTotal(void) const { return mNElemTotal; }
 
-		CElementIndex GetFlattenedIndexVolumeElement(size_t i) const
+		CFlattenedElementIndex GetFlattenedIndexVolumeElement(size_t i) const
 		{
 #if DEBUG
 			if( i >= mNElemTotal ) ERROR("Index is out of range.");
 #endif
 			return mFlattenedIndexVolumeElement[i];
 		}
+
+    CFlattenedFaceIndex GetFlattenedIndexIFace(size_t i) const
+    {
+#if DEBUG
+      if( i >= GetnIFace() ) ERROR("Index is out of range.");
+#endif
+      return mFlattenedIndexIFace[i];
+    }
+    CFlattenedFaceIndex GetFlattenedIndexJFace(size_t i) const
+    {
+#if DEBUG
+      if( i >= GetnJFace() ) ERROR("Index is out of range.");
+#endif
+      return mFlattenedIndexJFace[i];
+    }
+
+    const CLoadBalancedFacePermutation& GetIFaceLoadBalancedPermutation(void) const
+    {
+      return mIFaceLoadBalancedPermutation;
+    }
+
+    const CLoadBalancedFacePermutation& GetJFaceLoadBalancedPermutation(void) const
+    {
+      return mJFaceLoadBalancedPermutation;
+    }
+
+    CFlattenedFaceIndex GetFlattenedIndexIFaceLoadBalanced(size_t i) const
+    {
+#if DEBUG
+      if( i >= mIFaceLoadBalancedPermutation.GetnFace() ) ERROR("Index is out of range.");
+#endif
+      return mFlattenedIndexIFace[ mIFaceLoadBalancedPermutation.GetPermutationIndex(i) ];
+    }
+    CFlattenedFaceIndex GetFlattenedIndexJFaceLoadBalanced(size_t i) const
+    {
+#if DEBUG
+      if( i >= mJFaceLoadBalancedPermutation.GetnFace() ) ERROR("Index is out of range.");
+#endif
+      return mFlattenedIndexJFace[ mJFaceLoadBalancedPermutation.GetPermutationIndex(i) ];
+    }
+
+
 
 	protected:
 
@@ -80,7 +123,12 @@ class CGeometry
 		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
 
 
-		as3vector1d<CElementIndex> mFlattenedIndexVolumeElement;
+		as3vector1d<CFlattenedElementIndex> mFlattenedIndexVolumeElement;
+    as3vector1d<CFlattenedFaceIndex>    mFlattenedIndexIFace;
+    as3vector1d<CFlattenedFaceIndex>    mFlattenedIndexJFace;
+
+    CLoadBalancedFacePermutation mIFaceLoadBalancedPermutation;
+    CLoadBalancedFacePermutation mJFaceLoadBalancedPermutation;
 
     CMultizoneFaceGeometry mMultizoneIFaces{ETypeFace::IFACE};
     CMultizoneFaceGeometry mMultizoneJFaces{ETypeFace::JFACE};

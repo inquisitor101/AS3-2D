@@ -5,10 +5,9 @@
 //-----------------------------------------------------------------------------------
 
 
-template<size_t K, size_t M>
-void CTensorProduct<K, M>::ResidualSurfaceIMIN
+template<size_t K, size_t M, size_t N>
+void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceIMIN
 (
- const size_t     N,
  const as3double *B,
  const as3double *BDerR,
  const as3double *BDerS,

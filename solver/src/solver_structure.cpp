@@ -10,7 +10,8 @@ ISolver::ISolver
 (
  CConfig       *config_container,
  CGeometry     *geometry_container,
- unsigned short iZone
+ unsigned short iZone,
+ unsigned short nVar
 )
 	:
 		mZoneID(iZone)
@@ -22,7 +23,7 @@ ISolver::ISolver
 	mStandardElementContainer = CGenericFactory::CreateStandardElement(config_container, iZone);
 
 	// Instantiate a tensor-product object.
-	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get());
+	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(), nVar);
 
 	// Instantiate a Riemann solver object.
 	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer(config_container,
@@ -61,7 +62,7 @@ CEESolver::CEESolver
  unsigned short iZone
 )
 	:
-		ISolver(config_container, geometry_container, iZone)
+		ISolver(config_container, geometry_container, iZone, CEESolver::mNVar)
  /*
 	* Constructor for the (non-linear) Euler equations class.
 	*/
@@ -308,8 +309,8 @@ void CEESolver::ComputeVolumeResidual
 	auto& res = physical_element->mRes2D;
 
 	// Compute the solution and its (parametric) gradient at the volume integration points.
-	mTensorProductContainer->Volume(mNVar, sol.data(),
-			                            var.data(), dVarDx.data(), dVarDy.data());
+	mTensorProductContainer->CompileTimeVolume(sol.data(),
+			                                       var.data(), dVarDx.data(), dVarDy.data());
 
 	// Convert the gradient from parametric to Cartesian coordinates.
 	physical_element->ConvertGradParamToCartVolInt(dVarDx, dVarDy);
@@ -362,11 +363,10 @@ void CEESolver::ComputeVolumeResidual
 	}
 
 	// Scatter the volume residual terms back to the actual residual. Note, this resets the residual! 
-	mTensorProductContainer->ResidualVolume(mNVar, 
-			                                    nullptr, 
-																					dVarDx.data(), 
-																					dVarDy.data(), 
-																					res.data());
+	mTensorProductContainer->CompileTimeResidualVolume(nullptr, 
+                                                     dVarDx.data(), 
+                                                     dVarDy.data(), 
+                                                     res.data());
 }
 
 //-----------------------------------------------------------------------------------
@@ -399,9 +399,6 @@ void CEESolver::ComputeSurfaceResidualIDir
 	CWorkMatrixAS3<as3double> varR = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
 	CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
 
-	// Consistency check.
-	if( iElemR != (iElemL+1) ) ERROR("Elements sharing current face in i-direction are wrong.");
-
 	// Get a pointer to the respective left and right element, w.r.t. this face.
 	auto& elemL = mPhysicalElementContainer[iElemL];
 	auto& elemR = mPhysicalElementContainer[iElemR];
@@ -422,12 +419,12 @@ void CEESolver::ComputeSurfaceResidualIDir
 	auto& resR = elemR->mRes2D;
 
 	// Compute the solution on the integration nodes of the left element.
-	mTensorProductContainer->SurfaceIMAX(mNVar, solL.data(),
-		                                   varL.data(), nullptr, nullptr); 
+	mTensorProductContainer->CompileTimeSurfaceIMAX(solL.data(),
+                                                  varL.data(), nullptr, nullptr); 
 
 	// Compute the solution on the integration nodes of the right element.
-	mTensorProductContainer->SurfaceIMIN(mNVar, solR.data(),
-		                                   varR.data(), nullptr, nullptr); 
+	mTensorProductContainer->CompileTimeSurfaceIMIN(solR.data(),
+		                                              varR.data(), nullptr, nullptr); 
 
 	// Compute the flux state, weighted by the integration nodes and metrics. 
 	// Notice, this is based on the left state, which is the outward-pointing
@@ -435,13 +432,15 @@ void CEESolver::ComputeSurfaceResidualIDir
 	mRiemannSolverContainer->ComputeFlux(wInt1D, metL, varL, varR, flux);
 
 	// Compute the residual on the left  element, which is on the IMAX boundary.
-	mTensorProductContainer->ResidualSurfaceIMAX(mNVar, flux.data(), nullptr, nullptr, resL.data());
+	mTensorProductContainer->CompileTimeResidualSurfaceIMAX(flux.data(), 
+                                                          nullptr, nullptr, resL.data());
 
 	// For local conservation, negate the flux, since it leaves the left element to enter the right element.
 	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the right element, which is on the IMIN boundary.
-	mTensorProductContainer->ResidualSurfaceIMIN(mNVar, flux.data(), nullptr, nullptr, resR.data());
+	mTensorProductContainer->CompileTimeResidualSurfaceIMIN(flux.data(), 
+                                                          nullptr, nullptr, resR.data());
 }
 
 //-----------------------------------------------------------------------------------
@@ -474,9 +473,6 @@ void CEESolver::ComputeSurfaceResidualJDir
 	CWorkMatrixAS3<as3double> varT = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
 	CWorkMatrixAS3<as3double> flux = workarray.GetWorkMatrixAS3(mNVar, nInt1D);
 
-	// Consistency check.
-	if( iElemT != (iElemB+niElem) ) ERROR("Elements sharing current face in j-direction are wrong.");
-
 	// Get a pointer to the respective left and right element, w.r.t. this face.
 	auto& elemB = mPhysicalElementContainer[iElemB];
 	auto& elemT = mPhysicalElementContainer[iElemT];
@@ -497,12 +493,12 @@ void CEESolver::ComputeSurfaceResidualJDir
 	auto& resT = elemT->mRes2D;
 
 	// Compute the solution on the integration nodes of the left element.
-	mTensorProductContainer->SurfaceJMAX(mNVar, solB.data(),
-		                                   varB.data(), nullptr, nullptr); 
+	mTensorProductContainer->CompileTimeSurfaceJMAX(solB.data(),
+		                                              varB.data(), nullptr, nullptr); 
 
 	// Compute the solution on the integration nodes of the right element.
-	mTensorProductContainer->SurfaceJMIN(mNVar, solT.data(),
-		                                   varT.data(), nullptr, nullptr); 
+	mTensorProductContainer->CompileTimeSurfaceJMIN(solT.data(),
+		                                              varT.data(), nullptr, nullptr); 
 
 	// Compute the flux state, weighted by the integration nodes and metrics. 
 	// Notice, this is based on the left state, which is the outward-pointing
@@ -510,14 +506,21 @@ void CEESolver::ComputeSurfaceResidualJDir
 	mRiemannSolverContainer->ComputeFlux(wInt1D, metB, varB, varT, flux);
 
 	// Compute the residual on the left  element, which is on the IMAX boundary.
-	mTensorProductContainer->ResidualSurfaceJMAX(mNVar, flux.data(), nullptr, nullptr, resB.data());
+	mTensorProductContainer->CompileTimeResidualSurfaceJMAX(flux.data(), 
+                                                          nullptr, nullptr, resB.data());
 
 	// For local conservation, negate the flux, since it leaves the left element to enter the right element.
 	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the right element, which is on the IMIN boundary.
-	mTensorProductContainer->ResidualSurfaceJMIN(mNVar, flux.data(), nullptr, nullptr, resT.data());
+	mTensorProductContainer->CompileTimeResidualSurfaceJMIN(flux.data(), 
+                                                          nullptr, nullptr, resT.data());
 }
+
+//-----------------------------------------------------------------------------------
+
+
+
 
 
 

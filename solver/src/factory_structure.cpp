@@ -187,7 +187,8 @@ CGenericFactory::CreatePhysicalElement
 std::unique_ptr<ITensorProduct> 
 CGenericFactory::CreateTensorContainer
 (
- CStandardElement *standard_element
+ CStandardElement *standard_element,
+ unsigned short    nVar
 )
  /*
 	* Function that creates a specialized instance of a templated tensor container.
@@ -196,40 +197,43 @@ CGenericFactory::CreateTensorContainer
 	// Extract the number of solution points (k) and integration points (m) in 1D.
 	const size_t k = standard_element->GetnSol1D();
 	const size_t m = standard_element->GetnInt1D();
+  const size_t n = nVar;
 
 	// Macro which helps in readability for the compile-time specialized tensor classes.
-#define SPECIALIZED_TENSOR(K,M) if( (K==k) && (M==m) ) \
-	return std::make_unique< CTensorProduct<K,M> >(standard_element);
+#define SPECIALIZED_TENSOR(K,M,N) if( (K==k) && (M==m) && (N==n) ) \
+	return std::make_unique< CTensorProduct<K,M,N> >(standard_element);
 
-	SPECIALIZED_TENSOR(2,2);
-	SPECIALIZED_TENSOR(2,3);
+	SPECIALIZED_TENSOR(2,2,4);
+	SPECIALIZED_TENSOR(2,3,4);
 
-	SPECIALIZED_TENSOR(3,3);
-	SPECIALIZED_TENSOR(3,4);
+	SPECIALIZED_TENSOR(3,3,4);
+	SPECIALIZED_TENSOR(3,4,4);
 
-	SPECIALIZED_TENSOR(4,4);
-	SPECIALIZED_TENSOR(4,5);
+	SPECIALIZED_TENSOR(4,4,4);
+	SPECIALIZED_TENSOR(4,5,4);
 
-	SPECIALIZED_TENSOR(5,5);
-	SPECIALIZED_TENSOR(5,7);
+	SPECIALIZED_TENSOR(5,5,4);
+	SPECIALIZED_TENSOR(5,7,4);
 
-	SPECIALIZED_TENSOR(6,6);
-	SPECIALIZED_TENSOR(6,8);
+	SPECIALIZED_TENSOR(6,6,4);
+	SPECIALIZED_TENSOR(6,8,4);
 
-	SPECIALIZED_TENSOR(7, 7);
-	SPECIALIZED_TENSOR(7,10);
+	SPECIALIZED_TENSOR(7, 7,4);
+	SPECIALIZED_TENSOR(7,10,4);
 
-	SPECIALIZED_TENSOR(8, 8);
-	SPECIALIZED_TENSOR(8,11);
+	SPECIALIZED_TENSOR(8, 8,4);
+	SPECIALIZED_TENSOR(8,11,4);
 
-	SPECIALIZED_TENSOR(9, 9);
-	SPECIALIZED_TENSOR(9,13);
+	SPECIALIZED_TENSOR(9, 9,4);
+	SPECIALIZED_TENSOR(9,13,4);
 	
-	SPECIALIZED_TENSOR(10,10);
-	SPECIALIZED_TENSOR(10,14);
+	SPECIALIZED_TENSOR(10,10,4);
+	SPECIALIZED_TENSOR(10,14,4);
 
 	// If the program made it this far, it means the specified values are not implemented.
-	ERROR("Combination of (K,M) = " + std::to_string(k) + ", " + std::to_string(m) + " is not found.");			
+	ERROR("Combination of (K,M,N) = " + std::to_string(k) + ", " 
+                                    + std::to_string(m) + ", "
+                                    + std::to_string(n) + " is not found.");			
 
 	// To avoid a compiler warning.
 	return nullptr; 
@@ -401,6 +405,4 @@ CGenericFactory::CreateInterfaceContainer
 	// To avoid a compiler warning.
 	return nullptr; 
 }
-
-
 

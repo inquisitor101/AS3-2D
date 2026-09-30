@@ -22,6 +22,10 @@ class ITensorProduct
 		 */
 		virtual ~ITensorProduct(void) = default;
 
+    virtual size_t GetnSol1D(void) const = 0;
+    virtual size_t GetnInt1D(void) const = 0;
+    virtual size_t GetnVar(void)   const = 0;
+
 
 		/*!
 		 * @brief Function that implements a generic (run-time) tensor-product volume implementation.
@@ -36,15 +40,15 @@ class ITensorProduct
  		 * @param[out] CDerR pointer to output x-derivative of interpolated data, dimension: [M*M][N].
  		 * @param[out] CDerS pointer to output y-derivative of interpolated data, dimension: [M*M][N].
 		 */
-		void CustomVolume(size_t           K,
-				              size_t           N,
- 				              size_t           M,
- 				              const as3double *A,
- 				              const as3double *ADer,
- 				              const as3double *B,
- 				              as3double       *C,
- 				              as3double       *CDerR,
- 				              as3double       *CDerS);
+		void RuntimeVolume(size_t           K,
+				               size_t           N,
+ 				               size_t           M,
+ 				               const as3double *A,
+ 				               const as3double *ADer,
+ 				               const as3double *B,
+ 				               as3double       *C,
+ 				               as3double       *CDerR,
+ 				               as3double       *CDerS);
 
 		/*!
 		 * @brief Function that implements a generic (run-time) tensor-product IMIN surface implementation.
@@ -60,16 +64,16 @@ class ITensorProduct
  		 * @param[out] CDerR pointer to output x-derivative of interpolated data, dimension: [M*M][N].
  		 * @param[out] CDerS pointer to output y-derivative of interpolated data, dimension: [M*M][N].
 		 */
-		void CustomSurfaceIMIN(size_t           K,
-				                   size_t           N,
- 				                   size_t           M,
- 				                   const as3double *A,
- 				                   const as3double *ADer,
-													 const as3double *ADerFace,
- 				                   const as3double *B,
- 				                   as3double       *C,
- 				                   as3double       *CDerR,
- 				                   as3double       *CDerS);
+		void RuntimeSurfaceIMIN(size_t           K,
+				                    size_t           N,
+ 				                    size_t           M,
+ 				                    const as3double *A,
+ 				                    const as3double *ADer,
+													  const as3double *ADerFace,
+ 				                    const as3double *B,
+ 				                    as3double       *C,
+ 				                    as3double       *CDerR,
+ 				                    as3double       *CDerS);
 
 		/*!
 		 * @brief Function that implements a generic (run-time) tensor-product IMAX surface implementation.
@@ -85,16 +89,16 @@ class ITensorProduct
  		 * @param[out] CDerR pointer to output x-derivative of interpolated data, dimension: [M*M][N].
  		 * @param[out] CDerS pointer to output y-derivative of interpolated data, dimension: [M*M][N].
 		 */
-		void CustomSurfaceIMAX(size_t           K,
-				                   size_t           N,
- 				                   size_t           M,
- 				                   const as3double *A,
- 				                   const as3double *ADer,
-													 const as3double *ADerFace,
- 				                   const as3double *B,
- 				                   as3double       *C,
- 				                   as3double       *CDerR,
- 				                   as3double       *CDerS);
+		void RuntimeSurfaceIMAX(size_t           K,
+				                    size_t           N,
+ 				                    size_t           M,
+ 				                    const as3double *A,
+ 				                    const as3double *ADer,
+													  const as3double *ADerFace,
+ 				                    const as3double *B,
+ 				                    as3double       *C,
+ 				                    as3double       *CDerR,
+ 				                    as3double       *CDerS);
 
 		/*!
 		 * @brief Function that implements a generic (run-time) tensor-product JMIN surface implementation.
@@ -110,16 +114,16 @@ class ITensorProduct
  		 * @param[out] CDerR pointer to output x-derivative of interpolated data, dimension: [M*M][N].
  		 * @param[out] CDerS pointer to output y-derivative of interpolated data, dimension: [M*M][N].
 		 */
-		void CustomSurfaceJMIN(size_t           K,
-				                   size_t           N,
- 				                   size_t           M,
- 				                   const as3double *A,
- 				                   const as3double *ADer,
-													 const as3double *ADerFace,
- 				                   const as3double *B,
- 				                   as3double       *C,
- 				                   as3double       *CDerR,
- 				                   as3double       *CDerS);
+		void RuntimeSurfaceJMIN(size_t           K,
+				                    size_t           N,
+ 				                    size_t           M,
+ 				                    const as3double *A,
+ 				                    const as3double *ADer,
+													  const as3double *ADerFace,
+ 				                    const as3double *B,
+ 				                    as3double       *C,
+ 				                    as3double       *CDerR,
+ 				                    as3double       *CDerS);
 
 		/*!
 		 * @brief Function that implements a generic (run-time) tensor-product JMAX surface implementation.
@@ -135,108 +139,149 @@ class ITensorProduct
  		 * @param[out] CDerR pointer to output x-derivative of interpolated data, dimension: [M*M][N].
  		 * @param[out] CDerS pointer to output y-derivative of interpolated data, dimension: [M*M][N].
 		 */
-		void CustomSurfaceJMAX(size_t           K,
-				                   size_t           N,
- 				                   size_t           M,
- 				                   const as3double *A,
- 				                   const as3double *ADer,
-													 const as3double *ADerFace,
- 				                   const as3double *B,
- 				                   as3double       *C,
- 				                   as3double       *CDerR,
- 				                   as3double       *CDerS);
+		void RuntimeSurfaceJMAX(size_t           K,
+				                    size_t           N,
+ 				                    size_t           M,
+ 				                    const as3double *A,
+ 				                    const as3double *ADer,
+													  const as3double *ADerFace,
+ 				                    const as3double *B,
+ 				                    as3double       *C,
+ 				                    as3double       *CDerR,
+ 				                    as3double       *CDerS);
 
+
+
+
+		/*!
+		 * @brief Pure virtual function for a (partially-compile-time) tensor product on the volume integration points.
+		 */
+		virtual void PartialCompileTimeVolume(size_t           n,
+                                          const as3double *B,
+								                          as3double       *C,
+								                          as3double       *CDerR,
+								                          as3double       *CDerS) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (partially-compile-time) tensor product on the IMIN surface integration points.
+		 */
+		virtual void PartialCompileTimeSurfaceIMIN(size_t           n,
+                                               const as3double *B,
+								                               as3double       *C,
+								                               as3double       *CDerR,
+								                               as3double       *CDerS) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (partially-compile-time) tensor product on the IMAX surface integration points.
+		 */
+		virtual void PartialCompileTimeSurfaceIMAX(size_t           n,
+                                               const as3double *B,
+								                               as3double       *C,
+								                               as3double       *CDerR,
+								                               as3double       *CDerS) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (partially-compile-time) tensor product on the JMIN surface integration points.
+		 */
+		virtual void PartialCompileTimeSurfaceJMIN(size_t           n,
+                                               const as3double *B,
+								                               as3double       *C,
+								                               as3double       *CDerR,
+								                               as3double       *CDerS) = 0;
+
+		/*!
+		 * @brief Pure virtual function for a (partially-compile-time) tensor product on the JMAX surface integration points.
+		 */
+		virtual void PartialCompileTimeSurfaceJMAX(size_t           n,
+                                               const as3double *B,
+								                               as3double       *C,
+								                               as3double       *CDerR,
+								                               as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product on the volume integration points.
 		 */
-		virtual void Volume(const size_t     N,
-				                const as3double *B,
-								        as3double       *C,
-								        as3double       *CDerR,
-								        as3double       *CDerS) = 0;
+		virtual void CompileTimeVolume(const as3double *B,
+								                   as3double       *C,
+								                   as3double       *CDerR,
+								                   as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product on the IMIN surface integration points.
 		 */
-		virtual void SurfaceIMIN(const size_t     N,
-				                     const as3double *B,
-								             as3double       *C,
-								             as3double       *CDerR,
-								             as3double       *CDerS) = 0;
+		virtual void CompileTimeSurfaceIMIN(const as3double *B,
+								                        as3double       *C,
+								                        as3double       *CDerR,
+								                        as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product on the IMAX surface integration points.
 		 */
-		virtual void SurfaceIMAX(const size_t     N,
-				                     const as3double *B,
-								             as3double       *C,
-								             as3double       *CDerR,
-								             as3double       *CDerS) = 0;
+		virtual void CompileTimeSurfaceIMAX(const as3double *B,
+								                        as3double       *C,
+								                        as3double       *CDerR,
+								                        as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product on the JMIN surface integration points.
 		 */
-		virtual void SurfaceJMIN(const size_t     N,
-				                     const as3double *B,
-								             as3double       *C,
-								             as3double       *CDerR,
-								             as3double       *CDerS) = 0;
+		virtual void CompileTimeSurfaceJMIN(const as3double *B,
+								                        as3double       *C,
+								                        as3double       *CDerR,
+								                        as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product on the JMAX surface integration points.
 		 */
-		virtual void SurfaceJMAX(const size_t     N,
-				                     const as3double *B,
-								             as3double       *C,
-								             as3double       *CDerR,
-								             as3double       *CDerS) = 0;
+		virtual void CompileTimeSurfaceJMAX(const as3double *B,
+								                        as3double       *C,
+								                        as3double       *CDerR,
+								                        as3double       *CDerS) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the volume terms. 
 		 */
-		virtual void ResidualVolume(const size_t     N,
-				                        const as3double *B,
-																const as3double *BDerR,
-																const as3double *BDerS,
-																as3double       *C) = 0;
+		virtual void CompileTimeResidualVolume(const as3double *B,
+																           const as3double *BDerR,
+																           const as3double *BDerS,
+																           as3double       *C) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the IMIN surface terms. 
 		 */
-		virtual void ResidualSurfaceIMIN(const size_t     N,
-				                             const as3double *B,
-																     const as3double *BDerR,
-																     const as3double *BDerS,
-																     as3double       *C) = 0;
+		virtual void CompileTimeResidualSurfaceIMIN(const as3double *B,
+																                const as3double *BDerR,
+																                const as3double *BDerS,
+																                as3double       *C) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the IMAX surface terms. 
 		 */
-		virtual void ResidualSurfaceIMAX(const size_t     N,
-				                             const as3double *B,
-																     const as3double *BDerR,
-																     const as3double *BDerS,
-																     as3double       *C) = 0;
+		virtual void CompileTimeResidualSurfaceIMAX(const as3double *B,
+																                const as3double *BDerR,
+																                const as3double *BDerS,
+																                as3double       *C) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the JMIN surface terms. 
 		 */
-		virtual void ResidualSurfaceJMIN(const size_t     N,
-				                             const as3double *B,
-																     const as3double *BDerR,
-																     const as3double *BDerS,
-																     as3double       *C) = 0;
+		virtual void CompileTimeResidualSurfaceJMIN(const as3double *B,
+																                const as3double *BDerR,
+																                const as3double *BDerS,
+																                as3double       *C) = 0;
 
 		/*!
 		 * @brief Pure virtual function for a (compile-time) tensor product that computes the residual from the JMAX surface terms. 
 		 */
-		virtual void ResidualSurfaceJMAX(const size_t     N,
-				                             const as3double *B,
-																     const as3double *BDerR,
-																     const as3double *BDerS,
-																     as3double       *C) = 0;
+		virtual void CompileTimeResidualSurfaceJMAX(const as3double *B,
+                                                const as3double *BDerR,
+                                                const as3double *BDerS,
+                                                as3double       *C) = 0;
 
+
+    virtual void CompileTimeApplyInverseMassMatrix(const as3double *minv,
+                                                   as3double       *res,
+                                                   as3double       *tmp) = 0;
 	protected:
 
 	private:
@@ -251,17 +296,22 @@ class ITensorProduct
 /*!
  * @brief A templated implementation for different tensor-product functions, based on a fixed (K,M).
  */
-template<size_t K, size_t M>
+template<size_t K, size_t M, size_t N>
 class CTensorProduct final: public ITensorProduct
 {
-	public:
+  private:
+    inline static constexpr size_t mNSol1D = K;
+    inline static constexpr size_t mNInt1D = M;
+    inline static constexpr size_t mNVar   = N;
+	
+  public:
 		
 		/*!
 		 * @brief Constructor which initializes this specialized tensor-product class.
 		 *
 		 * @param[in] standard_element pointer to the standard element of this specialization.
 		 */
-		CTensorProduct(CStandardElement *standard_element) :
+		explicit CTensorProduct(CStandardElement *standard_element) :
 				mLagrangeInt1D        ( standard_element->GetLagrangeInt1D()         ),
 				mLagrangeInt1DTrans   ( standard_element->GetLagrangeInt1DTrans()    ),
 				mDerLagrangeInt1D     ( standard_element->GetDerLagrangeInt1D()      ),
@@ -276,127 +326,166 @@ class CTensorProduct final: public ITensorProduct
 		// Default destructor.
 		~CTensorProduct(void) final = default;
 
+    size_t GetnSol1D(void) const final { return mNSol1D; }
+    size_t GetnInt1D(void) const final { return mNInt1D; }
+    size_t GetnVar(void)   const final { return mNVar;   }
+
+
+		/*!
+		 * @brief Function for a (partially-compile-time) tensor product on the volume integration points.
+		 */
+		void PartialCompileTimeVolume(size_t           n,
+                                  const as3double *B,
+				                          as3double       *C,
+				                          as3double       *CDerR,
+				                          as3double       *CDerS) final;
+
+		/*!
+		 * @brief Function for a (partially-compile-time) tensor product on the IMIN surface integration points.
+		 */
+		void PartialCompileTimeSurfaceIMIN(size_t           n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) final;
+
+		/*!
+		 * @brief Function for a (partially-compile-time) tensor product on the IMAX surface integration points.
+		 */
+		void PartialCompileTimeSurfaceIMAX(size_t           n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) final;
+
+		/*!
+		 * @brief Function for a (partially-compile-time) tensor product on the JMIN surface integration points.
+		 */
+		void PartialCompileTimeSurfaceJMIN(size_t           n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) final;
+
+		/*!
+		 * @brief Function for a (partially-compile-time) tensor product on the JMAX surface integration points.
+		 */
+		void PartialCompileTimeSurfaceJMAX(size_t           n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) final;
+
 
 		/*!
 		 * @brief Function that computes the tensor product on the volume integration points.
 		 *
-		 * @param[in] N number of variables.
 		 * @param[in] B pointer to the input values at the solution DOFs.
 		 * @param[out] C pointer to the interpolated values at the integration points.
 		 * @param[out] CDerR pointer to the derivative in the r-direction at the integration points.
 		 * @param[out] CDerS pointer to the derivative in the s-direction at the integration points.
 		 */
-		void Volume(const size_t     N,
-				        const as3double *B,
-								as3double       *C,
-								as3double       *CDerR,
-								as3double       *CDerS) final;
+		void CompileTimeVolume(const as3double *B,
+								           as3double       *C,
+								           as3double       *CDerR,
+								           as3double       *CDerS) final;
 
 		/*!
 		 * @brief Function that computes the tensor product on the surface integration points of IMIN.
 		 *
-		 * @param[in] N number of variables.
 		 * @param[in] B pointer to the input values at the solution DOFs.
 		 * @param[out] C pointer to the interpolated values at the integration points.
 		 * @param[out] CDerR pointer to the derivative in the r-direction at the integration points.
 		 * @param[out] CDerS pointer to the derivative in the s-direction at the integration points.
 		 */
-		void SurfaceIMIN(const size_t     N,
-				             const as3double *B,
-								     as3double       *C,
-								     as3double       *CDerR,
-								     as3double       *CDerS) final;
+		void CompileTimeSurfaceIMIN(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) final;
 
 		/*!
 		 * @brief Function that computes the tensor product on the surface integration points of IMAX.
 		 *
-		 * @param[in] N number of variables.
 		 * @param[in] B pointer to the input values at the solution DOFs.
 		 * @param[out] C pointer to the interpolated values at the integration points.
 		 * @param[out] CDerR pointer to the derivative in the r-direction at the integration points.
 		 * @param[out] CDerS pointer to the derivative in the s-direction at the integration points.
 		 */
-		void SurfaceIMAX(const size_t     N,
-				             const as3double *B,
-								     as3double       *C,
-								     as3double       *CDerR,
-								     as3double       *CDerS) final;
+		void CompileTimeSurfaceIMAX(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) final;
 
 		/*!
 		 * @brief Function that computes the tensor product on the surface integration points of JMIN.
 		 *
-		 * @param[in] N number of variables.
 		 * @param[in] B pointer to the input values at the solution DOFs.
 		 * @param[out] C pointer to the interpolated values at the integration points.
 		 * @param[out] CDerR pointer to the derivative in the r-direction at the integration points.
 		 * @param[out] CDerS pointer to the derivative in the s-direction at the integration points.
 		 */
-		void SurfaceJMIN(const size_t     N,
-				             const as3double *B,
-								     as3double       *C,
-								     as3double       *CDerR,
-								     as3double       *CDerS) final;
+		void CompileTimeSurfaceJMIN(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) final;
 
 		/*!
 		 * @brief Function that computes the tensor product on the surface integration points of JMAX.
 		 *
-		 * @param[in] N number of variables.
 		 * @param[in] B pointer to the input values at the solution DOFs.
 		 * @param[out] C pointer to the interpolated values at the integration points.
 		 * @param[out] CDerR pointer to the derivative in the r-direction at the integration points.
 		 * @param[out] CDerS pointer to the derivative in the s-direction at the integration points.
 		 */
-		void SurfaceJMAX(const size_t     N,
-				             const as3double *B,
-								     as3double       *C,
-								     as3double       *CDerR,
-								     as3double       *CDerS) final;
+		void CompileTimeSurfaceJMAX(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) final;
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the volume terms. 
 		 *        Note, this also resets the residual.
 		 */
-		void ResidualVolume(const size_t     N,
-		                    const as3double *B,
-												const as3double *BDerR,
-												const as3double *BDerS,
-												as3double       *C) final;
+		void CompileTimeResidualVolume(const as3double *B,
+												           const as3double *BDerR,
+												           const as3double *BDerS,
+												           as3double       *C) final;
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the IMIN surface terms. 
 		 */
-		void ResidualSurfaceIMIN(const size_t     N,
-		                         const as3double *B,
-												     const as3double *BDerR,
-												     const as3double *BDerS,
-												     as3double       *C) final;
+		void CompileTimeResidualSurfaceIMIN(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) final;
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the IMAX surface terms. 
 		 */
-		void ResidualSurfaceIMAX(const size_t     N,
-		                         const as3double *B,
-												     const as3double *BDerR,
-												     const as3double *BDerS,
-												     as3double       *C) final;
+		void CompileTimeResidualSurfaceIMAX(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) final;
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the JMIN surface terms. 
 		 */
-		void ResidualSurfaceJMIN(const size_t     N,
-		                         const as3double *B,
-												     const as3double *BDerR,
-												     const as3double *BDerS,
-												     as3double       *C) final;
+		void CompileTimeResidualSurfaceJMIN(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) final;
 
 		/*!
 		 * @brief Function for a (compile-time) tensor product that computes the residual from the JMAX surface terms. 
 		 */
-		void ResidualSurfaceJMAX(const size_t     N,
-		                         const as3double *B,
-												     const as3double *BDerR,
-												     const as3double *BDerS,
-												     as3double       *C) final;
+		void CompileTimeResidualSurfaceJMAX(const as3double *B,
+                                        const as3double *BDerR,
+                                        const as3double *BDerS,
+                                        as3double       *C) final;
+
+    void CompileTimeApplyInverseMassMatrix(const as3double *minv,
+                                           as3double       *res,
+                                           as3double       *tmp) final;
 
 	private:
 		CMatrixAS3<as3double> mLagrangeInt1D;         ///< 1D Lagrange matrix evaluated at mRInt1D, 
@@ -418,4 +507,4 @@ class CTensorProduct final: public ITensorProduct
 #include "tensor/tensor_residual_surface_imax.inl"
 #include "tensor/tensor_residual_surface_jmin.inl"
 #include "tensor/tensor_residual_surface_jmax.inl"
-
+#include "tensor/tensor_apply_minv.inl"

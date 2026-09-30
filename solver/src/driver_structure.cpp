@@ -15,24 +15,27 @@ CDriver::CDriver
 	*/
 {
 	// Initialize a config container.
-	mConfigContainer    = std::make_unique<CConfig>(filename);
+	mConfigContainer = std::make_unique<CConfig>(filename);
+
+	// Initialize the OpenMP container.
+	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get());
 
 	// Initialize the geometry container.
-	mGeometryContainer  = std::make_unique<CGeometry>(mConfigContainer.get());
+	mGeometryContainer = std::make_unique<CGeometry>(mConfigContainer.get());
 
 	// Initialize the specified initial condition. 
-	mInitialContainer   = CGenericFactory::CreateInitialConditionContainer(mConfigContainer.get());
+	mInitialContainer = CGenericFactory::CreateInitialConditionContainer(mConfigContainer.get());
 	
 	// Initialize the temporal container.
-	mTemporalContainer  = CGenericFactory::CreateTemporalContainer(mConfigContainer.get());
+	mTemporalContainer = CGenericFactory::CreateTemporalContainer(mConfigContainer.get());
 
 	// Initialize the solver containers.
-	mSolverContainer    = CGenericFactory::CreateMultizoneSolverContainer(mConfigContainer.get(), 
-			                                                                  mGeometryContainer.get());
+	mSolverContainer = CGenericFactory::CreateMultizoneSolverContainer(mConfigContainer.get(), 
+			                                                               mGeometryContainer.get());
 
 	// Initialize the output container.
-	mOutputContainer    = std::make_unique<COutput>(mConfigContainer.get(), 
-			                                            mGeometryContainer.get());
+	mOutputContainer = std::make_unique<COutput>(mConfigContainer.get(), 
+			                                         mGeometryContainer.get());
 
 	// Initialize the iteration container, must be initialized after the solver container.
 	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get(),
@@ -175,15 +178,9 @@ void CDriver::InitializeData
 		}
 	}
 
-  // TESTING
   // Initializes the grid topology (element and faces).
-	mGeometryContainer->InitializeGridTopology(mConfigContainer.get());
+	mGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
 
-
-	// Initialize the OpenMP container.
-	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get(), 
-			                                         mGeometryContainer.get(),
-																							 mSolverContainer);
 
 	// Report output.
 	std::cout << "Done." << std::endl;

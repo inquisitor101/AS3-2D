@@ -123,8 +123,8 @@ void CIteration::ComputeResidual
 	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
 	
 	// Get the total number faces in the i- and j-directions.
-  const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
   const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
+  const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -155,26 +155,22 @@ void CIteration::ComputeResidual
 #endif
 	for(size_t i=0; i<nFacesIDir; i++)
 	{
-		// Get current face type.
-		const auto face_type = idir_faces_multizone.GetFaceTypeFromIndex(i);
+		// Get the relevant flattened index of the current face.
+    //const auto face_info = geometry_container->GetFlattenedIndexIFace(i);
+    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+    // Extract the current type of face.
+    const auto face_type = face_info.mFaceType;
 
 		// Check what type of face we are dealing with.
 		switch( face_type )
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the local index.
-        const auto iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
-			
-        // Extract the face information, essentially its indices.
-        const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-       
         // Extract the current face.
 				const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-				
+			
         const auto iZone  = family_face.GetiZone();
 				const auto iElemL = internal_face.mIndexElementM;
 
@@ -188,12 +184,6 @@ void CIteration::ComputeResidual
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the local index.
-        const auto iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
-			
-        // Extract the face information, essentially its indices.
-        const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
        
@@ -212,23 +202,19 @@ void CIteration::ComputeResidual
 #endif
 	for(size_t i=0; i<nFacesIDir; i++)
 	{
-		// Get current face type.
-		const auto face_type = idir_faces_multizone.GetFaceTypeFromIndex(i);
-
-		// Check what type of face we are dealing with.
+		// Get the relevant flattened index of the current face.
+    //const auto face_info = geometry_container->GetFlattenedIndexIFace(i);
+    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+    // Extract the current type of face.
+    const auto face_type = face_info.mFaceType;
+		
+    // Check what type of face we are dealing with.
 		switch( face_type )
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the local index.
-        const auto iFaceLocal = idir_faces_multizone.GetIndexInternalFace(i);
-
-        // Extract the face information, essentially its indices.
-        const auto face_info = idir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-        
         // Extract the current face.
         const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
 
@@ -247,12 +233,6 @@ void CIteration::ComputeResidual
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the local index.
-        const auto iFaceLocal = idir_faces_multizone.GetIndexInterfaceFace(i);
-
-        // Extract the face information, essentially its indices.
-        const auto face_info = idir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
@@ -302,20 +282,17 @@ void CIteration::ComputeResidual
 #endif
 	for(size_t i=0; i<nFacesJDir; i++)
 	{
-		// Get current face type.
-		const auto face_type = jdir_faces_multizone.GetFaceTypeFromIndex(i);
+		// Get the relevant flattened index of the current face.
+    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+    // Extract the current type of face.
+    const auto face_type = face_info.mFaceType;
 
 		// Check what type of face we are dealing with.
 		switch( face_type )
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the local index.
-        const auto iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
-				
-        // Extract the face information, essentially its indices.
-        const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
        
@@ -335,12 +312,6 @@ void CIteration::ComputeResidual
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the local index.
-        const auto iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
-        
-        // Extract the face information, essentially its indices.
-        const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
@@ -360,20 +331,17 @@ void CIteration::ComputeResidual
 #endif
 	for(size_t i=0; i<nFacesJDir; i++)
 	{
-		// Get current face type.
-		const auto face_type = jdir_faces_multizone.GetFaceTypeFromIndex(i);
+		// Get the relevant flattened index of the current face.
+    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+    // Extract the current type of face.
+    const auto face_type = face_info.mFaceType;
 
 		// Check what type of face we are dealing with.
 		switch( face_type )
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the local index.
-        const auto iFaceLocal = jdir_faces_multizone.GetIndexInternalFace(i);
-				
-        // Extract the face information, essentially its indices.
-        const auto face_info = jdir_faces_multizone.GetInternalElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
        
@@ -395,12 +363,6 @@ void CIteration::ComputeResidual
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the local index.
-        const auto iFaceLocal = jdir_faces_multizone.GetIndexInterfaceFace(i);
-        
-        // Extract the face information, essentially its indices.
-        const auto face_info = jdir_faces_multizone.GetInterfaceElementFaceIndex(iFaceLocal);
-
         // Extract the family owning the current face.
         const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
 
@@ -443,13 +405,14 @@ void CIteration::ComputeResidual
 	}
 
 
+
 	// Multiply by the inverse mass matrix.
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
 	for(size_t i=0; i<nElemTotal; i++)
 	{
-		// Extract the element indices.
+    // Extract the element indices.
 		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
@@ -461,14 +424,17 @@ void CIteration::ComputeResidual
 		// Extract the relevant physical element.
 		auto* element = solver->GetPhysicalElement(iElem);
 
-		// Get the inverse of the mass matrix.
-		auto& m = element->mInvMassMatrix;
-		// Get the residual on this element.
-		auto& r = element->mRes2D;
+    // In principle, this can be moved outside the loop, but it won't matter much,
+    // as it isn't allocating memory, just using preallocated sections in it.
+    const auto nVar  = solver->GetnVar();
+    const auto nDOFs = solver->GetStandardElement()->GetnSol2D();
+    auto tmp = workarray.GetWorkMatrixAS3( nVar, nDOFs );
 
-		// Perform a matrix-matrix multiplication to obtain the residual.
-		NLinearAlgebra::MatrixVectorTransMult(m, r, r);
-	}
+    const as3double *minv = element->mInvMassMatrix.data();
+    as3double        *res = element->mRes2D.data();
+
+    solver->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, tmp.data()); 
+  }
 }
 
 //-----------------------------------------------------------------------------------
@@ -521,5 +487,3 @@ void CIteration::GridSweep
 											 workarray,
 											 localtime);
 }
-
-

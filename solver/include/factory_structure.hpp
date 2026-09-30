@@ -76,8 +76,8 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to the specific Riemann solver class.
 		 */
-		static std::unique_ptr<IRiemannSolver> CreateRiemannSolverContainer(CConfig          *config_container,
-				                                                               ETypeRiemannSolver riemann);
+		static std::unique_ptr<IRiemannSolver> CreateRiemannSolverContainer(CConfig           *config_container,
+				                                                                ETypeRiemannSolver riemann);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a standard element container.
@@ -116,7 +116,8 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to specialized template tensor-product class.
 		 */
-		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element);
+		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element,
+                                                                 unsigned short    nVar);
 
 
 		/*!

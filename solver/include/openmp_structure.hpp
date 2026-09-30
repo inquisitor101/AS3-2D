@@ -1,11 +1,7 @@
 #pragma once 
 
 #include "config_structure.hpp"
-#include "geometry_structure.hpp"
-#include "solver_structure.hpp"
 
-// Forward declaration to avoid compiler issues.
-class ISolver;
 
 
 /*!
@@ -14,27 +10,26 @@ class ISolver;
 class COpenMP
 {
 	public:
-		
+
 		/*!
 		 * @brief Constructor of COpenMP, which initializes the OpenMP class.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] solver_container input multizone solver container.
 		 */
-		COpenMP(CConfig                               *config_container,
-				    CGeometry                             *geometry_container,
-						as3vector1d<std::unique_ptr<ISolver>> &solver_container);
+		COpenMP(CConfig *config_container);
 	
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		~COpenMP(void);
 
+    size_t GetnThread(void) const { return mNThread; }
+
 	protected:
 
 	private:
-			
+    size_t mNThread = 1;
+
 		// Disable default constructor.
 		COpenMP(void) = delete;
 		// Disable default copy constructor.

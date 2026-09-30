@@ -28,7 +28,8 @@ class ISolver
 		 */
 		ISolver(CConfig       *config_container,
 				    CGeometry     *geometry_container,
-						unsigned short iZone);
+						unsigned short iZone,
+            unsigned short nVar);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -236,11 +237,8 @@ class CEESolver : public ISolver
 	protected:
 
 	private:
-		unsigned short mNVar = 4; ///< Number of working variables
-
+		inline static constexpr unsigned short mNVar = 4; ///< Number of working variables
 };
-
-
 
 
 

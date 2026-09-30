@@ -104,10 +104,10 @@ void CPhysicalElement::ComputeMetricsSolVolume
 	CMatrixAS3<as3double> identity = NLinearAlgebra::CreateIdentityMatrix<as3double>(nSol1D);
 
 	// Compute the derivatives on the standard element.
-	tensor_container->CustomVolume( nSol1D, nDim, nSol1D,
-			                            identity.data(), standard_element->GetDerLagrangeSol1DTrans().data(),
-			                            coord.data(), nullptr,
-																	dSolDr.data(), dSolDs.data());
+	tensor_container->RuntimeVolume( nSol1D, nDim, nSol1D,
+			                             identity.data(), standard_element->GetDerLagrangeSol1DTrans().data(),
+			                             coord.data(), nullptr,
+																	 dSolDr.data(), dSolDs.data());
 
 
 	// Compute the metrics.
@@ -163,8 +163,8 @@ void CPhysicalElement::ComputeMetricsIntVolume
 	CMatrixAS3<as3double> dSolDs( nDim, nInt2D );
 
 	// Compute the derivatives on the standard element.
-	tensor_container->Volume(nDim, coord.data(), nullptr,
-			                     dSolDr.data(), dSolDs.data());
+	tensor_container->PartialCompileTimeVolume(nDim, coord.data(), nullptr,
+			                                       dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt2D; i++)
@@ -219,8 +219,8 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 	CMatrixAS3<as3double> dSolDs( nDim, nInt1D );
 
 	// Compute the derivatives on the standard element.
-	tensor_container->SurfaceIMIN(nDim, coord.data(), nullptr,
-			                          dSolDr.data(), dSolDs.data());
+	tensor_container->PartialCompileTimeSurfaceIMIN(nDim, coord.data(), nullptr,
+			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -285,8 +285,8 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
 	CMatrixAS3<as3double> dSolDs( nDim, nInt1D );
 
 	// Compute the derivatives on the standard element.
-	tensor_container->SurfaceIMAX(nDim, coord.data(), nullptr,
-			                          dSolDr.data(), dSolDs.data());
+	tensor_container->PartialCompileTimeSurfaceIMAX(nDim, coord.data(), nullptr,
+			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -351,8 +351,8 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 	CMatrixAS3<as3double> dSolDs( nDim, nInt1D );
 
 	// Compute the derivatives on the standard element.
-	tensor_container->SurfaceJMIN(nDim, coord.data(), nullptr,
-			                          dSolDr.data(), dSolDs.data());
+	tensor_container->PartialCompileTimeSurfaceJMIN(nDim, coord.data(), nullptr,
+			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)
@@ -417,8 +417,8 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 	CMatrixAS3<as3double> dSolDs( nDim, nInt1D );
 
 	// Compute the derivatives on the standard element.
-	tensor_container->SurfaceJMAX(nDim, coord.data(), nullptr,
-			                          dSolDr.data(), dSolDs.data());
+	tensor_container->PartialCompileTimeSurfaceJMAX(nDim, coord.data(), nullptr,
+			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
 	for(size_t i=0; i<nInt1D; i++)

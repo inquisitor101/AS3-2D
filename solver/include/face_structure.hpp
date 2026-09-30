@@ -11,8 +11,16 @@ class CMarker;
 
 
 
+struct CElementFaceIndex
+{
+  size_t mIndexFamily;
+  size_t mIndexFace;
+};
 
 
+
+
+//-----------------------------------------------------------------------------------
 
 
 struct CInternalElementFaceGeometry
@@ -156,14 +164,6 @@ class CInterfaceFacesFamily
 
 //-----------------------------------------------------------------------------------
 
-struct CElementFaceIndex
-{
-  size_t mIndexFamily;
-  size_t mIndexFace;
-};
-
-//-----------------------------------------------------------------------------------
-
 template<typename TFamily>
 class CGroupFaces
 {
@@ -201,7 +201,7 @@ class CGroupFaces
       mEnd   = iGlobal;
     }
 
-    CElementFaceIndex GetElementFaceIndex(size_t iGlobal) const
+    CElementFaceIndex FindElementFaceIndex(size_t iGlobal) const
     {
 #if DEBUG
       if( iGlobal < mBegin || iGlobal >= mEnd ) ERROR("Invalid global face index.");
@@ -281,7 +281,7 @@ class CMultizoneFaceGeometry
 				                 const CGeometry *geometry_structure);
 
 
-		ETypeFaceGeometry GetFaceTypeFromIndex(size_t i) const
+		ETypeFaceGeometry DeduceFaceTypeFromIndex(size_t i) const
 		{
 			if( i < GetnInternalFaces() )                       return ETypeFaceGeometry::INTERNAL;
 			if( i < GetnInternalFaces() + GetnBoundaryFaces() ) return ETypeFaceGeometry::BOUNDARY;
@@ -320,12 +320,12 @@ class CMultizoneFaceGeometry
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex GetInternalElementFaceIndex(size_t i) const
+    CElementFaceIndex FindInternalElementFaceIndex(size_t i) const
     {
 #if DEBUG
 			if( i >= GetnInternalFaces() ) ERROR("Index exceeds maximum data size."); 
 #endif
-      return mInternalFacesGroup.GetElementFaceIndex(i);
+      return mInternalFacesGroup.FindElementFaceIndex(i);
     } 
 
     const CInternalFacesFamily& GetInternalFacesFamily(size_t i) const
@@ -338,12 +338,12 @@ class CMultizoneFaceGeometry
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex GetInterfaceElementFaceIndex(size_t i) const
+    CElementFaceIndex FindInterfaceElementFaceIndex(size_t i) const
     {
 #if DEBUG
 			if( i >= GetnInterfaceFaces() ) ERROR("Index exceeds maximum data size."); 
 #endif
-      return mInterfaceFacesGroup.GetElementFaceIndex(i);
+      return mInterfaceFacesGroup.FindElementFaceIndex(i);
     } 
     
     const CInterfaceFacesFamily& GetInterfaceFacesFamily(size_t i) const

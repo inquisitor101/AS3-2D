@@ -346,7 +346,15 @@ enum class ETypeFace
   JFACE
 };
 
+//--------------------------------------
 
+/*!
+ * @brief Strategy used to construct the face permutation.
+ */
+enum class EFaceLoadBalanceStrategy
+{
+  GREEDY
+};
 
 
 /* * * 

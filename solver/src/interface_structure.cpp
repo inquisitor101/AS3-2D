@@ -227,18 +227,21 @@ CEEInterface::CEEInterface
 		ERROR(jmarker_container->GetNameMarker() + " must be an interface boundary.");
 	}
 
+  // Extract the relevant solvers.
+  const auto& isolver = solver_container[mIZone];
+  const auto& jsolver = solver_container[mJZone];
 
 	// Extract the polynomial orders in each marker zone.
-	unsigned short ipoly = solver_container[mIZone]->GetStandardElement()->GetnPolySol();
-	unsigned short jpoly = solver_container[mJZone]->GetStandardElement()->GetnPolySol();
+	unsigned short ipoly = isolver->GetStandardElement()->GetnPolySol();
+	unsigned short jpoly = jsolver->GetStandardElement()->GetnPolySol();
 	
 	// Extract the number of integration points in each marker zone.
-	unsigned short inint = solver_container[mIZone]->GetStandardElement()->GetnInt1D();
-	unsigned short jnint = solver_container[mJZone]->GetStandardElement()->GetnInt1D();
+	unsigned short inint = isolver->GetStandardElement()->GetnInt1D();
+	unsigned short jnint = jsolver->GetStandardElement()->GetnInt1D();
 
 	// Extract the type of DOFs in each zone.
-	ETypeDOF idof = solver_container[mIZone]->GetStandardElement()->GetTypeDOFsSol();
-	ETypeDOF jdof = solver_container[mJZone]->GetStandardElement()->GetTypeDOFsSol();
+	ETypeDOF idof = isolver->GetStandardElement()->GetTypeDOFsSol();
+	ETypeDOF jdof = jsolver->GetStandardElement()->GetTypeDOFsSol();
 
 	// Only choose EQD when both markers are EQD. Otherwise, always select LGL.
 	ETypeDOF dof = ((idof == ETypeDOF::EQD) && (jdof == ETypeDOF::EQD)) ? ETypeDOF::EQD : ETypeDOF::LGL;
@@ -254,12 +257,12 @@ CEEInterface::CEEInterface
 	mWInt1D = ielement.GetwInt1D();
 
 	// Instantiate the tensor-product containers in iZone and jZone.
-	mITensorProductContainer = CGenericFactory::CreateTensorContainer( &ielement );
-	mJTensorProductContainer = CGenericFactory::CreateTensorContainer( &jelement );
+	mITensorProductContainer = CGenericFactory::CreateTensorContainer( &ielement, isolver->GetnVar() );
+	mJTensorProductContainer = CGenericFactory::CreateTensorContainer( &jelement, jsolver->GetnVar() );
 
 	// Extract the type of Riemann solver in each zone.
-	auto iriemann = solver_container[mIZone]->GetRiemannSolver()->GetTypeRiemannSolver();  
-	auto jriemann = solver_container[mJZone]->GetRiemannSolver()->GetTypeRiemannSolver();
+	auto iriemann = isolver->GetRiemannSolver()->GetTypeRiemannSolver(); 
+	auto jriemann = jsolver->GetRiemannSolver()->GetTypeRiemannSolver();
 	
 	// For now, force the Riemann solvers in both zones to be identical.
 	if( iriemann != jriemann )
@@ -271,7 +274,7 @@ CEEInterface::CEEInterface
 	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer( config_container, iriemann );
 
 	// Ensure the number of working variables in the iZone is as expected.
-	if( mNVar != solver_container[mIZone]->GetnVar() )
+	if( mNVar != isolver->GetnVar() )
 	{
 		ERROR("Number of variables mismatches in iZone: " + std::to_string(mIZone));
 	}
@@ -300,7 +303,7 @@ void CEEInterface::ComputeInterfaceResidual
 (
  as3vector1d<std::unique_ptr<ISolver>> &solver_container,
  const CInterfaceFacesFamily           &family_face,
- CElementFaceIndex                      face_info,
+ CFlattenedFaceIndex                    face_info,
  CPoolMatrixAS3<as3double>             &workarray,
  as3double                              localtime
 )
@@ -398,18 +401,24 @@ void CEEInterface::ComputeInterfaceResidual
   auto* riemann_solver_p = solver_p->GetRiemannSolver();
 
 
+  // Consistency check.
+  if( tensor_container_m->GetnVar() != tensor_container_p->GetnVar() )
+  {
+    ERROR("Number of variables in the tensor containers do not match.");
+  }
+
   // Temporary lambda to determine which surface interpolation function to use.
   auto lGetFuncPointerInterpFace = [](auto* tensor_container, EFaceLocation face_location)
   {
 	  // Create a function pointer for the iface in the imarker.
-	  std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FInterpFace;
+	  std::function<void(const as3double*, as3double*, as3double*, as3double*)> FInterpFace;
 
 	  // Definitions of the four interpolation functions on the (owner) iface, 
 	  // which are given as lambda's that bind to std::function.
-	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->SurfaceIMIN(in...); };
-	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->SurfaceIMAX(in...); };
-	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->SurfaceJMIN(in...); };
-	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->SurfaceJMAX(in...); };
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceJMAX(in...); };
 
 	  // Assign the appropriate interpolation functions for the (owner) iface.
 	  switch(face_location)
@@ -433,14 +442,14 @@ void CEEInterface::ComputeInterfaceResidual
   auto lGetSurfaceResidualFace = [](auto* tensor_container, EFaceLocation face_location)
   {
 	  // Create a function pointer for the iface in the imarker.
-	  std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FResFace;
+	  std::function<void(const as3double*, as3double*, as3double*, as3double*)> FResFace;
 
 	  // Definitions of the four interpolation functions on the (owner) iface, 
 	  // which are given as lambda's that bind to std::function.
-	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->ResidualSurfaceIMIN(in...); };
-	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->ResidualSurfaceIMAX(in...); };
-	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->ResidualSurfaceJMIN(in...); };
-	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->ResidualSurfaceJMAX(in...); };
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceJMAX(in...); };
 
 	  // Assign the appropriate interpolation functions for the (owner) iface.
 	  switch(face_location)
@@ -461,10 +470,10 @@ void CEEInterface::ComputeInterfaceResidual
 
 
 	// Compute the solution on the integration nodes of the owner element.
-	InterpSurface_M(nVar, sol_m.data(), var_m.data(), nullptr, nullptr); 
+	InterpSurface_M(sol_m.data(), var_m.data(), nullptr, nullptr); 
 
 	// Compute the solution on the integration nodes of the matching element.
-	InterpSurface_P(nVar, sol_p.data(), var_p.data(), nullptr, nullptr); 
+	InterpSurface_P(sol_p.data(), var_p.data(), nullptr, nullptr); 
 
 
 
@@ -472,14 +481,14 @@ void CEEInterface::ComputeInterfaceResidual
   riemann_solver_m->ComputeFlux(wInt1D, met_m, var_m, var_p, flux);
 
   // Compute the residual on the owned element, which is on the iface boundary.
-  ComputeResFace_M(nVar, flux.data(), nullptr, nullptr, res_m->data());
+  ComputeResFace_M(flux.data(), nullptr, nullptr, res_m->data());
 
 	// For local conservation, negate the flux, since it leaves the owner element 
 	// to enter the matching element.
 	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the matching element, which is on the jface boundary.
-	ComputeResFace_P(nVar, flux.data(), nullptr, nullptr, res_p->data());
+	ComputeResFace_P(flux.data(), nullptr, nullptr, res_p->data());
 
 
   // XXX: DEBUGGING end 

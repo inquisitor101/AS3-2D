@@ -8,15 +8,17 @@
 
 COpenMP::COpenMP
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ CConfig *config_container
 )
  /*
 	* Constructor for the OpenMP shared memory parallelization class.
 	*/
 {
-
+#ifdef HAVE_OPENMP
+  mNThread = omp_get_max_threads();
+#else
+  mNThread = 1;
+#endif
 }
 
 //-----------------------------------------------------------------------------------

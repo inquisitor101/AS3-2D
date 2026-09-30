@@ -90,7 +90,8 @@ void CGeometry::CheckExistanceGridFiles
 
 void CGeometry::InitializeGridTopology
 (
- const CConfig *config_container
+ const CConfig *config_container,
+ const COpenMP *openmp_container
 )
  /*
 	*
@@ -101,6 +102,62 @@ void CGeometry::InitializeGridTopology
 
 	// Initialize the faces in the j-direction.
 	mMultizoneJFaces.InitializeFaces(config_container, this);
+
+
+
+  // Temporary lambda to flatten the face indices for a given multizone face container.
+  const auto lFlattenFaceIndices = [](const auto& multizone_faces, auto& flattened_indices)
+  {
+    // Extract the number of faces.
+    const auto nFaces = multizone_faces.GetnFacesTotal();
+    
+    // Reserve memory preciselty as needed.
+    flattened_indices.reserve(nFaces);
+ 
+    // Loop over each face and construct its indicial mapping.
+    for (auto i=0; i<nFaces; i++)
+    {
+      // Get the current face type.
+      const auto face_type = multizone_faces.DeduceFaceTypeFromIndex(i);
+  
+      // Define the local face index according to its type.
+      size_t iFaceLocal;
+
+      // Define the local face infomation according to its type.
+      CElementFaceIndex face_info;
+
+      switch (face_type)
+      {
+        case ETypeFaceGeometry::INTERNAL:
+          iFaceLocal = multizone_faces.GetIndexInternalFace(i);
+          face_info  = multizone_faces.FindInternalElementFaceIndex(iFaceLocal);
+          break;
+  
+        case ETypeFaceGeometry::BOUNDARY:
+          iFaceLocal = multizone_faces.GetIndexBoundaryFace(i);
+          //face_info  = multizone_faces.FindBoundaryElementFaceIndex(iFaceLocal);
+          ERROR("Not yet completed, must be finished!");
+          break;
+  
+        case ETypeFaceGeometry::INTERFACE:
+          iFaceLocal = multizone_faces.GetIndexInterfaceFace(i);
+          face_info  = multizone_faces.FindInterfaceElementFaceIndex(iFaceLocal);
+          break;
+  
+        default:
+          ERROR("Unknown face type.");
+      }
+  
+      // Store the flattened face index.
+      flattened_indices.emplace_back( CFlattenedFaceIndex{face_info.mIndexFamily, face_info.mIndexFace, face_type} );
+    }
+  };
+
+
+  // Initialize the flattened facial indices in the i- and j-directions.
+  lFlattenFaceIndices(mMultizoneIFaces, mFlattenedIndexIFace);
+  lFlattenFaceIndices(mMultizoneJFaces, mFlattenedIndexJFace);
+
 
 
 	// Deduce the total number of elements in the entire multizone grid.
@@ -115,9 +172,23 @@ void CGeometry::InitializeGridTopology
 	{
 		for(size_t iElem=0; iElem<mZoneGeometry[iZone]->GetnElem(); iElem++)
 		{
-			mFlattenedIndexVolumeElement.emplace_back( CElementIndex{iZone, iElem} ); 
+			mFlattenedIndexVolumeElement.emplace_back( CFlattenedElementIndex{iZone, iElem} ); 
 		}
 	}
+
+
+  // For load-balancing reasons, select the number of chunks to be equal to the number of OpenMP threads. 
+  const size_t nChunk = openmp_container->GetnThread();
+
+  // Obtain a better load-balanced face partitioning strategy for the i-faces.
+  mIFaceLoadBalancedPermutation = CLoadBalancedFacePermutation( mFlattenedIndexIFace, 
+                                                                nChunk, 
+                                                                EFaceLoadBalanceStrategy::GREEDY);
+  
+  // Obtain a better load-balanced face partitioning strategy for the j-faces.
+  mJFaceLoadBalancedPermutation = CLoadBalancedFacePermutation( mFlattenedIndexJFace,
+                                                                nChunk,
+                                                                EFaceLoadBalanceStrategy::GREEDY);
 }
 
 

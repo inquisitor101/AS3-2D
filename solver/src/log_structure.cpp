@@ -280,9 +280,24 @@ void NLogger::DisplayOpenMPInfo
   // Estimate computational work load of each thread.
   as3vector1d<size_t> workloadDOFs(nThreads, 0);
 	as3vector1d<size_t> workloadElem(nThreads, 0);
-	as3vector1d<size_t> workloadIDir(nThreads, 0);
-	as3vector1d<size_t> workloadJDir(nThreads, 0);
+	as3vector1d<size_t> workloadIFace(nThreads, 0);
+	as3vector1d<size_t> workloadJFace(nThreads, 0);
 
+  as3vector1d<size_t> workloadIFaceInternal_standard(nThreads,  0);
+  as3vector1d<size_t> workloadIFaceBoundary_standard(nThreads,  0);
+  as3vector1d<size_t> workloadIFaceInterface_standard(nThreads, 0);
+
+  as3vector1d<size_t> workloadIFaceInternal_balanced(nThreads,  0);
+  as3vector1d<size_t> workloadIFaceBoundary_balanced(nThreads,  0);
+  as3vector1d<size_t> workloadIFaceInterface_balanced(nThreads, 0);
+
+  as3vector1d<size_t> workloadJFaceInternal_standard(nThreads,  0);
+  as3vector1d<size_t> workloadJFaceBoundary_standard(nThreads,  0);
+  as3vector1d<size_t> workloadJFaceInterface_standard(nThreads, 0);
+
+  as3vector1d<size_t> workloadJFaceInternal_balanced(nThreads,  0);
+  as3vector1d<size_t> workloadJFaceBoundary_balanced(nThreads,  0);
+  as3vector1d<size_t> workloadJFaceInterface_balanced(nThreads, 0);
 
 	// Estimate the i-surface workload.
 #pragma omp parallel for schedule(static)
@@ -292,7 +307,29 @@ void NLogger::DisplayOpenMPInfo
     const size_t iThread = omp_get_thread_num();
 
 		// Accumulate the number of elements per thread.
-		workloadIDir[iThread]++;
+		workloadIFace[iThread]++;
+
+    // Get the relevant face information for the standard and load-balanced partitions.
+    const auto face_info_standard = geometry_container->GetFlattenedIndexIFace(i);
+    const auto face_info_balanced = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+
+    // Estimate the work load for the standard approach.
+    switch( face_info_standard.mFaceType )
+    {
+      case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_standard[iThread]++;  break; }
+      case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_standard[iThread]++;  break; }
+      case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_standard[iThread]++; break; }
+      default: ERROR("Unknown face type.");
+    }
+
+    // Then, estimate the workload for the load-balanced approach.
+    switch( face_info_balanced.mFaceType )
+    {
+      case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_balanced[iThread]++;  break; }
+      case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_balanced[iThread]++;  break; }
+      case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_balanced[iThread]++; break; }
+      default: ERROR("Unknown face type.");
+    }
 	}
 
 	// Estimate the j-surface workload.
@@ -303,8 +340,30 @@ void NLogger::DisplayOpenMPInfo
     const size_t iThread = omp_get_thread_num();
 
 		// Accumulate the number of elements per thread.
-		workloadJDir[iThread]++;
-	}
+		workloadJFace[iThread]++;
+	
+    // Get the relevant face information for the standard and load-balanced partitions.
+    const auto face_info_standard = geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info_balanced = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+
+    // Estimate the work load for the standard approach.
+    switch( face_info_standard.mFaceType )
+    {
+      case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_standard[iThread]++;  break; }
+      case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_standard[iThread]++;  break; }
+      case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_standard[iThread]++; break; }
+      default: ERROR("Unknown face type.");
+    }
+
+    // Then, estimate the workload for the load-balanced approach.
+    switch( face_info_balanced.mFaceType )
+    {
+      case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_balanced[iThread]++;  break; }
+      case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_balanced[iThread]++;  break; }
+      case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_balanced[iThread]++; break; }
+      default: ERROR("Unknown face type.");
+    }
+  }
 
 	// Estimate the elements' workload.
 #pragma omp parallel for schedule(static)
@@ -327,6 +386,7 @@ void NLogger::DisplayOpenMPInfo
 		workloadDOFs[iThread] += solver_container[iZone]->GetStandardElement()->GetnSol2D(); 
   }
 
+
   // Compute the number of max digits needed for the output.
   size_t nDigits = 0;
   for( auto& work: workloadDOFs ) nDigits = std::max( nDigits, work );
@@ -338,9 +398,27 @@ void NLogger::DisplayOpenMPInfo
   for(size_t i=0; i<workloadDOFs.size(); i++)
     std::cout << "  Thread(" << i << ") has:\n" 
 			        << "   (*) " << std::setw(nDigits)
-			        << workloadIDir[i] << " [nIFace/thread]\n"
-							<< "   (*) " << std::setw(nDigits)
-							<< workloadJDir[i] << " [nJFace/thread]\n"
+			        << workloadIFace[i] << " [nIFace/thread]\n"
+							<< "      -> " << std::setw(nDigits)
+              << workloadIFaceInternal_standard[i]  << " [nInternalIFace/thread]  (standard)\t" << std::setw(nDigits)  
+              << workloadIFaceInternal_balanced[i]  << " [nInternalIFace/thread]  (balanced)\n" << std::setw(nDigits)
+              << "      -> " << std::setw(nDigits)
+              << workloadIFaceBoundary_standard[i]  << " [nBoundaryIFace/thread]  (standard)\t" << std::setw(nDigits)
+              << workloadIFaceBoundary_balanced[i]  << " [nBoundaryIFace/thread]  (balanced)\n" << std::setw(nDigits)
+              << "      -> " << std::setw(nDigits)
+              << workloadIFaceInterface_standard[i] << " [nInterfaceIFace/thread] (standard)\t" << std::setw(nDigits)
+              << workloadIFaceInterface_balanced[i] << " [nInterfaceIFace/thread] (balanced)\n" << std::setw(nDigits)
+              << "   (*) " << std::setw(nDigits)
+							<< workloadJFace[i] << " [nJFace/thread]\n"
+							<< "      -> " << std::setw(nDigits)
+              << workloadJFaceInternal_standard[i]  << " [nInternalJFace/thread]  (standard)\t" << std::setw(nDigits) 
+              << workloadJFaceInternal_balanced[i]  << " [nInternalJFace/thread]  (balanced)\n" << std::setw(nDigits)
+              << "      -> " << std::setw(nDigits)
+              << workloadJFaceBoundary_standard[i]  << " [nBoundaryJFace/thread]  (standard)\t" << std::setw(nDigits)
+              << workloadJFaceBoundary_balanced[i]  << " [nBoundaryJFace/thread]  (balanced)\n" << std::setw(nDigits)
+              << "      -> " << std::setw(nDigits)
+              << workloadJFaceInterface_standard[i] << " [nInterfaceJFace/thread] (standard)\t" << std::setw(nDigits)
+              << workloadJFaceInterface_balanced[i] << " [nInterfaceJFace/thread] (balanced)\n" << std::setw(nDigits)
 							<< "   (*) " << std::setw(nDigits)
 			        << workloadElem[i] << " [nElement/thread]\n"
 							<< "   (*) " << std::setw(nDigits)

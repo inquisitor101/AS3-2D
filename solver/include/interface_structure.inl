@@ -15,14 +15,14 @@ auto IInterface::GetFuncPointerInterpFaceI
 	*/
 {
 	// Create a function pointer for the iface in the imarker.
-	std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FInterpFaceI;
+	std::function<void(const as3double*, as3double*, as3double*, as3double*)> FInterpFaceI;
 
 	// Definitions of the four interpolation functions on the (owner) iface, 
 	// which are given as lambda's that bind to std::function.
-	auto iSurfIMIN = [this](auto... in){ mITensorProductContainer->SurfaceIMIN(in...); };
-	auto iSurfIMAX = [this](auto... in){ mITensorProductContainer->SurfaceIMAX(in...); };
-	auto iSurfJMIN = [this](auto... in){ mITensorProductContainer->SurfaceJMIN(in...); };
-	auto iSurfJMAX = [this](auto... in){ mITensorProductContainer->SurfaceJMAX(in...); };
+	auto iSurfIMIN = [this](auto... in){ mITensorProductContainer->CompileTimeSurfaceIMIN(in...); };
+	auto iSurfIMAX = [this](auto... in){ mITensorProductContainer->CompileTimeSurfaceIMAX(in...); };
+	auto iSurfJMIN = [this](auto... in){ mITensorProductContainer->CompileTimeSurfaceJMIN(in...); };
+	auto iSurfJMAX = [this](auto... in){ mITensorProductContainer->CompileTimeSurfaceJMAX(in...); };
 
 	// Assign the appropriate interpolation functions for the (owner) iface.
 	switch(mIFace)
@@ -50,14 +50,14 @@ auto IInterface::GetFuncPointerInterpFaceJ
 	*/
 {
 	// Create a function pointer for the jface in the jmarker.
-	std::function<void(const size_t, const as3double*, as3double*, as3double*, as3double*)> FInterpFaceJ;
+	std::function<void(const as3double*, as3double*, as3double*, as3double*)> FInterpFaceJ;
 
 	// Definitions of the four interpolation functions on the (matching) jface, 
 	// which are given as lambda's that bind to std::function.
-	auto jSurfIMIN = [this](auto... in){ mJTensorProductContainer->SurfaceIMIN(in...); };
-	auto jSurfIMAX = [this](auto... in){ mJTensorProductContainer->SurfaceIMAX(in...); };
-	auto jSurfJMIN = [this](auto... in){ mJTensorProductContainer->SurfaceJMIN(in...); };
-	auto jSurfJMAX = [this](auto... in){ mJTensorProductContainer->SurfaceJMAX(in...); };
+	auto jSurfIMIN = [this](auto... in){ mJTensorProductContainer->CompileTimeSurfaceIMIN(in...); };
+	auto jSurfIMAX = [this](auto... in){ mJTensorProductContainer->CompileTimeSurfaceIMAX(in...); };
+	auto jSurfJMIN = [this](auto... in){ mJTensorProductContainer->CompileTimeSurfaceJMIN(in...); };
+	auto jSurfJMAX = [this](auto... in){ mJTensorProductContainer->CompileTimeSurfaceJMAX(in...); };
 
 	// Assign the appropriate interpolation functions for the (matching) jface.
 	switch(mJFace)
@@ -85,14 +85,14 @@ auto IInterface::GetFuncPointerResidualFaceI
 	*/
 {
 	// Create a function pointer for the iface in the imarker.
-	std::function<void(const size_t, const as3double*, const as3double*, const as3double*, as3double*)> FResFaceI;
+	std::function<void(const as3double*, const as3double*, const as3double*, as3double*)> FResFaceI;
 
 	// Definitions of the four interpolation functions on the (owner) iface, 
 	// which are given as lambda's that bind to std::function.
-	auto iSurfIMIN = [this](auto... in){ mITensorProductContainer->ResidualSurfaceIMIN(in...); };
-	auto iSurfIMAX = [this](auto... in){ mITensorProductContainer->ResidualSurfaceIMAX(in...); };
-	auto iSurfJMIN = [this](auto... in){ mITensorProductContainer->ResidualSurfaceJMIN(in...); };
-	auto iSurfJMAX = [this](auto... in){ mITensorProductContainer->ResidualSurfaceJMAX(in...); };
+	auto iSurfIMIN = [this](auto... in){ mITensorProductContainer->CompileTimeResidualSurfaceIMIN(in...); };
+	auto iSurfIMAX = [this](auto... in){ mITensorProductContainer->CompileTimeResidualSurfaceIMAX(in...); };
+	auto iSurfJMIN = [this](auto... in){ mITensorProductContainer->CompileTimeResidualSurfaceJMIN(in...); };
+	auto iSurfJMAX = [this](auto... in){ mITensorProductContainer->CompileTimeResidualSurfaceJMAX(in...); };
 
 	// Assign the appropriate interpolation functions for the (owner) iface.
 	switch(mIFace)
@@ -120,14 +120,14 @@ auto IInterface::GetFuncPointerResidualFaceJ
 	*/
 {
 	// Create a function pointer for the jface in the jmarker.
-	std::function<void(const size_t, const as3double*, const as3double*, const as3double*, as3double*)> FResFaceJ;
+	std::function<void(const as3double*, const as3double*, const as3double*, as3double*)> FResFaceJ;
 
 	// Definitions of the four interpolation functions on the (matching) jface, 
 	// which are given as lambda's that bind to std::function.
-	auto jSurfIMIN = [this](auto... in){ mJTensorProductContainer->ResidualSurfaceIMIN(in...); };
-	auto jSurfIMAX = [this](auto... in){ mJTensorProductContainer->ResidualSurfaceIMAX(in...); };
-	auto jSurfJMIN = [this](auto... in){ mJTensorProductContainer->ResidualSurfaceJMIN(in...); };
-	auto jSurfJMAX = [this](auto... in){ mJTensorProductContainer->ResidualSurfaceJMAX(in...); };
+	auto jSurfIMIN = [this](auto... in){ mJTensorProductContainer->CompileTimeResidualSurfaceIMIN(in...); };
+	auto jSurfIMAX = [this](auto... in){ mJTensorProductContainer->CompileTimeResidualSurfaceIMAX(in...); };
+	auto jSurfJMIN = [this](auto... in){ mJTensorProductContainer->CompileTimeResidualSurfaceJMIN(in...); };
+	auto jSurfJMAX = [this](auto... in){ mJTensorProductContainer->CompileTimeResidualSurfaceJMAX(in...); };
 
 	// Assign the appropriate interpolation functions for the (matching) jface.
 	switch(mJFace)

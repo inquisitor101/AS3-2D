@@ -6,7 +6,7 @@
 //-----------------------------------------------------------------------------------
 
 
-void ITensorProduct::CustomVolume
+void ITensorProduct::RuntimeVolume
 (
  size_t           K,
  size_t           N,
@@ -130,7 +130,7 @@ void ITensorProduct::CustomVolume
 
 //-----------------------------------------------------------------------------------
 
-void ITensorProduct::CustomSurfaceIMIN
+void ITensorProduct::RuntimeSurfaceIMIN
 (
  size_t           K,
  size_t           N,
@@ -229,7 +229,7 @@ void ITensorProduct::CustomSurfaceIMIN
 
 //-----------------------------------------------------------------------------------
 
-void ITensorProduct::CustomSurfaceIMAX
+void ITensorProduct::RuntimeSurfaceIMAX
 (
  size_t           K,
  size_t           N,
@@ -328,7 +328,7 @@ void ITensorProduct::CustomSurfaceIMAX
 
 //-----------------------------------------------------------------------------------
 
-void ITensorProduct::CustomSurfaceJMIN
+void ITensorProduct::RuntimeSurfaceJMIN
 (
  size_t           K,
  size_t           N,
@@ -427,7 +427,7 @@ void ITensorProduct::CustomSurfaceJMIN
 
 //-----------------------------------------------------------------------------------
 
-void ITensorProduct::CustomSurfaceJMAX
+void ITensorProduct::RuntimeSurfaceJMAX
 (
  size_t           K,
  size_t           N,

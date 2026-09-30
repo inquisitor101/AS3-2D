@@ -690,10 +690,10 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 					CMatrixAS3<as3double> derLagrangeSol1DTrans = solver->GetStandardElement()->GetDerLagrangeSol1DTrans();
 
 					// Compute the gradient of the velocity.
-					solver->GetTensorProduct()->CustomVolume(nSol1D, 2, nSol1D,
-							                                     identity.data(), derLagrangeSol1DTrans.data(),
-															                     &primvar[nNode], nullptr,
-															                     dUDx.data(), dUDy.data());
+					solver->GetTensorProduct()->RuntimeVolume(nSol1D, 2, nSol1D,
+							                                      identity.data(), derLagrangeSol1DTrans.data(),
+															                      &primvar[nNode], nullptr,
+															                      dUDx.data(), dUDy.data());
 
 					// Extract the metrics at the volume solution points.
 					auto& metrics = solver->GetPhysicalElement(ijElem)->mMetricSol2D;
