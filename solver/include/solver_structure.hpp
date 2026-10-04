@@ -20,11 +20,12 @@ class IInterface;
 class CMultizoneSolver
 {
   public:
-    CMultizoneSolver(const CConfig   *config_container,
-                     const CGeometry *geometry_container);
+    
+    CMultizoneSolver(const CConfig            *config_container,
+                     const CMultizoneGeometry *multizone_geometry_container);
 
-    void InitializeInterfaces(const CConfig   *config_container,
-                              const CGeometry *geometry_container);
+    void InitializeInterfaces(const CConfig            *config_container,
+                              const CMultizoneGeometry *multizone_geometry_container);
 
     
     const ISolver* GetSinglezoneSolver(size_t iSolver) const 
@@ -87,9 +88,9 @@ class ISolver
 {
 	public:
 		
-		ISolver(const CConfig       *config_container,
-				    const CZoneGeometry *zone_geometry,
-            unsigned short       nVar);
+		ISolver(const CConfig             *config_container,
+				    const CSinglezoneGeometry *singlezone_geometry_container,
+            unsigned short             nVar);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -106,10 +107,10 @@ class ISolver
 		 * @brief Pure virtual function that initializes the physical elements. Must be implemented in a derived class.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input multizone geometry container.
 		 */
-		virtual void InitPhysicalElements(CConfig   *config_container,
-				                              CGeometry *geometry_container) = 0;
+		virtual void InitPhysicalElements(const CConfig            *config_container,
+				                              const CMultizoneGeometry *multizone_geometry_container) = 0;
 
 		/*!
 		 * @brief Pure virtual function that initializes the boundary conditions. Must be implemented in a derived class.
@@ -117,28 +118,28 @@ class ISolver
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 */
-		virtual void InitBoundaryConditions(CConfig   *config_container,
-				                                CGeometry *geometry_container) = 0;
+		virtual void InitBoundaryConditions(const CConfig            *config_container,
+				                                const CMultizoneGeometry *multizone_geometry_container) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the volume terms for a given element.
 		 *
-		 * @param[in] grid_zone geometry of the current grid zone. 
+		 * @param[in] singlezone_container geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 * @param[in] iElem current element index.
 		 */
-		virtual void ComputeVolumeResidual(CZoneGeometry             *grid_zone,
+		virtual void ComputeVolumeResidual(CSinglezoneGeometry       *singlezone_container,
 																			 CPoolMatrixAS3<as3double> &workarray,
 																			 as3double                  localtime,
 																			 size_t                     iElem) = 0;
 
-		virtual void ComputeSurfaceResidualIDir(const CZoneGeometry       *grid_zone,
+		virtual void ComputeSurfaceResidualIDir(const CSinglezoneGeometry *singlezone_container,
 				                                    CPoolMatrixAS3<as3double> &workarray,
 																					  as3double                  localtime,
 																					  size_t                     iElemL) = 0;
 		
-    virtual void ComputeSurfaceResidualJDir(const CZoneGeometry       *grid_zone,
+    virtual void ComputeSurfaceResidualJDir(const CSinglezoneGeometry *singlezone_container,
 				                                    CPoolMatrixAS3<as3double> &workarray,
 																					  as3double                  localtime,
 																					  size_t                     iElemB) = 0;
@@ -224,8 +225,8 @@ class CEESolver : public ISolver
 {
 	public:
 
-		CEESolver(const CConfig       *config_container,
-				      const CZoneGeometry *zone_geometry);
+		CEESolver(const CConfig             *config_container,
+				      const CSinglezoneGeometry *singlezone_geometry_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -243,8 +244,8 @@ class CEESolver : public ISolver
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 */
-		void InitPhysicalElements(CConfig   *config_container,
-				                      CGeometry *geometry_container) override;
+		void InitPhysicalElements(const CConfig            *config_container,
+				                      const CMultizoneGeometry *multizone_geometry_container) override;
 
 		/*!
 		 * @brief Function that initializes the boundary conditions. 
@@ -252,29 +253,29 @@ class CEESolver : public ISolver
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 */
-		void InitBoundaryConditions(CConfig   *config_container,
-		                            CGeometry *geometry_container) override;
+		void InitBoundaryConditions(const CConfig            *config_container,
+		                            const CMultizoneGeometry *multizone_geometry_container) override;
 
 		/*!
 		 * @brief Function that computes the volume terms for a given element, based on the EE.
 		 * 
-		 * @param[in] grid_zone geometry of the current grid zone. 
+		 * @param[in] singlezone_geometry_container geometry of the current grid zone. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 * @param[in] iElem current element index.
 		 */
-		void ComputeVolumeResidual(CZoneGeometry             *grid_zone,
+		void ComputeVolumeResidual(CSinglezoneGeometry       *singlezone_geometry_container,
 				                       CPoolMatrixAS3<as3double> &workarray,
 															 as3double                  localtime,
 															 size_t                     iElem) override;
 
 
-		void ComputeSurfaceResidualIDir(const CZoneGeometry       *grid_zone,
+		void ComputeSurfaceResidualIDir(const CSinglezoneGeometry *singlezone_geometry_container,
 		                                CPoolMatrixAS3<as3double> &workarray,
 																	  as3double                  localtime,
 																	  size_t                     iElemL) final;
 
-		void ComputeSurfaceResidualJDir(const CZoneGeometry       *grid_zone,
+		void ComputeSurfaceResidualJDir(const CSinglezoneGeometry *singlezone_geometry_container,
 		                                CPoolMatrixAS3<as3double> &workarray,
 																	  as3double                  localtime,
 																	  size_t                     iElemB) final;

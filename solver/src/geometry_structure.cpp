@@ -3,11 +3,11 @@
 
 
 //-----------------------------------------------------------------------------------
-// CGeometry member functions.
+// CMultizoneGeometry member functions.
 //-----------------------------------------------------------------------------------
 
 
-CGeometry::CGeometry
+CMultizoneGeometry::CMultizoneGeometry
 (
  CConfig *config_container
 )
@@ -21,20 +21,20 @@ CGeometry::CGeometry
 	CheckExistanceGridFiles(config_container);
 
 	// Reserve memory for the grid zones.
-	mZoneGeometry.resize(mNZone);
+	mSinglezoneGeometry.resize(mNZone);
 
 	// Indentify the information in each grid zone, separately.
 	for(unsigned short iZone=0; iZone<mNZone; iZone++)
 	{
-		mZoneGeometry[iZone] = std::make_unique<CZoneGeometry>(config_container,
-																						               config_container->GetZoneGridFilename(iZone),
-																						               iZone);	
+		mSinglezoneGeometry[iZone] = std::make_unique<CSinglezoneGeometry>(config_container,
+																						                           config_container->GetZoneGridFilename(iZone),
+																						                           iZone);	
 	}
 }
 
 //-----------------------------------------------------------------------------------
 
-CGeometry::~CGeometry
+CMultizoneGeometry::~CMultizoneGeometry
 (
  void
 )
@@ -47,7 +47,7 @@ CGeometry::~CGeometry
 
 //-----------------------------------------------------------------------------------
 
-void CGeometry::CheckExistanceGridFiles
+void CMultizoneGeometry::CheckExistanceGridFiles
 (
  CConfig *config_container
 )
@@ -88,7 +88,7 @@ void CGeometry::CheckExistanceGridFiles
 
 //-----------------------------------------------------------------------------------
 
-void CGeometry::InitializeGridTopology
+void CMultizoneGeometry::InitializeGridTopology
 (
  const CConfig *config_container,
  const COpenMP *openmp_container
@@ -102,7 +102,6 @@ void CGeometry::InitializeGridTopology
 
 	// Initialize the faces in the j-direction.
 	mMultizoneJFaces.InitializeFaces(config_container, this);
-
 
 
   // Temporary lambda to flatten the face indices for a given multizone face container.
@@ -162,15 +161,15 @@ void CGeometry::InitializeGridTopology
 
 	// Deduce the total number of elements in the entire multizone grid.
 	mNElemTotal = 0;
-	for( const auto& zone : mZoneGeometry ) mNElemTotal += zone->GetnElem();
+	for( const auto& zone : mSinglezoneGeometry ) mNElemTotal += zone->GetnElem();
 
 	// Reserve the needed memory for the element indices.
 	mFlattenedIndexVolumeElement.reserve( mNElemTotal );
 
 	// Deduce the flattening strategy of the elements.
-	for(unsigned short iZone=0; iZone<mZoneGeometry.size(); iZone++)
+	for(unsigned short iZone=0; iZone<mSinglezoneGeometry.size(); iZone++)
 	{
-		for(size_t iElem=0; iElem<mZoneGeometry[iZone]->GetnElem(); iElem++)
+		for(size_t iElem=0; iElem<mSinglezoneGeometry[iZone]->GetnElem(); iElem++)
 		{
 			mFlattenedIndexVolumeElement.emplace_back( CFlattenedElementIndex{iZone, iElem} ); 
 		}
@@ -194,11 +193,11 @@ void CGeometry::InitializeGridTopology
 
 
 //-----------------------------------------------------------------------------------
-// CZoneGeometry member functions.
+// CSinglezoneGeometry member functions.
 //-----------------------------------------------------------------------------------
 
 
-CZoneGeometry::CZoneGeometry
+CSinglezoneGeometry::CSinglezoneGeometry
 (
  CConfig        *config_container,
  std::string     gridfile,
@@ -218,7 +217,7 @@ CZoneGeometry::CZoneGeometry
 
 //-----------------------------------------------------------------------------------
 
-CZoneGeometry::~CZoneGeometry
+CSinglezoneGeometry::~CSinglezoneGeometry
 (
  void
 )
@@ -231,7 +230,7 @@ CZoneGeometry::~CZoneGeometry
 
 //-----------------------------------------------------------------------------------
 
-void CZoneGeometry::GenerateNodalFaceIndices
+void CSinglezoneGeometry::GenerateNodalFaceIndices
 (
  void
 )
@@ -265,10 +264,10 @@ void CZoneGeometry::GenerateNodalFaceIndices
 
 //-----------------------------------------------------------------------------------
 
-void CZoneGeometry::InitializeElements
+void CSinglezoneGeometry::InitializeElements
 (
- as3vector2d<double> &x,
- as3vector2d<double> &y,
+ as3vector2d<double> &xcoor,
+ as3vector2d<double> &ycoor,
  unsigned int         niElem,
  unsigned int         njElem
 )
@@ -277,35 +276,38 @@ void CZoneGeometry::InitializeElements
 	*/
 {
 	// Deduce the number of elements and ensure consistency.
-	if( x.size() != y.size() ) ERROR("Number of coordinates in x and y is not identical.");
+	if( xcoor.size() != ycoor.size() ) ERROR("Number of coordinates in x and y is not identical.");
 
 	// Ensure the total number of elements is correct.
-	if( static_cast<size_t>(niElem*njElem) != x.size() ) ERROR("Inconsistency in number of elements.");
+	if( static_cast<size_t>(niElem*njElem) != xcoor.size() ) ERROR("Inconsistency in number of elements.");
 
 	// Set the number of elements in each dimension.
 	mNiElem = niElem;
 	mNjElem = njElem;
 
 	// Allocate memory for the total elements.
-	mElementGeometry.resize( x.size() );
+	mElementGeometry.resize( xcoor.size() );
 
 	// Total number of grid nodes in 2D, as user-specified.
 	const size_t nNode2D = (mNPolyGrid+1)*(mNPolyGrid+1);
 
 	// Loop over each element and instantiate its coordinates.
-	for(size_t i=0; i<x.size(); i++)
+	for(size_t i=0; i<xcoor.size(); i++)
 	{
 		// Ensure the polynomial order is correct.
-		if( (x[i].size() != nNode2D) || (y[i].size() != nNode2D) ) ERROR("Elements do not match polynomial order.");
+		if( (xcoor[i].size() != nNode2D) || (ycoor[i].size() != nNode2D) )
+    {
+      ERROR("Elements do not match polynomial order.");
+    }
 
 		// Instantiate the current element.
-		mElementGeometry[i] = std::make_unique<CElementGeometry>( x[i], y[i] );
+		mElementGeometry[i] = std::make_unique<CElementGeometry>( xcoor[i], ycoor[i] );
 	}
 }
 
 //-----------------------------------------------------------------------------------
 
-void CZoneGeometry::InitializeMarkers
+void CSinglezoneGeometry::InitializeMarkers
 (
  CConfig                   *config_container,
  as3vector2d<unsigned int>  &mark,

@@ -36,16 +36,16 @@ class CIteration
 		 * @brief Function that performs a grid sweep over all the zones.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] localtime local physical time.
 		 */
-		void GridSweep(CConfig          *config_container,
-		               CGeometry        *geometry_container,
-									 COpenMP          *openmp_container,
-									 CMultizoneSolver *multizone_solver_container,
-									 as3double         localtime);
+		void GridSweep(CConfig            *config_container,
+		               CMultizoneGeometry *multizone_geometry_container,
+									 COpenMP            *openmp_container,
+									 CMultizoneSolver   *multizone_solver_container,
+									 as3double           localtime);
 
 	protected:
 
@@ -56,14 +56,14 @@ class CIteration
 		 * @brief Function that preprocesses the solution, before sweeping the grid.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
 		void PreProcessIteration(CConfig                   *config_container,
-		                         CGeometry                 *geometry_container,
+		                         CMultizoneGeometry        *multizone_geometry_container,
 														 COpenMP                   *openmp_container,
 									           CMultizoneSolver          *multizone_solver_container,
 									           CPoolMatrixAS3<as3double> &workarray,
@@ -73,14 +73,14 @@ class CIteration
 		 * @brief Function that postprocesses the solution, after sweeping the grid.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
 		void PostProcessIteration(CConfig                   *config_container,
-		                          CGeometry                 *geometry_container,
+		                          CMultizoneGeometry        *multizone_geometry_container,
 															COpenMP                   *openmp_container,
 									            CMultizoneSolver          *multizone_solver_container,
 									            CPoolMatrixAS3<as3double> &workarray,
@@ -90,14 +90,14 @@ class CIteration
 		 * @brief Function that computes the residual in all zones.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
 		void ComputeResiduals(CConfig                   *config_container,
-		                      CGeometry                 *geometry_container,
+		                      CMultizoneGeometry        *multizone_geometry_container,
 												  COpenMP                   *openmp_container,
 									        CMultizoneSolver          *multizone_solver_container,
 									        CPoolMatrixAS3<as3double> &workarray,

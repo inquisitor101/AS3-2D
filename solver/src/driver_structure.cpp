@@ -21,7 +21,7 @@ CDriver::CDriver
 	mOpenMPContainer = std::make_unique<COpenMP>(mConfigContainer.get());
 
 	// Initialize the geometry container.
-	mGeometryContainer = std::make_unique<CGeometry>(mConfigContainer.get());
+	mMultizoneGeometryContainer = std::make_unique<CMultizoneGeometry>(mConfigContainer.get());
 
 	// Initialize the specified initial condition. 
 	mInitialContainer = CGenericFactory::CreateInitialConditionContainer(mConfigContainer.get());
@@ -31,11 +31,11 @@ CDriver::CDriver
 
 	// Initialize the solver containers.
 	mMultizoneSolverContainer = std::make_unique<CMultizoneSolver>(mConfigContainer.get(), 
-			                                                           mGeometryContainer.get());
+			                                                           mMultizoneGeometryContainer.get());
 
 	// Initialize the output container.
 	mOutputContainer = std::make_unique<COutput>(mConfigContainer.get(), 
-			                                         mGeometryContainer.get());
+			                                         mMultizoneGeometryContainer.get());
 
 	// Initialize the iteration container, must be initialized after the solver container.
 	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get(),
@@ -122,11 +122,11 @@ void CDriver::InitializeData
 	* Function that initializes the data for the simulation. 
 	*/
 {
-	// TODO: this should be moved from here and placed in the ctor of CGeometry,
+	// TODO: this should be moved from here and placed in the ctor of CMultizoneGeometry,
 	//       otherwise, we might have a serious bug.
 	// Import an AS3-type grid.
 	NImportFile::ImportAS3Grid(mConfigContainer.get(), 
-			                       mGeometryContainer.get());
+			                       mMultizoneGeometryContainer.get());
 
 
 	// Report output.
@@ -141,16 +141,16 @@ void CDriver::InitializeData
 		std::cout << "  zone: " << iZone << ")" << std::endl;
 
 		// Extract the solver and geometry in this zone.
-		auto* zone   = mGeometryContainer->GetZoneGeometry(iZone);
+		auto* zone   = mMultizoneGeometryContainer->GetSinglezoneGeometry(iZone);
 		auto* solver = mMultizoneSolverContainer->GetSinglezoneSolver(iZone);
 
 		// Initialize the physical elements.
 		solver->InitPhysicalElements(mConfigContainer.get(),
-				                         mGeometryContainer.get());
+				                         mMultizoneGeometryContainer.get());
 	
 		// Initialize the boundary conditions.
 		solver->InitBoundaryConditions(mConfigContainer.get(),
-				                           mGeometryContainer.get());
+				                           mMultizoneGeometryContainer.get());
 
 		// Initialize the solution.
 		mInitialContainer->InitializeSolution(mConfigContainer.get(), zone, solver);
@@ -158,10 +158,10 @@ void CDriver::InitializeData
 
 
   // Initializes the grid topology (element and faces).
-	mGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
+	mMultizoneGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
 
   // Initialize the interfaces, after determining the grid topology first!
-  mMultizoneSolverContainer->InitializeInterfaces(mConfigContainer.get(), mGeometryContainer.get());
+  mMultizoneSolverContainer->InitializeInterfaces(mConfigContainer.get(), mMultizoneGeometryContainer.get());
 
 
 	// Report output.
@@ -169,11 +169,13 @@ void CDriver::InitializeData
 
 	// Display the boundary conditions over all zones.
 	NLogger::DisplayBoundaryConditions( mConfigContainer.get(), 
-			                                mGeometryContainer.get(), 
+			                                mMultizoneGeometryContainer.get(), 
 																		  mMultizoneSolverContainer.get() );
 
 	// Display the shared-memory parallelization information, if any.
-	NLogger::DisplayOpenMPInfo( mOpenMPContainer.get(), mGeometryContainer.get(), mMultizoneSolverContainer.get() );
+	NLogger::DisplayOpenMPInfo( mOpenMPContainer.get(), 
+                              mMultizoneGeometryContainer.get(), 
+                              mMultizoneSolverContainer.get() );
 }
 
 //-----------------------------------------------------------------------------------
@@ -200,7 +202,7 @@ void CDriver::WriteOutput
 	if( i%fvis == 0 )
 	{
 		mOutputContainer->WriteVisualFile( mConfigContainer.get(), 
-				                               mGeometryContainer.get(),
+				                               mMultizoneGeometryContainer.get(),
 																			 mOpenMPContainer.get(),
 																			 mMultizoneSolverContainer.get() );
 	
@@ -216,7 +218,7 @@ void CDriver::WriteOutput
 		if( !isvis )
 		{
 			mOutputContainer->WriteVisualFile( mConfigContainer.get(), 
-					                               mGeometryContainer.get(),
+					                               mMultizoneGeometryContainer.get(),
 																				 mOpenMPContainer.get(),
 																				 mMultizoneSolverContainer.get() );
 		}
@@ -298,7 +300,7 @@ as3double CDriver::ComputeTimeStep
 	as3double maxM2 = C_ZERO;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = mGeometryContainer->GetnElemTotal();
+	const size_t nElemTotal = mMultizoneGeometryContainer->GetnElemTotal();
 
 	// Loop over all the elements in all the solvers.
 #ifdef HAVE_OPENMP
@@ -307,7 +309,7 @@ as3double CDriver::ComputeTimeStep
 	for(size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
-		const auto elem_info = mGeometryContainer->GetFlattenedIndexVolumeElement(i);
+		const auto elem_info = mMultizoneGeometryContainer->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone = elem_info.mIndexZone; 
@@ -449,7 +451,7 @@ void CDriver::ExecuteTimeSyncStep
 
 		// Update the solution in time.
 		mTemporalContainer->UpdateTime( mConfigContainer.get(),
-				                            mGeometryContainer.get(),
+				                            mMultizoneGeometryContainer.get(),
 																	  mIterationContainer.get(),
 																	  mOpenMPContainer.get(),
 																	  mMultizoneSolverContainer.get(),

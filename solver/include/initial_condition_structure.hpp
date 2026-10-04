@@ -33,12 +33,12 @@ class IInitialCondition
 		 * @brief A Pure virtual function that initializes the solution over a single zone. Must be overridden.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] zone_geometry zone geometry container. 
+		 * @param[in] singlezone_geometry zone geometry container. 
 		 * @param[in] solver_container solver container.
 		 */
-		virtual void InitializeSolution(CConfig       *config_container,
-				                            CZoneGeometry *zone_geometry,
-				                            ISolver       *solver_container) = 0;
+		virtual void InitializeSolution(CConfig             *config_container,
+				                            CSinglezoneGeometry *singlezone_geometry,
+				                            ISolver             *solver_container) = 0;
 
 	protected:
 
@@ -77,12 +77,12 @@ class CGaussianPressureIC : public IInitialCondition
 		 * @brief Function that initializes a Gaussian pressure pulse solution over a single zone.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] zone_geometry zone geometry container. 
+		 * @param[in] singlezone_geometry zone geometry container. 
 		 * @param[in] solver_container solver container.
 		 */
-		void InitializeSolution(CConfig       *config_container,
-		                        CZoneGeometry *zone_geometry,
-		                        ISolver       *solver_container) override;
+		void InitializeSolution(CConfig             *config_container,
+		                        CSinglezoneGeometry *singlezone_geometry,
+		                        ISolver             *solver_container) override;
 
 	protected:
 
@@ -128,12 +128,12 @@ class CIsentropicVortexIC : public IInitialCondition
 		 * @brief Function that initializes an isentropic vortex solution over a single zone.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] zone_geometry zone geometry container. 
+		 * @param[in] singlezone_geometry zone geometry container. 
 		 * @param[in] solver_container solver container.
 		 */
-		void InitializeSolution(CConfig       *config_container,
-		                        CZoneGeometry *zone_geometry,
-		                        ISolver       *solver_container) override;
+		void InitializeSolution(CConfig             *config_container,
+		                        CSinglezoneGeometry *singlezone_geometry,
+		                        ISolver             *solver_container) override;
 
 	protected:
 

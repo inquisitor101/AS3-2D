@@ -10,47 +10,46 @@
 #include "flattened_index_structure.hpp"
 
 // Forward declaration to avoid compiler problems.
-class CZoneGeometry;
+class CSinglezoneGeometry;
 class CElementGeometry;
-
-
-
-
 
 
 /*!
  * @brief A class used for storing the entire (multi-zone) grid.
  */
-class CGeometry
+class CMultizoneGeometry
 {
 	public:
 
 		/*!
-		 * @brief Constructor of CGeometry, which is responsible for the entire grid geometry.
+		 * @brief Constructor of CMultizoneGeometry, which is responsible for the entire grid geometry.
 		 *
 		 * @param[in] config_container pointer to the configuration container.
 		 */
-		CGeometry(CConfig *config_container);
+		CMultizoneGeometry(CConfig *config_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
-		~CGeometry(void);
+		~CMultizoneGeometry(void);
 
 
 		/*!
 		 * @brief Getter function which returns a vector of grid zone containers.
 		 *
-		 * @return mZoneGeometry
+		 * @return mSinglezoneGeometry
 		 */
-		const as3vector1d<std::unique_ptr<CZoneGeometry>> &GetZoneGeometry(void) const { return mZoneGeometry; }
+		const as3vector1d<std::unique_ptr<CSinglezoneGeometry>>& GetSinglezoneGeometry(void) const
+    {
+      return mSinglezoneGeometry;
+    }
 
 		/*!
 		 * @brief Getter function which returns a specific grid zone container.
 		 *
-		 * @return mZoneGeometry[iZone]
+		 * @return mSinglezoneGeometry[iZone]
 		 */
-		CZoneGeometry *GetZoneGeometry(size_t iZone) const { return mZoneGeometry[iZone].get(); }
+		CSinglezoneGeometry* GetSinglezoneGeometry(size_t iZone) const { return mSinglezoneGeometry[iZone].get(); }
 
     void InitializeGridTopology(const CConfig *config_container,
                                 const COpenMP *openmp_container);
@@ -125,9 +124,9 @@ class CGeometry
 	protected:
 
 	private:
-		const unsigned short                        mNZone;            ///< Total number of zones.
-		size_t                                      mNElemTotal = 0;
-		as3vector1d<std::unique_ptr<CZoneGeometry>> mZoneGeometry;     ///< Container with the zone geometry.
+		const unsigned short                              mNZone;              ///< Total number of zones.
+		size_t                                            mNElemTotal = 0;
+		as3vector1d<std::unique_ptr<CSinglezoneGeometry>> mSinglezoneGeometry; ///< Container with the zone geometry.
 
 
 		as3vector1d<CFlattenedElementIndex> mFlattenedIndexVolumeElement;
@@ -149,11 +148,11 @@ class CGeometry
 		void CheckExistanceGridFiles(CConfig *config_container);
 		
 		// Disable default constructor.
-		CGeometry(void) = delete;
+		CMultizoneGeometry(void) = delete;
 		// Disable default copy constructor.
-		CGeometry(const CGeometry&) = delete;
+		CMultizoneGeometry(const CMultizoneGeometry&) = delete;
 		// Disable default copy operator.
-		CGeometry& operator=(CGeometry&) = delete;	
+		CMultizoneGeometry& operator=(CMultizoneGeometry&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------
@@ -161,32 +160,32 @@ class CGeometry
 /*!
  * @brief A class used for storing a (single) zone grid.
  */
-class CZoneGeometry
+class CSinglezoneGeometry
 {
 	public:
 
 		/*!
-		 * @brief Constructor of CZoneGeometry, which is responsible for a single grid geometry.
+		 * @brief Constructor of CSinglezoneGeometry, which is responsible for a single grid geometry.
 		 * 
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] gridfiles entire multi-zone grid filenames.
 		 * @param[in] iZone current zone index.
 		 */
-		CZoneGeometry(CConfig        *config_container,
-									std::string     gridfile,
-									unsigned short  iZone);
+		CSinglezoneGeometry(CConfig        *config_container,
+									      std::string     gridfile,
+									      unsigned short  iZone);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
-		~CZoneGeometry(void);
+		~CSinglezoneGeometry(void);
 
 
 		/*!
 		 * @brief Function that initializes and defines all the element geometry in this zone.
 		 */
-		void InitializeElements(as3vector2d<double> &x, 
-				                    as3vector2d<double> &y,
+		void InitializeElements(as3vector2d<double> &xcoor, 
+				                    as3vector2d<double> &ycoor,
 														unsigned int         niElem,
 														unsigned int         njElem);
 
@@ -304,11 +303,11 @@ class CZoneGeometry
 		void GenerateNodalFaceIndices(void);
 
 		// Disable default constructor.
-		CZoneGeometry(void) = delete;
+		CSinglezoneGeometry(void) = delete;
 		// Disable default copy constructor.
-		CZoneGeometry(const CZoneGeometry&) = delete;
+		CSinglezoneGeometry(const CSinglezoneGeometry&) = delete;
 		// Disable default copy operator.
-		CZoneGeometry& operator=(CZoneGeometry&) = delete;	
+		CSinglezoneGeometry& operator=(CSinglezoneGeometry&) = delete;	
 };
 
 //-----------------------------------------------------------------------------------

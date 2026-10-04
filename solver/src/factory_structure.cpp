@@ -51,8 +51,8 @@ CGenericFactory::CreateTemporalContainer
 std::unique_ptr<IFileVTK> 
 CGenericFactory::CreateVTKContainer
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that creates a specialized instance of a vtk container.
@@ -64,7 +64,7 @@ CGenericFactory::CreateVTKContainer
 		// Legacy VTK in binary.
 		case( EVisualFormat::VTK_LEGACY_BINARY ):
 		{
-			return std::make_unique<CLegacyBinaryVTK>(config_container, geometry_container);
+			return std::make_unique<CLegacyBinaryVTK>(config_container, multizone_geometry_container);
 			break;
 		}
 
@@ -164,7 +164,7 @@ CGenericFactory::CreateStandardElement
 std::unique_ptr<CPhysicalElement> 
 CGenericFactory::CreatePhysicalElement
 (
- CConfig          *config_container,
+ const CConfig    *config_container,
  CStandardElement *standard_element,
  ITensorProduct   *tensor_container,
  CElementGeometry *element_geometry,
@@ -244,10 +244,10 @@ CGenericFactory::CreateTensorContainer
 std::unique_ptr<IBoundary> 
 CGenericFactory::CreateBoundaryContainer
 (
- CConfig      *config_container,
- CGeometry    *geometry_container,
- CMarker      *marker_container,
- unsigned int  index
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ CMarker                  *marker_container,
+ unsigned int              index
 )
  /*
 	* Function that creates a specialized instance of a boundary container.
@@ -281,22 +281,22 @@ CGenericFactory::CreateBoundaryContainer
 std::unique_ptr<ISolver> 
 CGenericFactory::CreateSolverContainer
 (
- const CConfig       *config_container,
- const CZoneGeometry *zone_geometry
+ const CConfig             *config_container,
+ const CSinglezoneGeometry *singlezone_geometry
 )
  /*
 	* Function that creates a specialized instance of a solver container.
 	*/
 {
   // Extract the zone ID.
-  const auto iZone = zone_geometry->GetZoneID();
+  const auto iZone = singlezone_geometry->GetZoneID();
 
 	// Check what type of container is specified.
 	switch( config_container->GetTypeSolver(iZone) )
 	{
 		case(ETypeSolver::EE):
 		{
-			return std::make_unique<CEESolver>(config_container, zone_geometry);
+			return std::make_unique<CEESolver>(config_container, singlezone_geometry);
 			break;
 		}
 

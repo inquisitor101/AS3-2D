@@ -36,20 +36,20 @@ class ITemporal
 		 * @brief Pure virtual function that computes the upcoming solution in time. Must be overridden by a derived class.
 		 * 
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] timephysical current physical simulation time.
 		 * @param[in] timestep physical time step. 
 		 */
-		virtual void UpdateTime(CConfig          *config_container,
-				                    CGeometry        *geometry_container,
-														CIteration       *iteration_container,
-														COpenMP          *openmp_container,
-														CMultizoneSolver *multizone_solver_container,
-														as3double         physicaltime, 
-														as3double         timestep) = 0;
+		virtual void UpdateTime(CConfig            *config_container,
+				                    CMultizoneGeometry *multizone_geometry_container,
+														CIteration         *iteration_container,
+														COpenMP            *openmp_container,
+														CMultizoneSolver   *multizone_solver_container,
+														as3double           physicaltime, 
+														as3double           timestep) = 0;
 
 	protected:
 
@@ -88,20 +88,20 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @brief Function that computes the upcoming solution in time, based on a SSP-RK3. 
 		 * 
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] timephysical current physical simulation time.
 		 * @param[in] timestep physical time step.
 		 */
-		void UpdateTime(CConfig          *config_container,
-		                CGeometry        *geometry_container,
-										CIteration       *iteration_container,
-										COpenMP          *openmp_container,
-										CMultizoneSolver *solver_container,
-										as3double         physicaltime, 
-										as3double         timestep) final;
+		void UpdateTime(CConfig            *config_container,
+		                CMultizoneGeometry *multizone_geometry_container,
+										CIteration         *iteration_container,
+										COpenMP            *openmp_container,
+										CMultizoneSolver   *solver_container,
+										as3double           physicaltime, 
+										as3double           timestep) final;
 
 	protected:
 
@@ -116,7 +116,7 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @brief Function that evaluates a single stage SSP-RK3. 
 		 * 
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] iteration_container input iteration container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] multizone_solver_container input multizone solver container.
@@ -124,14 +124,14 @@ class CSSPRK3Temporal final : public ITemporal
 		 * @param[in] timestep physical time step.
 		 * @param[in] iStageRK index of the RK stage.
 		 */
-		void EvaluateSSPRK3(CConfig          *config_container,
-		                    CGeometry        *geometry_container,
-										    CIteration       *iteration_container,
-												COpenMP          *openmp_container,
-										    CMultizoneSolver *multizone_solver_container,
-										    as3double         localtime, 
-										    as3double         timestep,
-												unsigned short    iStageRK);
+		void EvaluateSSPRK3(CConfig            *config_container,
+		                    CMultizoneGeometry *multizone_geometry_container,
+										    CIteration         *iteration_container,
+												COpenMP            *openmp_container,
+										    CMultizoneSolver   *multizone_solver_container,
+										    as3double           localtime, 
+										    as3double           timestep,
+												unsigned short      iStageRK);
 
 
 

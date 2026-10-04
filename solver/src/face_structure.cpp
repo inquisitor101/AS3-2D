@@ -3,28 +3,28 @@
 
 
 //-----------------------------------------------------------------------------------
-// CZoneGeometry member functions.
+// CMultizoneFaceGeometry member functions.
 //-----------------------------------------------------------------------------------
 
 void CMultizoneFaceGeometry::InitializeFaces
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
   *
   */
 {
   // Initialize the family of faces.
-  InitializeInternalFaces(geometry_container);
-  InitializeInterfaceFaces(config_container, geometry_container);
+  InitializeInternalFaces(multizone_geometry_container);
+  InitializeInterfaceFaces(config_container, multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
 void CMultizoneFaceGeometry::InitializeInternalFaces
 (
- const CGeometry *geometry_container
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	*
@@ -35,13 +35,13 @@ void CMultizoneFaceGeometry::InitializeInternalFaces
   as3vector1d<CInternalFacesFamily> internal_families;
 
   // Extract the total number of zones.
-  const auto nZone = geometry_container->GetnZone();
+  const auto nZone = multizone_geometry_container->GetnZone();
 
   // Initialize the family of internal faces, based on the number of zones.
   internal_families.reserve( nZone );
 
   // Loop over each zone and initialize its internal faces, based on the class's face type.
-  for( const auto& zone_geometry : geometry_container->GetZoneGeometry() )
+  for( const auto& zone_geometry : multizone_geometry_container->GetSinglezoneGeometry() )
   {
     // Initialize a family of internal faces belonging to this zone.
     internal_families.emplace_back( mTypeFace, zone_geometry.get() );
@@ -55,8 +55,8 @@ void CMultizoneFaceGeometry::InitializeInternalFaces
 
 void CMultizoneFaceGeometry::InitializeInterfaceFaces
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that initializes interfaces across all zones with the assumption of
@@ -68,9 +68,10 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
   as3vector1d<CInterfaceFacesFamily> interface_families;
 
   // Helper lambda to find the matching marker.
-  auto lGetMatchingMarker = [](const CGeometry* geometry_container, const std::string& marker_name) -> const CMarker*
+  auto lGetMatchingMarker = [](const CMultizoneGeometry *multizone_geometry_container, 
+                               const std::string &marker_name) -> const CMarker*
   {
-    for(auto& zone : geometry_container->GetZoneGeometry())
+    for(auto& zone : multizone_geometry_container->GetSinglezoneGeometry())
     {
       for(auto& marker : zone->GetMarker())
       {
@@ -83,7 +84,8 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
 
 
   // Helper lambda to determinwe which interface is relevant for this class.
-  auto lGetRelevantIndexInterfaces = [&](const CConfig* config_container, const CGeometry* geometry_container) -> as3vector1d<size_t>
+  auto lGetRelevantIndexInterfaces = [&](const CConfig *config_container, 
+                                         const CMultizoneGeometry *multizone_geometry_container) -> as3vector1d<size_t>
   {
     // Variable for book-keeping indices of relevant interfaces.
     as3vector1d<size_t> interfaces_considered;
@@ -101,7 +103,7 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
       const auto& param_interface = param_interface_total[i];
   
       // Extract its marker container.
-      const CMarker* imarker_container = lGetMatchingMarker(geometry_container, param_interface->mName);
+      const CMarker* imarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mName);
   
       // If this face's ith face type matches the one assigned for this class, add it.
       if( imarker_container->GetTypeFace() == mTypeFace )
@@ -120,7 +122,8 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
 	auto& param_interface_total = config_container->GetInterfaceParamMarker();
 
   // Get the valid interfaces, based on the ith face and the direction in this class.
-	const as3vector1d<size_t> interfaces_considered = lGetRelevantIndexInterfaces(config_container, geometry_container);
+	const as3vector1d<size_t> interfaces_considered = lGetRelevantIndexInterfaces(config_container, 
+                                                                                multizone_geometry_container);
  
 	// Get the number of valid interfaces for this direction.
   const size_t nInterfacesConsidered = interfaces_considered.size();
@@ -138,11 +141,11 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
     const auto& param_interface = param_interface_total[i];
 
     // Get a pointer to the two markers forming this interface.
-    const CMarker *imarker_container = lGetMatchingMarker(geometry_container, param_interface->mName);
-    const CMarker *jmarker_container = lGetMatchingMarker(geometry_container, param_interface->mNameMatching);
+    const CMarker *imarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mName);
+    const CMarker *jmarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mNameMatching);
 
     // Create a family of interface faces belonging to these markers.
-    interface_families.emplace_back( geometry_container, 
+    interface_families.emplace_back( multizone_geometry_container, 
                                      imarker_container, 
                                      jmarker_container, 
                                      param_interface.get() );
@@ -159,30 +162,30 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
 
 CInternalFacesFamily::CInternalFacesFamily
 (
- ETypeFace            face_type,
- const CZoneGeometry *zone_geometry
+ ETypeFace                  face_type,
+ const CSinglezoneGeometry *singlezone_geometry_container
 )
-  : mTypeFace( face_type ), mIndexZone( zone_geometry->GetZoneID() )
+  : mTypeFace( face_type ), mIndexZone( singlezone_geometry_container->GetZoneID() )
  /*
   *
   */
 {
-  InitializeInternalFaces(zone_geometry);
+  InitializeInternalFaces(singlezone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
 void CInternalFacesFamily::InitializeInternalFaces
 (
- const CZoneGeometry *zone_geometry
+ const CSinglezoneGeometry *singlezone_geometry_container
 )
  /*
   *
   */
 {        
   // Extract the relevant information for an internal face.
-  const size_t niElem = zone_geometry->GetniElem();
-  const size_t njElem = zone_geometry->GetnjElem();
+  const size_t niElem = singlezone_geometry_container->GetniElem();
+  const size_t njElem = singlezone_geometry_container->GetnjElem();
 
   // Initialize the faces, based on the respective class direction.
   switch( mTypeFace )
@@ -263,17 +266,17 @@ void CInternalFacesFamily::InitializeInternalFaces
 
 CInterfaceFacesFamily::CInterfaceFacesFamily
 (
- const CGeometry       *geometry_container,
- const CMarker         *imarker_container,
- const CMarker         *jmarker_container,
- CInterfaceParamMarker *param_interface
+ const CMultizoneGeometry *multizone_geometry_container,
+ const CMarker            *imarker_container,
+ const CMarker            *jmarker_container,
+ CInterfaceParamMarker    *param_interface
 )
  /*
   *
   */
 {
   // Initiailize the interface faces belonging to these markers.
-  InitializeInterfaceFaces(geometry_container,
+  InitializeInterfaceFaces(multizone_geometry_container,
                            imarker_container,
                            jmarker_container,
                            param_interface);
@@ -283,10 +286,10 @@ CInterfaceFacesFamily::CInterfaceFacesFamily
 
 void CInterfaceFacesFamily::InitializeInterfaceFaces
 (
- const CGeometry       *geometry_container,
- const CMarker         *imarker_container,
- const CMarker         *jmarker_container,
- CInterfaceParamMarker *param_interface
+ const CMultizoneGeometry *multizone_geometry_container,
+ const CMarker            *imarker_container,
+ const CMarker            *jmarker_container,
+ CInterfaceParamMarker    *param_interface
 )
  /*
   *
@@ -340,7 +343,7 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
   }
    
   // Ensure conformity of the markers.
-  CheckConformityMarkers( geometry_container, 
+  CheckConformityMarkers( multizone_geometry_container, 
   											  imarker_container, 
   											  jmarker_container,
   											  param_interface ); 
@@ -350,10 +353,10 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
 
 void CInterfaceFacesFamily::CheckConformityMarkers
 (
- const CGeometry       *geometry_container,
- const CMarker         *imarker_container,
- const CMarker         *jmarker_container,
- CInterfaceParamMarker *param_interface
+ const CMultizoneGeometry *multizone_geometry_container,
+ const CMarker            *imarker_container,
+ const CMarker            *jmarker_container,
+ CInterfaceParamMarker    *param_interface
 )
  /*
 	* Function that processes each pair of markers, such that their common face coincides.
@@ -367,8 +370,8 @@ void CInterfaceFacesFamily::CheckConformityMarkers
   const size_t nFace         = GetnFace();
 	
   // Extract the grid geometry in each of these zones.
-	auto* igrid = geometry_container->GetZoneGeometry(iZone);
-	auto* jgrid = geometry_container->GetZoneGeometry(jZone);
+	auto* igrid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+	auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry(jZone);
 
 	// Extract the properties of each marker region (element indices and faces).
 	auto& imarker = imarker_container->GetElementFaces(); 

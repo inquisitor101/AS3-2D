@@ -8,8 +8,8 @@
 
 IFileVTK::IFileVTK
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Constructor for the interface VTK class.
@@ -70,11 +70,11 @@ IFileVTK::~IFileVTK
 
 CLegacyBinaryVTK::CLegacyBinaryVTK
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
 	:
-		IFileVTK(config_container, geometry_container)
+		IFileVTK(config_container, multizone_geometry_container)
  /*
 	* Constructor for the legacy and binary VTK class.
 	*/
@@ -175,10 +175,10 @@ CLegacyBinaryVTK::~CLegacyBinaryVTK
 
 void CLegacyBinaryVTK::WriteFileVTK
 (
- const CConfig          *config_container,
- const CGeometry        *geometry_container,
- const COpenMP          *openmp_container,
- const CMultizoneSolver *multizone_solver_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ const COpenMP            *openmp_container,
+ const CMultizoneSolver   *multizone_solver_container
 )
  /*
 	* Function that writes VTK data to a file using a binary and legacy format.
@@ -220,7 +220,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
 		// Extract the relevant zone.
-		auto* zone = geometry_container->GetZoneGeometry(iZone);
+		auto* zone = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 		// Extract the current zone information.	
 		const unsigned int nElem = zone->GetnElem();
@@ -308,7 +308,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 	// Compute and store the required data for visualization. 
 	// Note, this is done over all elements in all zones simulataneoously.
 	DetermineVisualizationData(config_container,
-			                       geometry_container, 
+			                       multizone_geometry_container, 
 														 openmp_container,
 														 multizone_solver_container, vars_buf); 
 	
@@ -330,8 +330,8 @@ void CLegacyBinaryVTK::WriteFileVTK
 	unsigned int nDOFsZone[nZone];
 	for(unsigned short iZone=0; iZone<nZone; iZone++)
 	{
-		const unsigned int nElem  = geometry_container->GetZoneGeometry(iZone)->GetnElem();
-		const unsigned int nNode  = geometry_container->GetZoneGeometry(iZone)->GetnNodeGrid2D();
+		const unsigned int nElem = multizone_geometry_container->GetSinglezoneGeometry(iZone)->GetnElem();
+		const unsigned int nNode = multizone_geometry_container->GetSinglezoneGeometry(iZone)->GetnNodeGrid2D();
 		nDOFsZone[iZone] = nElem*nNode; 
 	} 
 
@@ -454,18 +454,18 @@ void CLegacyBinaryVTK::WriteFileVTK
 
 void CLegacyBinaryVTK::DetermineVisualizationData
 (
- const CConfig          *config_container,
- const CGeometry        *geometry_container,
- const COpenMP          *openmp_container,
- const CMultizoneSolver *multizone_solver_container,
- as3vector2d<float>     &vars_buf
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ const COpenMP            *openmp_container,
+ const CMultizoneSolver   *multizone_solver_container,
+ as3vector2d<float>       &vars_buf
 )
  /*
 	* Function that computes the required data for visualization in binary format.
 	*/
 {
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = geometry_container->GetnElemTotal();
+	const size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
 
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static)
@@ -473,14 +473,14 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 	for(size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone  = elem_info.mIndexZone; 
 		const auto ijElem = elem_info.mIndexElem; 
 
 		// Extract current grid zone.
-		auto* zone   = geometry_container->GetZoneGeometry(iZone);
+		auto* zone = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 		// Extract current solver.
 		const auto* solver = multizone_solver_container->GetSinglezoneSolver(iZone);
 

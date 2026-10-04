@@ -15,14 +15,14 @@ namespace NImportFile
 	/*!
 	 * @brief Function that imports an AS3 grid file.
 	 */
-	void ImportAS3Grid(CConfig   *config_container, 
-			               CGeometry *geometry_container);
+	void ImportAS3Grid(CConfig            *config_container, 
+			               CMultizoneGeometry *multizone_geometry_container);
 
 	/*!
 	 * @brief Function that imports an AS3 grid file in binary format.
 	 */
-	void ImportAS3GridBinary(CConfig   *config_container, 
-			                     CGeometry *geometry_container);
+	void ImportAS3GridBinary(CConfig            *config_container, 
+			                     CMultizoneGeometry *multizone_geometry_container);
 
 	/*!
 	 * @brief Function that checks whether byte-swapping is required.

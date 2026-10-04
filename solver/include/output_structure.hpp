@@ -19,8 +19,8 @@ class COutput
 		/*!
 		 * @brief Constructor of COutput, which is responsible for the entire output routines.
 		 */
-		COutput(const CConfig   *config_container,
-				    const CGeometry *geometry_container);
+		COutput(const CConfig            *config_container,
+				    const CMultizoneGeometry *multizone_geometry_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -30,10 +30,10 @@ class COutput
 		/*!
 		 * @brief Function that writes a visualization file.
 		 */
-		void WriteVisualFile(const CConfig          *config_container,
-											   const CGeometry        *geometry_container,
-												 const COpenMP          *openmp_container,
-												 const CMultizoneSolver *multizone_solver_structure);
+		void WriteVisualFile(const CConfig            *config_container,
+											   const CMultizoneGeometry *multizone_geometry_container,
+												 const COpenMP            *openmp_container,
+												 const CMultizoneSolver   *multizone_solver_structure);
 
 	protected:
 

@@ -60,11 +60,11 @@ namespace NLogger
 	 * @brief Function that displays the boundary condition information over all zones.
 	 *
 	 * @param[in] config_container configuration/dictionary container.
-	 * @param[in] geometry_container input geometry container.
+	 * @param[in] multizone_geometry_container input geometry container.
 	 */
-	void DisplayBoundaryConditions(const CConfig          *config_container,
-																 const CGeometry        *geometry_container,
-																 const CMultizoneSolver *multizone_solver_container);
+	void DisplayBoundaryConditions(const CConfig            *config_container,
+																 const CMultizoneGeometry *multizone_geometry_container,
+																 const CMultizoneSolver   *multizone_solver_container);
 
 
 	/*!
@@ -73,9 +73,9 @@ namespace NLogger
 	 * @param[in] openmp_container OpenMP shared parallelization container.
 	 * @param[in] solver_container input multizone solver container.
 	 */
-	void DisplayOpenMPInfo(COpenMP                *openmp_container,
-			                   const CGeometry        *geometry_container,
-												 const CMultizoneSolver *multizone_solver_container);
+	void DisplayOpenMPInfo(COpenMP                  *openmp_container,
+			                   const CMultizoneGeometry *multizone_geometry_container,
+												 const CMultizoneSolver   *multizone_solver_container);
 }
 
 

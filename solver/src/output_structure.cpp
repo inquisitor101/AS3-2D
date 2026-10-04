@@ -7,14 +7,14 @@
 
 COutput::COutput
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Constructor for the output class, which is responsible for the entire output routines.
 	*/
 {
-	mVTKContainer = CGenericFactory::CreateVTKContainer(config_container, geometry_container);
+	mVTKContainer = CGenericFactory::CreateVTKContainer(config_container, multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
@@ -34,10 +34,10 @@ COutput::~COutput
 
 void COutput::WriteVisualFile
 (
- const CConfig          *config_container,
- const CGeometry        *geometry_container,
- const COpenMP          *openmp_container,
- const CMultizoneSolver *multizone_solver_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ const COpenMP            *openmp_container,
+ const CMultizoneSolver   *multizone_solver_container
 )
  /*
 	* Function that writes a visualization file.
@@ -45,7 +45,7 @@ void COutput::WriteVisualFile
 {
 	// Ensure the VTK container is initialized.
 	if( mVTKContainer ) mVTKContainer->WriteFileVTK(config_container, 
-			                                            geometry_container,
+			                                            multizone_geometry_container,
 																									openmp_container,
 																									multizone_solver_container);
 }

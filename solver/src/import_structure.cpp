@@ -10,8 +10,8 @@
 
 void NImportFile::ImportAS3Grid
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ CConfig            *config_container,
+ CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that imports an AS3 grid file.
@@ -28,7 +28,7 @@ void NImportFile::ImportAS3Grid
 	{
 		case(EFormatFile::BINARY):
 		{
-			ImportAS3GridBinary(config_container, geometry_container); 
+			ImportAS3GridBinary(config_container, multizone_geometry_container); 
 			break;
 		}
 
@@ -41,8 +41,8 @@ void NImportFile::ImportAS3Grid
 
 void NImportFile::ImportAS3GridBinary
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ CConfig            *config_container,
+ CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that imports an AS3 grid file in binary format.
@@ -58,7 +58,7 @@ void NImportFile::ImportAS3GridBinary
 	const int nstr = CGNS_STRING_SIZE;
 	
 	// Loop over the zones and import each grid separately.
-	for( auto& zone: geometry_container->GetZoneGeometry() )
+	for( auto& zone: multizone_geometry_container->GetSinglezoneGeometry() )
 	{
 		// Get the filename in this zone.
 		std::string filename = zone->GetGridFile();

@@ -77,13 +77,13 @@ CSSPRK3Temporal::~CSSPRK3Temporal
 
 void CSSPRK3Temporal::UpdateTime
 (
- CConfig           *config_container,
- CGeometry         *geometry_container,
- CIteration        *iteration_container,
- COpenMP           *openmp_container,
- CMultizoneSolver *multizone_solver_container,
- as3double         physicaltime,
- as3double         timestep
+ CConfig            *config_container,
+ CMultizoneGeometry *multizone_geometry_container,
+ CIteration         *iteration_container,
+ COpenMP            *openmp_container,
+ CMultizoneSolver   *multizone_solver_container,
+ as3double           physicaltime,
+ as3double           timestep
 )
  /*
 	* Function that computes the upcoming solution in time, based on a SSP-RK3.
@@ -97,7 +97,7 @@ void CSSPRK3Temporal::UpdateTime
 
     // Perform a single stage evaluation, based on a SSP-RK3 .
     EvaluateSSPRK3(config_container,
-				           geometry_container,
+				           multizone_geometry_container,
                		 iteration_container,
 									 openmp_container,
                		 multizone_solver_container,
@@ -110,14 +110,14 @@ void CSSPRK3Temporal::UpdateTime
 
 void CSSPRK3Temporal::EvaluateSSPRK3
 (
- CConfig          *config_container,
- CGeometry        *geometry_container,
- CIteration       *iteration_container,
- COpenMP          *openmp_container,
- CMultizoneSolver *multizone_solver_container,
- as3double         localtime,
- as3double         timestep,
- unsigned short    iStageRK
+ CConfig            *config_container,
+ CMultizoneGeometry *multizone_geometry_container,
+ CIteration         *iteration_container,
+ COpenMP            *openmp_container,
+ CMultizoneSolver   *multizone_solver_container,
+ as3double           localtime,
+ as3double           timestep,
+ unsigned short      iStageRK
 )
  /*
 	* Function that does a single stage SSP-RK3 evaluation.
@@ -133,13 +133,13 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 	{
 		// First, compute the residual.
 		iteration_container->GridSweep(config_container,
-				                           geometry_container,
+				                           multizone_geometry_container,
 																	 openmp_container,
 																	 multizone_solver_container,
 																	 localtime);
 
 		// Get the total number of elements in all zones.
-		const size_t nElemTotal = geometry_container->GetnElemTotal();
+		const size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
 
 
 		// Update the solution in time. For computational efficiency, make a distinction 
@@ -156,7 +156,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 			for(size_t i=0; i<nElemTotal; i++)
 			{
 				// Extract the element indices.
-				const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+				const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 				// Deduce the current element's zone and index.
 				const auto iZone = elem_info.mIndexZone; 
@@ -195,7 +195,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 			for(size_t i=0; i<nElemTotal; i++)
 			{
 				// Extract the element indices.
-				const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+				const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 				// Deduce the current element's zone and index.
 				const auto iZone = elem_info.mIndexZone; 

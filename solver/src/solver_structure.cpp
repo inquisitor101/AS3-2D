@@ -1,20 +1,21 @@
 #include "solver_structure.hpp"
 
+
 //-----------------------------------------------------------------------------------
 // CMultizoneSolver member functions.
 //-----------------------------------------------------------------------------------
 
 CMultizoneSolver::CMultizoneSolver
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
   *
   */
 {
   // Deduce the number of zones.
-  mNZone = geometry_container->GetnZone();
+  mNZone = multizone_geometry_container->GetnZone();
 
 	// Allocate the necessary number of solvers.
 	mMultizoneSolverContainer.reserve( mNZone );
@@ -23,7 +24,7 @@ CMultizoneSolver::CMultizoneSolver
 	for(unsigned short iZone=0; iZone<mNZone; iZone++)
 	{
     // Consistency check.
-    if( iZone != geometry_container->GetZoneGeometry(iZone)->GetZoneID() )
+    if( iZone != multizone_geometry_container->GetSinglezoneGeometry(iZone)->GetZoneID() )
     {
       ERROR("Zone indices do not match.");
     }
@@ -31,7 +32,7 @@ CMultizoneSolver::CMultizoneSolver
     // Instantiate the current solver in this zone.
 		mMultizoneSolverContainer.emplace_back
     (
-     CGenericFactory::CreateSolverContainer(config_container, geometry_container->GetZoneGeometry(iZone) )
+     CGenericFactory::CreateSolverContainer(config_container, multizone_geometry_container->GetSinglezoneGeometry(iZone) )
     );
 	}
 }
@@ -40,16 +41,16 @@ CMultizoneSolver::CMultizoneSolver
 
 void CMultizoneSolver::InitializeInterfaces
 (
- const CConfig   *config_container,
- const CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
   *
   */
 {
   // Initialize the interfaces.
-  const auto& idir_interfaces = geometry_container->GetInterfaceFamiliesIFace();
-  const auto& jdir_interfaces = geometry_container->GetInterfaceFamiliesJFace();
+  const auto& idir_interfaces = multizone_geometry_container->GetInterfaceFamiliesIFace();
+  const auto& jdir_interfaces = multizone_geometry_container->GetInterfaceFamiliesJFace();
 
   const auto nInterfaceFamiliesIFace = idir_interfaces.size();
   const auto nInterfaceFamiliesJFace = jdir_interfaces.size();
@@ -73,7 +74,7 @@ void CMultizoneSolver::InitializeInterfaces
     mMultizoneInterfaceContainer.emplace_back
     (
      CGenericFactory::CreateInterfaceContainer(config_container,
-                                               this,family)
+                                               this, family)
     );
 
     // Book-keep the index map.
@@ -109,12 +110,12 @@ void CMultizoneSolver::InitializeInterfaces
 
 ISolver::ISolver
 (
- const CConfig       *config_container,
- const CZoneGeometry *zone_geometry,
- unsigned short       nVar
+ const CConfig             *config_container,
+ const CSinglezoneGeometry *singlezone_geometry_container,
+ unsigned short             nVar
 )
 	:
-		mZoneID( zone_geometry->GetZoneID() )
+		mZoneID( singlezone_geometry_container->GetZoneID() )
  /*
 	* Constructor for the interface solver class.
 	*/
@@ -151,11 +152,11 @@ ISolver::~ISolver
 
 CEESolver::CEESolver
 (
- const CConfig       *config_container,
- const CZoneGeometry *zone_geometry
+ const CConfig             *config_container,
+ const CSinglezoneGeometry *singlezone_geometry_container
 )
 	:
-		ISolver(config_container, zone_geometry, CEESolver::mNVar)
+		ISolver(config_container, singlezone_geometry_container, CEESolver::mNVar)
  /*
 	* Constructor for the (non-linear) Euler equations class.
 	*/
@@ -180,8 +181,8 @@ CEESolver::~CEESolver
 
 void CEESolver::InitPhysicalElements
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that initializes the physical elements. 
@@ -191,7 +192,7 @@ void CEESolver::InitPhysicalElements
 	std::cout << "    physical elements.... "; 
 
 	// Get a reference to the current zone.
-	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
+	auto* zone = multizone_geometry_container->GetSinglezoneGeometry(mZoneID);
 
 	// Allocate memory for the physical elements in this solver.
 	mPhysicalElementContainer.resize( zone->GetnElem() );
@@ -216,10 +217,11 @@ void CEESolver::InitPhysicalElements
 
 //-----------------------------------------------------------------------------------
 
+// TODO: probably need to rework this, as its outdated.
 void CEESolver::InitBoundaryConditions
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that initializes the boundary conditions. 
@@ -229,7 +231,7 @@ void CEESolver::InitBoundaryConditions
 	std::cout << "    boundary conditions.. ";
 
 	// Get a reference to the current zone.
-	auto* zone = geometry_container->GetZoneGeometry(mZoneID);
+	auto* zone = multizone_geometry_container->GetSinglezoneGeometry(mZoneID);
 
 	// Index counters, used for determining the number of boundaries needed.
 	size_t nimin = 0; size_t njmin = 0;
@@ -315,7 +317,9 @@ void CEESolver::InitBoundaryConditions
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryIMINContainer.emplace_back
 					(
-					 CGenericFactory::CreateBoundaryContainer(config_container, geometry_container, marker.get(), index )
+					 CGenericFactory::CreateBoundaryContainer( config_container, 
+                                                     multizone_geometry_container, 
+                                                     marker.get(), index )
 					);
  
 					break;
@@ -327,7 +331,9 @@ void CEESolver::InitBoundaryConditions
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryIMAXContainer.emplace_back
 					(
-					 CGenericFactory::CreateBoundaryContainer(config_container, geometry_container, marker.get(), index )
+					 CGenericFactory::CreateBoundaryContainer( config_container, 
+                                                     multizone_geometry_container, 
+                                                     marker.get(), index )
 					);
  
 					break;
@@ -339,7 +345,9 @@ void CEESolver::InitBoundaryConditions
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryJMINContainer.emplace_back
 					(
-					 CGenericFactory::CreateBoundaryContainer(config_container, geometry_container, marker.get(), index )
+					 CGenericFactory::CreateBoundaryContainer( config_container, 
+                                                     multizone_geometry_container, 
+                                                     marker.get(), index )
 					);
  
 					break;
@@ -351,7 +359,9 @@ void CEESolver::InitBoundaryConditions
 					// Otherwise, allocate the proper boundary for this face.
 					mBoundaryJMAXContainer.emplace_back
 					(
-					 CGenericFactory::CreateBoundaryContainer(config_container, geometry_container, marker.get(), index )
+					 CGenericFactory::CreateBoundaryContainer( config_container, 
+                                                     multizone_geometry_container, 
+                                                     marker.get(), index )
 					);
  
 					break;
@@ -372,7 +382,7 @@ void CEESolver::InitBoundaryConditions
 
 void CEESolver::ComputeVolumeResidual
 (
- CZoneGeometry             *grid_zone,
+ CSinglezoneGeometry       *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
  size_t                     iElem
@@ -466,7 +476,7 @@ void CEESolver::ComputeVolumeResidual
 
 void CEESolver::ComputeSurfaceResidualIDir
 (
- const CZoneGeometry       *grid_zone,
+ const CSinglezoneGeometry *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
  size_t                     iElemL
@@ -476,8 +486,8 @@ void CEESolver::ComputeSurfaceResidualIDir
 	*/
 {
 	// Extract the number of elements in this zone.
-	const size_t niElem = grid_zone->GetniElem();	
-	const size_t njElem = grid_zone->GetnjElem();
+	const size_t niElem = singlezone_geometry_container->GetniElem();	
+	const size_t njElem = singlezone_geometry_container->GetnjElem();
 
   // Deduce the right element's index.
   const size_t iElemR = iElemL + 1;
@@ -540,7 +550,7 @@ void CEESolver::ComputeSurfaceResidualIDir
 
 void CEESolver::ComputeSurfaceResidualJDir
 (
- const CZoneGeometry       *grid_zone,
+ const CSinglezoneGeometry *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
  size_t                     iElemB
@@ -550,8 +560,8 @@ void CEESolver::ComputeSurfaceResidualJDir
 	*/
 {
 	// Extract the number of elements in this zone.
-	const size_t niElem = grid_zone->GetniElem();	
-	const size_t njElem = grid_zone->GetnjElem();
+	const size_t niElem = singlezone_geometry_container->GetniElem();	
+	const size_t njElem = singlezone_geometry_container->GetnjElem();
 
   // Deduce the top element's index.
   const size_t iElemT = iElemB + niElem;

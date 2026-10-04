@@ -7,7 +7,7 @@
 
 void NResidualComputation::ComputeVolumeResidualsCollective
 (
- const CGeometry           *geometry_container,
+ const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime
@@ -20,7 +20,7 @@ void NResidualComputation::ComputeVolumeResidualsCollective
   AssertParallelRegion();
 
 	// Get the total number of elements in all zones.
-	const auto nElemTotal = geometry_container->GetnElemTotal();
+	const auto nElemTotal = multizone_geometry_container->GetnElemTotal();
 
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
@@ -28,7 +28,7 @@ void NResidualComputation::ComputeVolumeResidualsCollective
 	for(size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone = elem_info.mIndexZone; 
@@ -37,7 +37,7 @@ void NResidualComputation::ComputeVolumeResidualsCollective
 		// Extract the relevant solver.
 		auto* solver = multizone_solver_container->GetSinglezoneSolver(iZone);
 		// Extract the relevant grid.
-		auto* grid   = geometry_container->GetZoneGeometry(iZone);
+		auto* grid   = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 		// Compute the volume terms on this element. Note, this step also initializes the residual.
 		solver->ComputeVolumeResidual(grid, workarray, localtime, iElem); 
@@ -48,7 +48,7 @@ void NResidualComputation::ComputeVolumeResidualsCollective
 
 void NResidualComputation::ComputeIFaceResidualsCollective
 (
- const CGeometry           *geometry_container,
+ const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime
@@ -61,7 +61,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
   AssertParallelRegion();
 
 	// Get the total faces in the i-direction.
-	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
+	const auto& idir_faces_multizone = multizone_geometry_container->GetMultizoneIFaces();
 	
 	// Get the total number faces in the i--direction.
   const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
@@ -72,7 +72,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 	for(size_t i=0; i<nFacesIDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
-    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+    const auto face_info = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
     // Extract the current type of face.
     const auto face_type = face_info.mFaceType;
 
@@ -89,7 +89,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
         const auto iZone  = family_face.GetiZone();
 				const auto iElemL = internal_face.mIndexElementM;
 
-				const auto* grid = geometry_container->GetZoneGeometry(iZone);
+				const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 				// Compute the internal face residual.
 				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElemL);
@@ -124,7 +124,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 
 void NResidualComputation::ComputeJFaceResidualsCollective
 (
- const CGeometry           *geometry_container,
+ const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime
@@ -137,7 +137,7 @@ void NResidualComputation::ComputeJFaceResidualsCollective
   AssertParallelRegion();
 
 	// Get the total faces in the j-direction.
-	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
+	const auto& jdir_faces_multizone = multizone_geometry_container->GetMultizoneJFaces();
 	
 	// Get the total number faces in the  j-direction.
   const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
@@ -148,8 +148,8 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 	for(size_t i=0; i<nFacesJDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+    //const auto face_info = multizone_geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
     // Extract the current type of face.
     const auto face_type = face_info.mFaceType;
 
@@ -167,7 +167,7 @@ void NResidualComputation::ComputeJFaceResidualsCollective
         const auto iZone  = family_face.GetiZone();
         const auto iElemB = internal_face.mIndexElementM;
 
-        const auto* grid = geometry_container->GetZoneGeometry(iZone);
+        const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 				// Compute the internal face residual. 
 				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeSurfaceResidualJDir(grid, workarray, localtime, iElemB);
@@ -202,8 +202,8 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 
 void NResidualComputation::AccumulateIFaceResidualsCollective
 (
- const CGeometry  *geometry_container,
- CMultizoneSolver *multizone_solver_container
+ const CMultizoneGeometry *multizone_geometry_container,
+ CMultizoneSolver         *multizone_solver_container
 )
  /*
   *
@@ -213,7 +213,7 @@ void NResidualComputation::AccumulateIFaceResidualsCollective
   AssertParallelRegion();
 
 	// Get the total faces in the i-direction.
-	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
+	const auto& idir_faces_multizone = multizone_geometry_container->GetMultizoneIFaces();
 	
 	// Get the total number faces in the i--direction.
   const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
@@ -224,8 +224,8 @@ void NResidualComputation::AccumulateIFaceResidualsCollective
 	for(size_t i=0; i<nFacesIDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+    //const auto face_info = multizone_geometry_container->GetFlattenedIndexIFace(i);
+    const auto face_info = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
     // Extract the current type of face.
     const auto face_type = face_info.mFaceType;
 		
@@ -297,8 +297,8 @@ void NResidualComputation::AccumulateIFaceResidualsCollective
 
 void NResidualComputation::AccumulateJFaceResidualsCollective
 (
- const CGeometry  *geometry_container,
- CMultizoneSolver *multizone_solver_container
+ const CMultizoneGeometry *multizone_geometry_container,
+ CMultizoneSolver         *multizone_solver_container
 )
  /*
   *
@@ -308,7 +308,7 @@ void NResidualComputation::AccumulateJFaceResidualsCollective
   AssertParallelRegion();
 
 	// Get the total faces in the j-direction.
-	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
+	const auto& jdir_faces_multizone = multizone_geometry_container->GetMultizoneJFaces();
 	
 	// Get the total number faces in the  j-direction.
   const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
@@ -319,8 +319,8 @@ void NResidualComputation::AccumulateJFaceResidualsCollective
 	for(size_t i=0; i<nFacesJDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+    //const auto face_info = multizone_geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
     // Extract the current type of face.
     const auto face_type = face_info.mFaceType;
 
@@ -393,7 +393,7 @@ void NResidualComputation::AccumulateJFaceResidualsCollective
 
 void NResidualComputation::ApplyInverseMassMatricesCollective
 (
- const CGeometry           *geometry_container,
+ const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray
 )
@@ -405,7 +405,7 @@ void NResidualComputation::ApplyInverseMassMatricesCollective
   AssertParallelRegion();
 
 	// Get the total number of elements in all zones.
-	const auto nElemTotal = geometry_container->GetnElemTotal();
+	const auto nElemTotal = multizone_geometry_container->GetnElemTotal();
 
   // Borrow memory once, and use all the existing work array (which is more than enough).
   auto tmp = workarray.GetWorkMatrixAS3( 1, workarray.size() );
@@ -416,7 +416,7 @@ void NResidualComputation::ApplyInverseMassMatricesCollective
 	for(size_t i=0; i<nElemTotal; i++)
 	{
     // Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone = elem_info.mIndexZone; 

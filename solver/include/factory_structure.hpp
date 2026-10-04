@@ -52,12 +52,12 @@ class CGenericFactory
 		 * @brief Function that creates a specialized instance of a vtk container.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 *
 		 * @return unique pointer to the specific vtk class.
 		 */
-		static std::unique_ptr<IFileVTK> CreateVTKContainer(const CConfig   *config_container,
-				                                                const CGeometry *geometry_container);
+		static std::unique_ptr<IFileVTK> CreateVTKContainer(const CConfig            *config_container,
+				                                                const CMultizoneGeometry *multizone_geometry_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of an initial condition container.
@@ -102,7 +102,7 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to specialized physical element class.
 		 */
-		static std::unique_ptr<CPhysicalElement> CreatePhysicalElement(CConfig          *config_container,
+		static std::unique_ptr<CPhysicalElement> CreatePhysicalElement(const CConfig    *config_container,
 				                                                           CStandardElement *standard_element,
 																																	 ITensorProduct   *tensor_container,
 				                                                           CElementGeometry *element_geometry,
@@ -124,16 +124,16 @@ class CGenericFactory
 		 * @brief Function that creates a specialized instance of a boundary container.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] marker_container input marker container.
 		 * @param[in] index index of the owner element.
 		 *
 		 * @return unique pointer to the specific boundary class.
 		 */
-		static std::unique_ptr<IBoundary> CreateBoundaryContainer(CConfig      *config_container,
-				                                                      CGeometry    *geometry_container,
-																													    CMarker      *marker_container,
-																															unsigned int  index);
+		static std::unique_ptr<IBoundary> CreateBoundaryContainer(const CConfig            *config_container,
+				                                                      const CMultizoneGeometry *multizone_geometry_container,
+																													    CMarker                  *marker_container,
+																															unsigned int              index);
 
 
 		static std::unique_ptr<IInterface> CreateInterfaceContainer(const CConfig               *config_container,
@@ -141,8 +141,8 @@ class CGenericFactory
                                                                 const CInterfaceFacesFamily &interface_family);
 
 
-		static std::unique_ptr<ISolver> CreateSolverContainer(const CConfig       *config_container,
-				                                                  const CZoneGeometry *zone_geometry);
+		static std::unique_ptr<ISolver> CreateSolverContainer(const CConfig             *config_container,
+				                                                  const CSinglezoneGeometry *singlezone_geometry);
 
 	private:
 		// Disable default constructor.

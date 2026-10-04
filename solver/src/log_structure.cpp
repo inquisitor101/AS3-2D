@@ -68,9 +68,9 @@ void NLogger::PrintInitSolver
 
 void NLogger::DisplayBoundaryConditions
 (
- const CConfig          *config_container,
- const CGeometry        *geometry_container,
- const CMultizoneSolver *multizone_solver_container
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ const CMultizoneSolver   *multizone_solver_container
 )
  /*
 	* Function that displays the boundary condition information over all zones.
@@ -92,7 +92,7 @@ void NLogger::DisplayBoundaryConditions
 
 
 	// Loop over each grid zone.
-	for( auto& zone: geometry_container->GetZoneGeometry() )
+	for( auto& zone: multizone_geometry_container->GetSinglezoneGeometry() )
 	{
 		// Extract the marker information in this zone.
 		auto& marker = zone->GetMarker();
@@ -256,9 +256,9 @@ void NLogger::MonitorOutput
 
 void NLogger::DisplayOpenMPInfo
 (
- COpenMP                *openmp_container,
- const CGeometry        *geometry_container,
- const CMultizoneSolver *multizone_solver_container
+ COpenMP                  *openmp_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ const CMultizoneSolver   *multizone_solver_container
 )
  /*
 	* Function that displays the OpenMP information, if any.
@@ -274,11 +274,11 @@ void NLogger::DisplayOpenMPInfo
             << nThreads << " threads." << std::endl;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = geometry_container->GetnElemTotal();
+	const size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
 	// Get the total number of i-faces in all zones.
-	const size_t nIFace     = geometry_container->GetnIFace();
+	const size_t nIFace     = multizone_geometry_container->GetnIFace();
 	// Get the total number of j-faces in all zones.
-	const size_t nJFace     = geometry_container->GetnJFace();
+	const size_t nJFace     = multizone_geometry_container->GetnJFace();
 
   // Estimate computational work load of each thread.
   as3vector1d<size_t> workloadDOFs(nThreads, 0);
@@ -313,8 +313,8 @@ void NLogger::DisplayOpenMPInfo
 		workloadIFace[iThread]++;
 
     // Get the relevant face information for the standard and load-balanced partitions.
-    const auto face_info_standard = geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info_balanced = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+    const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexIFace(i);
+    const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
 
     // Estimate the work load for the standard approach.
     switch( face_info_standard.mFaceType )
@@ -346,8 +346,8 @@ void NLogger::DisplayOpenMPInfo
 		workloadJFace[iThread]++;
 	
     // Get the relevant face information for the standard and load-balanced partitions.
-    const auto face_info_standard = geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info_balanced = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+    const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexJFace(i);
+    const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
 
     // Estimate the work load for the standard approach.
     switch( face_info_standard.mFaceType )
@@ -373,7 +373,7 @@ void NLogger::DisplayOpenMPInfo
   for(size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
+		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone = elem_info.mIndexZone; 

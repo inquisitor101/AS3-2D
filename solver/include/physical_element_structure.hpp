@@ -54,7 +54,7 @@ class CPhysicalElement
 		 * @param[in] iZone current zone ID.
 		 * @param[in] nVar number of working variables.
 		 */
-		CPhysicalElement(CConfig          *config_container,
+		CPhysicalElement(const CConfig    *config_container,
 										 CStandardElement *standard_element,
 										 ITensorProduct   *tensor_container,
 										 CElementGeometry *element_geometry,

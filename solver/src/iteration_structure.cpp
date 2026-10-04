@@ -69,7 +69,7 @@ CIteration::~CIteration
 void CIteration::PreProcessIteration
 (
  CConfig                   *config_container,
- CGeometry                 *geometry_container,
+ CMultizoneGeometry        *multizone_geometry_container,
  COpenMP                   *openmp_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
@@ -87,7 +87,7 @@ void CIteration::PreProcessIteration
 void CIteration::PostProcessIteration
 (
  CConfig                   *config_container,
- CGeometry                 *geometry_container,
+ CMultizoneGeometry        *multizone_geometry_container,
  COpenMP                   *openmp_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
@@ -105,7 +105,7 @@ void CIteration::PostProcessIteration
 void CIteration::ComputeResiduals
 (
  CConfig                   *config_container,
- CGeometry                 *geometry_container,
+ CMultizoneGeometry        *multizone_geometry_container,
  COpenMP                   *openmp_container,
  CMultizoneSolver          *multizone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
@@ -118,30 +118,30 @@ void CIteration::ComputeResiduals
 	*/
 {
   // First, we compute the volume residual, which also initializes the residuals.
-  NResidualComputation::ComputeVolumeResidualsCollective(geometry_container, 
+  NResidualComputation::ComputeVolumeResidualsCollective(multizone_geometry_container, 
                                                          multizone_solver_container, 
                                                          workarray, localtime);
 
   // Then, we compute the IFace residuals.
-  NResidualComputation::ComputeIFaceResidualsCollective(geometry_container, 
+  NResidualComputation::ComputeIFaceResidualsCollective(multizone_geometry_container, 
                                                         multizone_solver_container, 
                                                         workarray, localtime);
 
   // Afterwards, we must accumulate the temporary stored IFace residuals.
-  NResidualComputation::AccumulateIFaceResidualsCollective(geometry_container, 
+  NResidualComputation::AccumulateIFaceResidualsCollective(multizone_geometry_container, 
                                                            multizone_solver_container);
 
   // Same with JFace residuals.
-  NResidualComputation::ComputeJFaceResidualsCollective(geometry_container,
+  NResidualComputation::ComputeJFaceResidualsCollective(multizone_geometry_container,
                                                         multizone_solver_container,
                                                         workarray, localtime);
 
   // Also, accumulate the temporary stored JFace residuals.
-  NResidualComputation::AccumulateJFaceResidualsCollective(geometry_container,
+  NResidualComputation::AccumulateJFaceResidualsCollective(multizone_geometry_container,
                                                            multizone_solver_container);
 
   // Finally, we update the residuals by including the mass matrix's effect.
-  NResidualComputation::ApplyInverseMassMatricesCollective(geometry_container, 
+  NResidualComputation::ApplyInverseMassMatricesCollective(multizone_geometry_container, 
                                                            multizone_solver_container, 
                                                            workarray);
 }
@@ -150,11 +150,11 @@ void CIteration::ComputeResiduals
 
 void CIteration::GridSweep
 (
- CConfig          *config_container,
- CGeometry        *geometry_container,
- COpenMP          *openmp_container,
- CMultizoneSolver *multizone_solver_container, 
- as3double         localtime 
+ CConfig            *config_container,
+ CMultizoneGeometry *multizone_geometry_container,
+ COpenMP            *openmp_container,
+ CMultizoneSolver   *multizone_solver_container, 
+ as3double           localtime 
 )
  /*
 	* Function that performs a grid sweep over all the zones. 
@@ -168,7 +168,7 @@ void CIteration::GridSweep
 
 	// Check for any preprocessing steps.
 	PreProcessIteration(config_container,
-			                geometry_container,
+			                multizone_geometry_container,
 											openmp_container,
 											multizone_solver_container,
 											workarray,
@@ -177,7 +177,7 @@ void CIteration::GridSweep
 
 	// Compute the residual over all zones.
 	ComputeResiduals(config_container,
-			             geometry_container,
+			             multizone_geometry_container,
 									 openmp_container,
 									 multizone_solver_container,
 									 workarray,
@@ -186,7 +186,7 @@ void CIteration::GridSweep
 
 	// Check for any postprocessing steps.
 	PostProcessIteration(config_container,
-			                 geometry_container,
+			                 multizone_geometry_container,
 											 openmp_container,
 											 multizone_solver_container,
 											 workarray,

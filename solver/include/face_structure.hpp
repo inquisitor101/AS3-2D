@@ -4,8 +4,8 @@
 #include "config_structure.hpp"
 
 // Forward declaration to avoid compiler problems.
-class CGeometry;
-class CZoneGeometry;
+class CMultizoneGeometry;
+class CSinglezoneGeometry;
 class CMarker;
 
 
@@ -35,8 +35,8 @@ class CInternalFacesFamily
   using AInternalFaceVector = as3vector1d<CInternalElementFaceGeometry>;
   
   public:
-    CInternalFacesFamily(ETypeFace            face_type, 
-                         const CZoneGeometry *zone_geometry);
+    CInternalFacesFamily(ETypeFace                  face_type, 
+                         const CSinglezoneGeometry *singlezone_geometry_container);
 
     const AInternalFaceVector& GetInternalFaces(void) const
     {
@@ -55,7 +55,7 @@ class CInternalFacesFamily
     size_t              mOffsetElementPlus;
     AInternalFaceVector mInternalFaces;
 
-    void InitializeInternalFaces(const CZoneGeometry *zone_geometry);
+    void InitializeInternalFaces(const CSinglezoneGeometry *singlezone_geometry_container);
 };
 
 //-----------------------------------------------------------------------------------
@@ -72,9 +72,9 @@ class CBoundaryFacesFamily
   using ABoundaryFaceVector = as3vector1d<CBoundaryElementFaceGeometry>;
   
   public:
-    CBoundaryFacesFamily(ETypeFace            face_type,
-                         EFaceLocation        face_location,
-                         const CZoneGeometry *zone_geometry);
+    CBoundaryFacesFamily(ETypeFace                  face_type,
+                         EFaceLocation              face_location,
+                         const CSinglezoneGeometry *singlezone_geometry_container);
 
     const ABoundaryFaceVector& GetBoundaryFaces(void) const
     {
@@ -108,15 +108,15 @@ class CInterfaceFacesFamily
   using AInterfaceFaceVector = as3vector1d<CInterfaceElementFaceGeometry>;
   
   public:
-    CInterfaceFacesFamily(const CGeometry       *geometry_container,
-                          const CMarker         *imarker_container,
-                          const CMarker         *jmarker_container,
-                          CInterfaceParamMarker *param_interface);
+    CInterfaceFacesFamily(const CMultizoneGeometry *multizone_geometry_container,
+                          const CMarker            *imarker_container,
+                          const CMarker            *jmarker_container,
+                          CInterfaceParamMarker    *param_interface);
 
-    void InitializeInterfaceFaces(const CGeometry       *geometry_container,
-                                  const CMarker         *imarker_container,
-                                  const CMarker         *jmarker_container,
-                                  CInterfaceParamMarker *param_interface);
+    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container,
+                                  const CMarker            *imarker_container,
+                                  const CMarker            *jmarker_container,
+                                  CInterfaceParamMarker    *param_interface);
 
     const AInterfaceFaceVector& GetInterfaceFaces(void) const
     {
@@ -162,10 +162,10 @@ class CInterfaceFacesFamily
 
     AInterfaceFaceVector mInterfaceFaces;
 
-		void CheckConformityMarkers(const CGeometry       *geometry_container,
-																const CMarker         *imarker_container,
-																const CMarker         *jmarker_container,
-																CInterfaceParamMarker *param_interface);
+		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container,
+																const CMarker            *imarker_container,
+																const CMarker            *jmarker_container,
+																CInterfaceParamMarker    *param_interface);
 };
 
 //-----------------------------------------------------------------------------------
@@ -285,8 +285,8 @@ class CMultizoneFaceGeometry
     
     CMultizoneFaceGeometry(ETypeFace face_type) : mTypeFace(face_type) {}
 
-		void InitializeFaces(const CConfig   *config_container,
-				                 const CGeometry *geometry_structure);
+		void InitializeFaces(const CConfig            *config_container,
+				                 const CMultizoneGeometry *multizone_geometry_container);
 
 
 		ETypeFaceGeometry DeduceFaceTypeFromIndex(size_t i) const
@@ -372,10 +372,10 @@ class CMultizoneFaceGeometry
     CGroupFaces<CInterfaceFacesFamily> mInterfaceFacesGroup;
 
 
-		void InitializeInternalFaces(const CGeometry *geometry_container);
+		void InitializeInternalFaces(const CMultizoneGeometry *multizone_geometry_container);
 
-		void InitializeInterfaceFaces(const CConfig   *config_container,
-				                          const CGeometry *geometry_structure);
+		void InitializeInterfaceFaces(const CConfig            *config_container,
+				                          const CMultizoneGeometry *multizone_geometry_container);
 };
 
 

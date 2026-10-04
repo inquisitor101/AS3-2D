@@ -8,10 +8,10 @@
 
 IBoundary::IBoundary
 (
- CConfig      *config_container,
- CGeometry    *geometry_container,
- CMarker      *marker_container,
- unsigned int  index
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container,
+ CMarker                  *marker_container,
+ unsigned int              index
 )
 	:
 		mIndex(index)

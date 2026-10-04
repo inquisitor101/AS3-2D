@@ -17,14 +17,14 @@ class IBoundary
 		 * @brief Constructor of IBoundary, which serves as an interface for the boundary condition.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
+		 * @param[in] multizone_geometry_container input geometry container.
 		 * @param[in] marker_container input marker container.
 		 * @param[in] index index of the element.
 		 */
-		IBoundary(CConfig      *config_container,
-				      CGeometry    *geometry_container,
-						  CMarker      *marker_container,
-							unsigned int  index);
+		IBoundary(const CConfig            *config_container,
+				      const CMultizoneGeometry *multizone_geometry_container,
+						  CMarker                  *marker_container,
+							unsigned int              index);
 	
 		/*!
 		 * @brief Function that returns the element index of this boundary.

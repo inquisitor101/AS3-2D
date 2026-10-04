@@ -8,7 +8,7 @@
 #include "solver_structure.hpp"
 
 // Forward declaration to avoid compiler problems.
-class CGeometry;
+class CMultizoneGeometry;
 class CMultizoneSolver;
 
 
@@ -20,28 +20,28 @@ namespace NResidualComputation
   // Each stage includes an implicit end-of-loop barrier.
   // Preserve the original per-thread workspace ownership arrangement.
   
-  void ComputeVolumeResidualsCollective(const CGeometry            *geometry_container,
-                                        CMultizoneSolver           *multizone_solver_container,
-                                        CPoolMatrixAS3<as3double>  &workarray,
-                                        as3double                   localtime);
+  void ComputeVolumeResidualsCollective(const CMultizoneGeometry  *multizone_geometry_container,
+                                        CMultizoneSolver          *multizone_solver_container,
+                                        CPoolMatrixAS3<as3double> &workarray,
+                                        as3double                  localtime);
   
-  void ComputeIFaceResidualsCollective(const CGeometry           *geometry_container,
+  void ComputeIFaceResidualsCollective(const CMultizoneGeometry  *multizone_geometry_container,
                                        CMultizoneSolver          *multizone_solver_container,
                                        CPoolMatrixAS3<as3double> &workarray,
                                        as3double                  localtime);
    
-  void ComputeJFaceResidualsCollective(const CGeometry           *geometry_container,
+  void ComputeJFaceResidualsCollective(const CMultizoneGeometry  *multizone_geometry_container,
                                        CMultizoneSolver          *multizone_solver_container,
                                        CPoolMatrixAS3<as3double> &workarray,
                                        as3double                  localtime);
   
-  void AccumulateIFaceResidualsCollective(const CGeometry  *geometry_container,
-                                          CMultizoneSolver *multizone_solver_container);
+  void AccumulateIFaceResidualsCollective(const CMultizoneGeometry  *multizone_geometry_container,
+                                          CMultizoneSolver          *multizone_solver_container);
   
-  void AccumulateJFaceResidualsCollective(const CGeometry  *geometry_container,
-                                          CMultizoneSolver *multizone_solver_container);
+  void AccumulateJFaceResidualsCollective(const CMultizoneGeometry  *multizone_geometry_container,
+                                          CMultizoneSolver          *multizone_solver_container);
   
-  void ApplyInverseMassMatricesCollective(const CGeometry           *geometry_container,
+  void ApplyInverseMassMatricesCollective(const CMultizoneGeometry  *multizone_geometry_container,
                                           CMultizoneSolver          *multizone_solver_container,
                                           CPoolMatrixAS3<as3double> &workarray);
 

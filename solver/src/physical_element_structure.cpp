@@ -8,7 +8,7 @@
 
 CPhysicalElement::CPhysicalElement
 (
- CConfig          *config_container,
+ const CConfig    *config_container,
  CStandardElement *standard_element,
  ITensorProduct   *tensor_container,
  CElementGeometry *element_geometry,
