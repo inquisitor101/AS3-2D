@@ -285,7 +285,10 @@ class ITensorProduct
 	protected:
 
 	private:
-		// Disable default copy constructor.
+		inline static constexpr size_t mRuntimeMaxK = 10;
+    inline static constexpr size_t mRuntimeMaxM = 10;
+    
+    // Disable default copy constructor.
 		ITensorProduct(const ITensorProduct&) = delete;
 		// Disable default copy operator.
 		ITensorProduct& operator=(ITensorProduct&) = delete;	

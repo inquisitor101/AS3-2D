@@ -56,8 +56,8 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to the specific vtk class.
 		 */
-		static std::unique_ptr<IFileVTK> CreateVTKContainer(CConfig   *config_container,
-				                                                CGeometry *geometry_container);
+		static std::unique_ptr<IFileVTK> CreateVTKContainer(const CConfig   *config_container,
+				                                                const CGeometry *geometry_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of an initial condition container.
@@ -76,8 +76,8 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to the specific Riemann solver class.
 		 */
-		static std::unique_ptr<IRiemannSolver> CreateRiemannSolverContainer(CConfig           *config_container,
-				                                                                ETypeRiemannSolver riemann);
+		static std::unique_ptr<IRiemannSolver> CreateRiemannSolverContainer(const CConfig      *config_container,
+				                                                                ETypeRiemannSolver  riemann);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a standard element container.
@@ -87,8 +87,8 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to specialized standard element class.
 		 */
-		static std::unique_ptr<CStandardElement> CreateStandardElement(CConfig       *config_container,
-				                                                           unsigned short iZone);
+		static std::unique_ptr<CStandardElement> CreateStandardElement(const CConfig  *config_container,
+				                                                           unsigned short  iZone);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a physical element container.
@@ -135,44 +135,14 @@ class CGenericFactory
 																													    CMarker      *marker_container,
 																															unsigned int  index);
 
-		/*!
-		 * @brief Function that creates a specialized instance of an interface boundary container.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] param_container input interface parameter container.
-		 * @param[in] solver_container input vector of solver containers. 
-		 *
-		 * @return unique pointer to the specific interface class.
-		 */
-		static std::unique_ptr<IInterface> CreateInterfaceContainer(CConfig                               *config_container,
-				                                                        CGeometry                             *geometry_container,
-																																CInterfaceParamMarker                 *param_container,
-																													      as3vector1d<std::unique_ptr<ISolver>> &solver_container);
 
-		/*!
-		 * @brief Function that creates a specialized instance of a solver container.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] iZone zone ID of this container.
-		 *
-		 * @return unique pointer to the specific solver class.
-		 */
-		static std::unique_ptr<ISolver> CreateSolverContainer(CConfig       *config_container,
-				                                                  CGeometry     *geometry_container,
-																													unsigned short iZone);
+		static std::unique_ptr<IInterface> CreateInterfaceContainer(const CConfig               *config_container,
+																													      CMultizoneSolver            *multizone_solver_container,
+                                                                const CInterfaceFacesFamily &interface_family);
 
-		/*!
-		 * @brief Function that creates a vector of specialized instances of solver containers.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 *
-		 * @return vector of specilized solver containers in each zone.
-		 */
-		static as3vector1d<std::unique_ptr<ISolver>> CreateMultizoneSolverContainer(CConfig   *config_container,
-				                                                                        CGeometry *geometry_container);
+
+		static std::unique_ptr<ISolver> CreateSolverContainer(const CConfig       *config_container,
+				                                                  const CZoneGeometry *zone_geometry);
 
 	private:
 		// Disable default constructor.

@@ -26,15 +26,20 @@ void ITensorProduct::RuntimeVolume
 	const size_t M2 = M*M; 
 	const size_t K2 = K*K;
 
+  // Enforce bounds in both debug and release builds.
+  if(K > mRuntimeMaxK || M > mRuntimeMaxM)
+  {
+    ERROR("Tensor dimensions exceed temporary storage capacity.");
+  }
 	
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage.
-		as3double tmpJ[K][M];
-		as3double tmpI[M][M];
-
-		// Cast array B from 1D to 2D.
+		as3double tmpJ[mRuntimeMaxK][mRuntimeMaxM];
+		as3double tmpI[mRuntimeMaxM][mRuntimeMaxM];
+		
+    // Cast array B from 1D to 2D.
 		const as3double *b = &B[l*K2];
 
 		for(size_t i=0; i<K; i++)
@@ -150,13 +155,18 @@ void ITensorProduct::RuntimeSurfaceIMIN
 	// Total number of (volume) input points in 2D.
 	const size_t K2 = K*K;
 
+  // Enforce bounds in both debug and release builds.
+  if(K > mRuntimeMaxK || M > mRuntimeMaxM)
+  {
+    ERROR("Tensor dimensions exceed temporary storage capacity.");
+  }
 
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage.
-		as3double tmpI[M];
-		as3double tmpJ[K];
+		as3double tmpI[mRuntimeMaxM];
+		as3double tmpJ[mRuntimeMaxK];
 
 		// Store the IMIN boundary surface data in tmpJ.
     for(size_t s=0; s<K; s++) tmpJ[s] = B[l*K2+s*K];
@@ -250,12 +260,18 @@ void ITensorProduct::RuntimeSurfaceIMAX
 	const size_t K2  = K*K;
 	const size_t Km1 = K-1;
 
+  // Enforce bounds in both debug and release builds.
+  if(K > mRuntimeMaxK || M > mRuntimeMaxM)
+  {
+    ERROR("Tensor dimensions exceed temporary storage capacity.");
+  }
+
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage.
-		as3double tmpI[M];
-		as3double tmpJ[K];
+		as3double tmpI[mRuntimeMaxM];
+		as3double tmpJ[mRuntimeMaxK];
 
 		// Store the IMIN boundary surface data in tmpJ.
     for(size_t s=0; s<K; s++) tmpJ[s] = B[l*K2+K*s+Km1];
@@ -348,13 +364,18 @@ void ITensorProduct::RuntimeSurfaceJMIN
 	// Total number of (volume) solution points in 2D.
 	const size_t K2 = K*K;
 
+  // Enforce bounds in both debug and release builds.
+  if(K > mRuntimeMaxK || M > mRuntimeMaxM)
+  {
+    ERROR("Tensor dimensions exceed temporary storage capacity.");
+  }
 
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage.
-		as3double tmpI[M];
-		as3double tmpJ[K];
+		as3double tmpI[mRuntimeMaxM];
+		as3double tmpJ[mRuntimeMaxK];
 
 		// Store boundary surface info in tmpJ.
     for(size_t s=0; s<K; s++) tmpJ[s] = B[l*K2+s];
@@ -448,13 +469,18 @@ void ITensorProduct::RuntimeSurfaceJMAX
 	const size_t K2   = K*K;
 	const size_t K2mK = K2-K;
 
+  // Enforce bounds in both debug and release builds.
+  if(K > mRuntimeMaxK || M > mRuntimeMaxM)
+  {
+    ERROR("Tensor dimensions exceed temporary storage capacity.");
+  }
 
 	// Loop over each N entry.
 	for(size_t l=0; l<N; l++)
 	{
 		// Create temporary storage.
-		as3double tmpI[M];
-		as3double tmpJ[K];
+		as3double tmpI[mRuntimeMaxM];
+		as3double tmpJ[mRuntimeMaxK];
 
 		// Store boundary surface info in tmpJ.
     for(size_t s=0; s<K; s++) tmpJ[s] = B[l*K2+s+K2mK];

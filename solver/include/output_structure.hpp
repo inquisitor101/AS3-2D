@@ -19,8 +19,8 @@ class COutput
 		/*!
 		 * @brief Constructor of COutput, which is responsible for the entire output routines.
 		 */
-		COutput(CConfig   *config_container,
-				    CGeometry *geometry_container);
+		COutput(const CConfig   *config_container,
+				    const CGeometry *geometry_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -29,16 +29,11 @@ class COutput
 
 		/*!
 		 * @brief Function that writes a visualization file.
-		 *
-		 * @param[in] config_container pointer to the configuration container.
-		 * @param[in] geometry_container pointer to the geometry container.
-		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container reference to the solver container.
 		 */
-		void WriteVisualFile(CConfig                               *config_container,
-											   CGeometry                             *geometry_container,
-												 COpenMP                               *openmp_container,
-												 as3vector1d<std::unique_ptr<ISolver>> &solver_structure);
+		void WriteVisualFile(const CConfig          *config_container,
+											   const CGeometry        *geometry_container,
+												 const COpenMP          *openmp_container,
+												 const CMultizoneSolver *multizone_solver_structure);
 
 	protected:
 

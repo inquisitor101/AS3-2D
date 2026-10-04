@@ -1,99 +1,274 @@
-# Binary exetutable directory.
-BIN_DIR := bin
-# Source file directory.
-SRC_DIR := src
-# Object file directory.
-OBJ_DIR := obj
-# Dependency file directory.
-DEP_DIR := dep
+## Binary exetutable directory.
+#BIN_DIR := bin
+## Source file directory.
+#SRC_DIR := src
+## Object file directory.
+#OBJ_DIR := obj
+## Dependency file directory.
+#DEP_DIR := dep
+#
+#
+## Executable name
+#EXE := $(BIN_DIR)/AS3
+#
+## Compiler and standard.
+#CXX = /opt/homebrew/opt/llvm/bin/clang++ --std=c++20 -fopenmp
+#
+## OpenMP flag.
+#CXX_OMP = -DHAVE_OPENMP
+#
+## MPI flag.
+#CXX_MPI = 
+#
+#
+## Extract source files.
+#SRCS := $(wildcard $(SRC_DIR)/*.cpp)
+## Specify object files.
+#OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
+## Dependency files.
+#DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
+#
+#
+## Header files directory.
+#INCLUDE = -Iinclude 
+#
+## Linker flags.
+#LDFLAG = -Llib -flto
+#
+## Linker libraries.
+#LDLIBS = -llapack -lblas $(CXX_PGOFLAGS)
+#
+## Dependency flags.
+#DEPFLAGS = -MMD -MT $@ -MP -MF $(DEP_DIR)/$*.d
+#
+## Compiler debug flags.
+#CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra  #-Wpadded -Werror #-fanalyzer 
+#
+## Preprocessor flags.
+#CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
+#
+## Optimization flags.
+#CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native #-DNDEBUG
+#
+## Guided-profiling flag.
+#CXX_PGOFLAGS = #-pg
+#
+## C++ flags.
+#CXXFLAGS = $(CXX_OPTFLAGS) $(CXX_PGOFLAGS) $(CXX_OMP) $(CXX_MPI)  
+#
+#
+## Hey Make, these aren't real directories.
+#.PHONY: all clean debug
+#default: all
+#
+#all: $(EXE)
+#
+#$(EXE): $(OBJS)
+#	@mkdir -p $(BIN_DIR)
+#	$(CXX) $(CXXFLAGS) $(LDFLAG) $^ -o $@ $(LDLIBS) 
+#
+#$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
+#	@mkdir -p $(OBJ_DIR)
+#	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $< 
+#
+#debug: CXXFLAGS = $(CXX_DBGFLAGS)
+#debug: $(EXE)
+#
+#
+#$(DEPS):
+#
+#$(DEP_DIR): ; @mkdir -p $@
+#
+#.PRECIOUS: $(DEP_DIR)/%.d
+#
+#
+#clean:
+#	$(RM) $(OBJ_DIR)/*.o $(DEP_DIR)/*.d $(EXE)
+#
+#
+#
+#
+#print:
+#	@echo "srcs:"
+#	@$(foreach file,$(SRCS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+#	@echo "objs:"
+#	@$(foreach file,$(OBJS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+#	@echo "deps:"
+#	@$(foreach file,$(DEPS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+#
+#-include $(wildcard $(DEPS))
 
 
-# Executable name
-EXE := $(BIN_DIR)/AS3
+# GNU Make; Homebrew LLVM on macOS by default.
+.DEFAULT_GOAL := all
+.DELETE_ON_ERROR:
 
-# Compiler and standard.
-CXX = /opt/homebrew/opt/llvm/bin/clang++ --std=c++20 -fopenmp
+# Capture the main makefile before dependency files are included.
+THIS_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
-# OpenMP flag.
-CXX_OMP = -DHAVE_OPENMP
+# Toolchain. Command-line overrides work: make CXX=/path/to/clang++
+LLVM_PREFIX ?= /opt/homebrew/opt/llvm
+ifeq ($(origin CXX),default)
+CXX := $(LLVM_PREFIX)/bin/clang++
+endif
+CXX ?= $(LLVM_PREFIX)/bin/clang++
 
-# MPI flag.
-CXX_MPI = 
+# Build choices: MODE=release|debug, OPENMP=0|1, LTO=off|thin|full,
+# NATIVE=0|1. Each combination has its own objects and executable.
+MODE   ?= release
+OPENMP ?= 1
+LTO    ?= off
+NATIVE ?= 0
 
+ifneq ($(words $(MODE)),1)
+$(error MODE must be release or debug)
+endif
+ifeq ($(filter $(MODE),release debug),)
+$(error MODE must be release or debug)
+endif
+ifneq ($(words $(OPENMP)),1)
+$(error OPENMP must be 0 or 1)
+endif
+ifeq ($(filter $(OPENMP),0 1),)
+$(error OPENMP must be 0 or 1)
+endif
+ifneq ($(words $(LTO)),1)
+$(error LTO must be off, thin, or full)
+endif
+ifeq ($(filter $(LTO),off thin full),)
+$(error LTO must be off, thin, or full)
+endif
+ifneq ($(words $(NATIVE)),1)
+$(error NATIVE must be 0 or 1)
+endif
+ifeq ($(filter $(NATIVE),0 1),)
+$(error NATIVE must be 0 or 1)
+endif
 
-# Extract source files.
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-# Specify object files.
+SRC_DIR    := src
+BIN_DIR    := bin
+BUILD_ROOT := build
+BUILD_TAG  := $(MODE)-omp$(OPENMP)-lto$(LTO)-native$(NATIVE)
+BUILD_DIR  := $(BUILD_ROOT)/$(BUILD_TAG)
+OBJ_DIR    := $(BUILD_DIR)/obj
+DEP_DIR    := $(BUILD_DIR)/dep
+EXE        := $(BIN_DIR)/$(BUILD_TAG)/AS3
+CONFIG     := $(BUILD_DIR)/flags.txt
+
+SRCS := $(sort $(wildcard $(SRC_DIR)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
-# Dependency files.
 DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
 
+# User flags are separate from required build flags. Examples:
+# make CPPFLAGS=-DMY_OPTION CXXFLAGS=-Wshadow
+# make EXTRA_CXXFLAGS=-pg EXTRA_LDFLAGS=-pg
+CPPFLAGS ?=
+CXXFLAGS ?=
+LDFLAGS  ?=
+LDLIBS   ?= -llapack -lblas
+EXTRA_CPPFLAGS ?=
+EXTRA_CXXFLAGS ?=
+EXTRA_LDFLAGS  ?=
 
-# Header files directory.
-INCLUDE = -Iinclude 
+PROJECT_CPPFLAGS := -Iinclude
+PROJECT_CXXFLAGS := -std=c++20 -Wall -Wextra -Wconversion
+PROJECT_LDFLAGS  :=
 
-# Linker flags.
-LDFLAG = -Llib -flto
+ifeq ($(MODE),debug)
+# -UNDEBUG keeps assertions active even if a preceding user flag defines it.
+PROJECT_CPPFLAGS += -UNDEBUG -DDEBUG -DENABLE_NAN_CHECK
+PROJECT_CXXFLAGS += -O0 -g
+else
+PROJECT_CPPFLAGS += -DNDEBUG
+PROJECT_CXXFLAGS += -O2
+endif
 
-# Linker libraries.
-LDLIBS = -llapack -lblas $(CXX_PGOFLAGS)
+ifeq ($(NATIVE),1)
+PROJECT_CXXFLAGS += -march=native -mtune=native
+endif
 
-# Dependency flags.
-DEPFLAGS = -MMD -MT $@ -MP -MF $(DEP_DIR)/$*.d
+ifeq ($(OPENMP),1)
+OMP_PREFIX ?= /opt/homebrew/opt/libomp
+PROJECT_CPPFLAGS += -DHAVE_OPENMP -I$(OMP_PREFIX)/include
+PROJECT_CXXFLAGS += -fopenmp
+PROJECT_LDFLAGS  += -fopenmp -L$(OMP_PREFIX)/lib -Wl,-rpath,$(OMP_PREFIX)/lib
+else
+PROJECT_CPPFLAGS += -UHAVE_OPENMP
+endif
 
-# Compiler debug flags.
-CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra  #-Wpadded -Werror #-fanalyzer 
+ifneq ($(LTO),off)
+PROJECT_CXXFLAGS += -flto=$(LTO)
+PROJECT_LDFLAGS  += -flto=$(LTO)
+# Darwin's linker needs to retain its LTO object for debug information when
+# compiling and linking separately. Do not force a different linker.
+ifeq ($(MODE),debug)
+ifeq ($(shell uname -s),Darwin)
+PROJECT_LDFLAGS += -Wl,-object_path_lto,$(abspath $(BUILD_DIR)/lto.o)
+endif
+endif
+endif
 
-# Preprocessor flags.
-CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
+COMPILE_CPPFLAGS = $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(PROJECT_CPPFLAGS)
+COMPILE_CXXFLAGS = $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(PROJECT_CXXFLAGS)
+LINK_FLAGS       = $(LDFLAGS) $(EXTRA_LDFLAGS) $(PROJECT_LDFLAGS)
 
-# Optimization flags.
-CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG
-
-# Guided-profiling flag.
-CXX_PGOFLAGS = #-pg
-
-# C++ flags.
-CXXFLAGS = $(CXX_OPTFLAGS) $(CXX_PGOFLAGS) $(CXX_OMP) $(CXX_MPI)  
-
-
-# Hey Make, these aren't real directories.
-.PHONY: all clean debug
-default: all
+.PHONY: all debug release debug-serial debug-parallel release-serial \
+        release-parallel print clean FORCE
 
 all: $(EXE)
 
-$(EXE): $(OBJS)
-	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(LDFLAG) $^ -o $@ $(LDLIBS) 
+# Recursive invocations select their configuration before parsing rules.
+# They inherit command-line options and GNU Make's parallel jobserver.
+debug:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug all
+release:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release all
+debug-serial:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug OPENMP=0 all
+debug-parallel:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug OPENMP=1 all
+release-serial:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=0 all
+release-parallel:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=1 all
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
-	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $< 
+# Record effective flags and source membership. Update the timestamp only
+# when something changes, avoiding both stale objects and needless rebuilds.
+# As with most Makefiles, flag values should not contain literal apostrophes.
+$(CONFIG): FORCE
+	@mkdir -p $(BUILD_DIR)
+	@printf '%s\n' 'CXX=$(CXX)' \
+	    'CPPFLAGS=$(COMPILE_CPPFLAGS)' \
+	    'CXXFLAGS=$(COMPILE_CXXFLAGS)' \
+	    'LDFLAGS=$(LINK_FLAGS)' 'LDLIBS=$(LDLIBS)' \
+	    'SRCS=$(SRCS)' > $@.tmp
+	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
-debug: CXXFLAGS = $(CXX_DBGFLAGS)
-debug: $(EXE)
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(CONFIG)
+	@mkdir -p $(OBJ_DIR) $(DEP_DIR)
+	$(CXX) $(COMPILE_CPPFLAGS) $(COMPILE_CXXFLAGS) \
+	    -MMD -MP -MF $(DEP_DIR)/$*.d -MT $@ -c $< -o $@
 
-
-$(DEPS):
-
-$(DEP_DIR): ; @mkdir -p $@
-
-.PRECIOUS: $(DEP_DIR)/%.d
-
-
-clean:
-	$(RM) $(OBJ_DIR)/*.o $(DEP_DIR)/*.d $(EXE)
-
-
-
+$(EXE): $(OBJS) $(CONFIG)
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(strip $(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS)) \' \
+	    $(foreach obj,$(OBJS),'    $(obj) \') \
+	    '    $(LDLIBS) -o $@'
+	@$(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS) $(OBJS) $(LDLIBS) -o $@
 
 print:
-	@echo "srcs:"
-	@$(foreach file,$(SRCS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
-	@echo "objs:"
-	@$(foreach file,$(OBJS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
-	@echo "deps:"
-	@$(foreach file,$(DEPS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+	@printf '%s\n' 'Executable: $(EXE)' 'Compiler: $(CXX)' \
+	    'CPPFLAGS: $(COMPILE_CPPFLAGS)' 'CXXFLAGS: $(COMPILE_CXXFLAGS)' \
+	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
+	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
--include $(wildcard $(DEPS))
+# Removes only the directories managed by this Makefile. Old obj/ and dep/
+# directories from the previous Makefile are left alone.
+clean:
+	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)/debug-omp*-lto*-native* \
+	    $(BIN_DIR)/release-omp*-lto*-native*
+
+FORCE:
+
+-include $(DEPS)
+

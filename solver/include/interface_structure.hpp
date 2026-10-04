@@ -9,6 +9,7 @@
 #include <functional> 
 
 // Forward declaration to avoid compiler issues.
+class CMultizoneSolver;
 class ISolver;
 
 
@@ -18,34 +19,22 @@ class ISolver;
 class IInterface
 {
 	public:
-		
-		/*!
-		 * @brief Constructor of IInterface, which serves as an interface for the zone interface boundaries.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] param_container input interface parameter container.
-		 * @param[in] imarker_container marker container of owner.
-		 * @param[in] jmarker_container marker container of matching.
-		 * @param[in] solver_container input vector of solver containers.
-		 */
-		IInterface(CConfig                               *config_container,
-				       CGeometry                             *geometry_container,
-							 CInterfaceParamMarker                 *param_container,
-							 const CMarker                         *imarker_container,
-							 const CMarker                         *jmarker_container,
-						   as3vector1d<std::unique_ptr<ISolver>> &solver_container);
-		
+
+    IInterface(const CConfig               *config_container,
+               const CMultizoneSolver      *multizone_solver_container,
+               const CInterfaceFacesFamily &interface_family);
+
+	
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		virtual ~IInterface(void);
 
-    virtual void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                          const CInterfaceFacesFamily           &family_face,
-                                          CFlattenedFaceIndex                    face_info,
-                                          CPoolMatrixAS3<as3double>             &workarray,
-                                          as3double                              localtime) = 0;
+    virtual void ComputeInterfaceResidual(CMultizoneSolver            *multizone_solver_container,
+                                          const CInterfaceFacesFamily &family_face,
+                                          CFlattenedFaceIndex          face_info,
+                                          CPoolMatrixAS3<as3double>   &workarray,
+                                          as3double                    localtime) const = 0;
 
 		/*!
 		 * @brief Getter function which returns the name of the owner marker.
@@ -78,12 +67,11 @@ class IInterface
 		/*!
 		 * @brief Getter function which returns the number of elements on this interface.
 		 *
-		 * @return mNElem.
+		 * @return mNFace.
 		 */
-		unsigned int GetnElem(void) const {return mNElem;}
+		size_t GetnFace(void) const {return mNFace;}
 
-	protected:
-		unsigned short mNVar = 4; ///< Number of working variables.
+	protected:	
 		std::string    mIName;    ///< Name of the owner interface marker.
 		std::string    mJName;    ///< Name of the matching interface marker.
 		unsigned short mIZone;    ///< Zone ID of the owner interface marker.
@@ -91,10 +79,11 @@ class IInterface
 		EFaceLocation  mIFace;    ///< Face ID of the owner interface marker.
 		EFaceLocation  mJFace;    ///< Face ID of the matching interface marker.
 		
-		unsigned int   mNElem;    ///< Number of elements on this marker.
+		size_t         mNFace;    
 		unsigned short mNInt1D;   ///< Number of integration points on this marker.	
 
-		as3vector1d<std::pair<unsigned int, unsigned int>> mIndexElement; ///< Indices of the pair of elements on this interface.
+    unsigned short mNPolyI;
+    unsigned short mNPolyJ;
 
 		CMatrixAS3<as3double>           mWInt1D;                  ///< Integration weights on the reference element in 1D.
 		std::unique_ptr<ITensorProduct> mITensorProductContainer; ///< Tensor-product container of the iZone.
@@ -123,22 +112,6 @@ class IInterface
 
 	private:
 
-
-		/*!
-		 * @brief Function that processes the marker pairs, such that their interface boundaries match.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] imarker_container marker container of owner.
-		 * @param[in] jmarker_container marker container of matching.
-		 * @param[in] param_container input interface parameter container.
-		 */
-		void ProcessMatchingMarkers(CConfig               *config_container,
-				                        CGeometry             *geometry_container,
-																const CMarker         *owner_marker,
-																const CMarker         *match_marker,
-																CInterfaceParamMarker *param_container);
-
 		// Disable default constructor.
 		IInterface(void) = delete;
 		// Disable default copy constructor.
@@ -154,44 +127,47 @@ class IInterface
  */
 class CEEInterface : public IInterface
 {
-	public:
+  private:
+    
+    using AComputeResidualFace = std::function<void(const as3double*,
+                                                          as3double*,
+                                                          as3double*,
+                                                          as3double*)>;
+    
+    using AInterpolateSurface = std::function<void(const as3double*,
+                                                         as3double*,
+                                                         as3double*,
+                                                         as3double*)>;
+	
+  public:
 
-		/*!
-		 * @brief Constructor of CEEInterface, which initializes an Euler-equations interface boundary.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] param_container input interface parameter container.
-		 * @param[in] imarker_container marker container of owner.
-		 * @param[in] jmarker_container marker container of matching.
-		 * @param[in] solver_container input vector of solver containers.
-		 */
-		CEEInterface(CConfig                               *config_container,
-				         CGeometry                             *geometry_container,
-								 CInterfaceParamMarker                 *param_container,
-								 const CMarker                         *imarker_container,
-								 const CMarker                         *jmarker_container,
-						     as3vector1d<std::unique_ptr<ISolver>> &solver_container);
-		
+    CEEInterface(const CConfig               *config_container,
+                 const CMultizoneSolver      *multizone_solver_container,
+                 const CInterfaceFacesFamily &interface_family);
+
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		~CEEInterface(void) override;
 
-    void ComputeInterfaceResidual(as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-                                  const CInterfaceFacesFamily           &family_face,
-                                  CFlattenedFaceIndex                    face_info,
-                                  CPoolMatrixAS3<as3double>             &workarray,
-                                  as3double                              localtime) final;
+    void ComputeInterfaceResidual(CMultizoneSolver            *multizone_solver_container,
+                                  const CInterfaceFacesFamily &family_face,
+                                  CFlattenedFaceIndex          face_info,
+                                  CPoolMatrixAS3<as3double>   &workarray,
+                                  as3double                    localtime) const final;
 	protected:
 
 	private:
+    unsigned short mNVar;
 
+    AComputeResidualFace mlComputeResidualFaceI;
+    AComputeResidualFace mlComputeResidualFaceJ;
+
+    AInterpolateSurface  mlInterpolateSurfaceI;
+    AInterpolateSurface  mlInterpolateSurfaceJ;
+
+    void InitializeComputeKernels(void);
 };
-
-// Definitions of the inlined functions.
-#include "interface_structure.inl"
-
 
 
 

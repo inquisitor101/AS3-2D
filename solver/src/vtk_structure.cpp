@@ -8,8 +8,8 @@
 
 IFileVTK::IFileVTK
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
 )
  /*
 	* Constructor for the interface VTK class.
@@ -70,8 +70,8 @@ IFileVTK::~IFileVTK
 
 CLegacyBinaryVTK::CLegacyBinaryVTK
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
 )
 	:
 		IFileVTK(config_container, geometry_container)
@@ -175,10 +175,10 @@ CLegacyBinaryVTK::~CLegacyBinaryVTK
 
 void CLegacyBinaryVTK::WriteFileVTK
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- COpenMP                               *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ const CConfig          *config_container,
+ const CGeometry        *geometry_container,
+ const COpenMP          *openmp_container,
+ const CMultizoneSolver *multizone_solver_container
 )
  /*
 	* Function that writes VTK data to a file using a binary and legacy format.
@@ -310,7 +310,7 @@ void CLegacyBinaryVTK::WriteFileVTK
 	DetermineVisualizationData(config_container,
 			                       geometry_container, 
 														 openmp_container,
-														 solver_container, vars_buf); 
+														 multizone_solver_container, vars_buf); 
 	
 
 	// Check if there need be any swapping, since ParaView expects data in big endian format.
@@ -454,11 +454,11 @@ void CLegacyBinaryVTK::WriteFileVTK
 
 void CLegacyBinaryVTK::DetermineVisualizationData
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- COpenMP                               *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- as3vector2d<float>                    &vars_buf
+ const CConfig          *config_container,
+ const CGeometry        *geometry_container,
+ const COpenMP          *openmp_container,
+ const CMultizoneSolver *multizone_solver_container,
+ as3vector2d<float>     &vars_buf
 )
  /*
 	* Function that computes the required data for visualization in binary format.
@@ -482,7 +482,7 @@ void CLegacyBinaryVTK::DetermineVisualizationData
 		// Extract current grid zone.
 		auto* zone   = geometry_container->GetZoneGeometry(iZone);
 		// Extract current solver.
-		auto* solver = solver_container[iZone].get();
+		const auto* solver = multizone_solver_container->GetSinglezoneSolver(iZone);
 
 		// Extract the total number of elements in this zone.
 		const size_t nElem = zone->GetnElem();

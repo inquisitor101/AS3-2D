@@ -54,8 +54,7 @@ class CDriver
 		std::unique_ptr<ITemporal>               mTemporalContainer;  ///< Container for the temporal discretization.
 		std::unique_ptr<CIteration>              mIterationContainer; ///< Container for a single grid-sweep iteration.
 		std::unique_ptr<IInitialCondition>       mInitialContainer;   ///< Container for the initial condition.
-		as3vector1d<std::unique_ptr<ISolver>>    mSolverContainer;	  ///< Vector of containers for the solver, per each zone.
-		as3vector1d<std::unique_ptr<IInterface>> mInterfaceContainer; ///< Vector of containers for the zone interfaces.
+    std::unique_ptr<CMultizoneSolver>        mMultizoneSolverContainer;
 
 		/*!
 		 * @brief Function that marches the solution in time.

@@ -63,7 +63,7 @@ class CGeometry
 		size_t GetnIFace(void) const { return mMultizoneIFaces.GetnFacesTotal(); }
 		size_t GetnJFace(void) const { return mMultizoneJFaces.GetnFacesTotal(); }
 
-		size_t GetnElemTotal(void) const { return mNElemTotal; }
+    size_t GetnElemTotal(void) const { return mNElemTotal; }
 
 		CFlattenedElementIndex GetFlattenedIndexVolumeElement(size_t i) const
 		{
@@ -113,7 +113,14 @@ class CGeometry
       return mFlattenedIndexJFace[ mJFaceLoadBalancedPermutation.GetPermutationIndex(i) ];
     }
 
-
+    const auto& GetInterfaceFamiliesIFace(void) const
+    {
+      return mMultizoneIFaces.GetInterfaceFacesGroup().GetFamilies();
+    }
+    const auto& GetInterfaceFamiliesJFace(void) const
+    {
+      return mMultizoneJFaces.GetInterfaceFacesGroup().GetFamilies();
+    } 
 
 	protected:
 

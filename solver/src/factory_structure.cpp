@@ -51,8 +51,8 @@ CGenericFactory::CreateTemporalContainer
 std::unique_ptr<IFileVTK> 
 CGenericFactory::CreateVTKContainer
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
 )
  /*
 	* Function that creates a specialized instance of a vtk container.
@@ -113,8 +113,8 @@ CGenericFactory::CreateInitialConditionContainer
 std::unique_ptr<IRiemannSolver> 
 CGenericFactory::CreateRiemannSolverContainer
 (
- CConfig           *config_container,
- ETypeRiemannSolver riemann
+ const CConfig      *config_container,
+ ETypeRiemannSolver  riemann
 )
  /*
 	* Function that creates a specialized instance of a Riemann solver container.
@@ -141,8 +141,8 @@ CGenericFactory::CreateRiemannSolverContainer
 std::unique_ptr<CStandardElement> 
 CGenericFactory::CreateStandardElement
 (
- CConfig       *config_container,
- unsigned short iZone
+ const CConfig  *config_container,
+ unsigned short  iZone
 )
  /*
 	* Function that creates a specialized instance of a standard element container.
@@ -281,20 +281,22 @@ CGenericFactory::CreateBoundaryContainer
 std::unique_ptr<ISolver> 
 CGenericFactory::CreateSolverContainer
 (
- CConfig       *config_container,
- CGeometry     *geometry_container,
- unsigned short iZone
+ const CConfig       *config_container,
+ const CZoneGeometry *zone_geometry
 )
  /*
 	* Function that creates a specialized instance of a solver container.
 	*/
 {
+  // Extract the zone ID.
+  const auto iZone = zone_geometry->GetZoneID();
+
 	// Check what type of container is specified.
 	switch( config_container->GetTypeSolver(iZone) )
 	{
 		case(ETypeSolver::EE):
 		{
-			return std::make_unique<CEESolver>(config_container, geometry_container, iZone);
+			return std::make_unique<CEESolver>(config_container, zone_geometry);
 			break;
 		}
 
@@ -307,89 +309,35 @@ CGenericFactory::CreateSolverContainer
 
 //-----------------------------------------------------------------------------------
 
-as3vector1d<std::unique_ptr<ISolver>>
-CGenericFactory::CreateMultizoneSolverContainer
-(
- CConfig   *config_container,
- CGeometry *geometry_container
-)
- /*
-	* Function that creates a vector of specialized instances of solver containers.
-	*/
-{
-	// Allocate the necessary number of solvers.
-	as3vector1d<std::unique_ptr<ISolver>> solver_container( config_container->GetnZone() );
-
-	// Initialize each solver.
-	for(unsigned short iZone=0; iZone<solver_container.size(); iZone++)
-	{
-		solver_container[iZone] = CreateSolverContainer(config_container, geometry_container, iZone);
-	}
-
-	// Return the vector of solver containers.
-	return solver_container; 
-}
-
-//-----------------------------------------------------------------------------------
-
 std::unique_ptr<IInterface>
 CGenericFactory::CreateInterfaceContainer
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CInterfaceParamMarker                 *param_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container 
+ const CConfig               *config_container,
+ CMultizoneSolver            *multizone_solver_container,
+ const CInterfaceFacesFamily &interface_family
 )
  /*
 	* Function that creates a specialized instance of an interface boundary container.
 	*/
 {
-	// Temporary lambda to search for the zone of a given marker name.
-	auto lFindMarker = [=](std::string &name) -> CMarker*
-	{
-		for( auto& zone: geometry_container->GetZoneGeometry() )
-		{
-			for( auto& marker: zone->GetMarker() )
-			{
-				if( marker->GetNameMarker() == name )
-				{
-					return marker.get();
-				}
-			}
-		}
-		
-		// The program should not reach here, otherwise we have an error.
-		ERROR("Could not find the interface marker.");
-
-		// To avoid compiler problems, return something.
-		return nullptr;
-	};
-
-	// Get a pointer to the two markers forming this interface.
-	const CMarker *imarker_container = lFindMarker(param_container->mName);
-	const CMarker *jmarker_container = lFindMarker(param_container->mNameMatching);
-
-	// Extract the zone ID of these markers.
-	const unsigned short iZone = imarker_container->GetZoneID();
-	const unsigned short jZone = jmarker_container->GetZoneID();
+	// Extract the zone ID of the faces sharing this interface.
+	const unsigned short iZone = interface_family.GetiZone();
+	const unsigned short jZone = interface_family.GetjZone();
 
 	// Check what type of solver we have in the iZone.
-	switch( solver_container[iZone]->GetTypeSolver() )
+	switch( multizone_solver_container->GetSinglezoneSolver(iZone)->GetTypeSolver() )
 	{
 		case(ETypeSolver::EE):
 		{
 			// Check the type of solver in the jZone too.
-			switch( solver_container[jZone]->GetTypeSolver() )
+			switch( multizone_solver_container->GetSinglezoneSolver(jZone)->GetTypeSolver() )
 			{
 				// This is a EE-EE interface.
 				case(ETypeSolver::EE):
 				{
 					return std::make_unique<CEEInterface>(config_container, 
-							                                  geometry_container, 
-																								param_container,
-																								imarker_container, 
-																								jmarker_container,
-																								solver_container);
+																								multizone_solver_container,
+                                                interface_family);
 					break;
 				}
 

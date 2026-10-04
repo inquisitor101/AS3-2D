@@ -52,12 +52,14 @@ namespace NLinearAlgebra
 	 * @brief Function that computes a matrix-vector multiplication manually, with vecB being transposed.
 	 *
 	 * @param[in] matA matrix A.
-	 * @param[in] vecB vector B.
+	 * @param[in] vecB vector B. 
 	 * @param[out] vecC vector: {C} = A*{B}, where {} can be multiple vectors.
+   * @param[in,out] tmpV temporary vector storage.
 	 */
 	void MatrixVectorTransMult(CMatrixAS3<as3double> &matA,
 			                       CMatrixAS3<as3double> &vecB,
-												     CMatrixAS3<as3double> &vecC);
+												     CMatrixAS3<as3double> &vecC,
+                             CMatrixAS3<as3double> &tmpV);
 
 	/*!
 	 * @brief Function that computes the transpose of an AS3-type matrix.

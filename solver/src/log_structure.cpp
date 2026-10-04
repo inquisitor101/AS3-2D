@@ -68,9 +68,9 @@ void NLogger::PrintInitSolver
 
 void NLogger::DisplayBoundaryConditions
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container
+ const CConfig          *config_container,
+ const CGeometry        *geometry_container,
+ const CMultizoneSolver *multizone_solver_container
 )
  /*
 	* Function that displays the boundary condition information over all zones.
@@ -114,8 +114,11 @@ void NLogger::DisplayBoundaryConditions
 				// Flag whether the marker is found or not.
 				bool found = false;
 
+        // Get the interfaces.
+        const auto& interface_container = multizone_solver_container->GetMultizoneInterface();
+
 				// Loop over each interface and search for our marker.
-				for( auto& interface: interface_container )
+				for( const auto& interface: interface_container )
 				{
 					// Check if this marker is an owner on this face.
 					if( interface->GetIName() == m->GetNameMarker() )
@@ -253,9 +256,9 @@ void NLogger::MonitorOutput
 
 void NLogger::DisplayOpenMPInfo
 (
- COpenMP                               *openmp_container,
- const CGeometry                       *geometry_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ COpenMP                *openmp_container,
+ const CGeometry        *geometry_container,
+ const CMultizoneSolver *multizone_solver_container
 )
  /*
 	* Function that displays the OpenMP information, if any.
@@ -383,7 +386,7 @@ void NLogger::DisplayOpenMPInfo
 		workloadElem[iThread]++;
 
     // Accumulate the number of solution DOFs per thread.
-		workloadDOFs[iThread] += solver_container[iZone]->GetStandardElement()->GetnSol2D(); 
+		workloadDOFs[iThread] += multizone_solver_container->GetSinglezoneSolver(iZone)->GetStandardElement()->GetnSol2D(); 
   }
 
 

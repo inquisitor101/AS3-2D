@@ -8,7 +8,7 @@
 
 ITemporal::ITemporal
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
 	* Constructor for the interface temporal class.
@@ -38,7 +38,7 @@ ITemporal::~ITemporal
 
 CSSPRK3Temporal::CSSPRK3Temporal
 (
- CConfig *config_container
+ const CConfig *config_container
 )
 	:
 		ITemporal(config_container)
@@ -77,14 +77,13 @@ CSSPRK3Temporal::~CSSPRK3Temporal
 
 void CSSPRK3Temporal::UpdateTime
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- CIteration                               *iteration_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- as3double                                 physicaltime,
- as3double                                 timestep
+ CConfig           *config_container,
+ CGeometry         *geometry_container,
+ CIteration        *iteration_container,
+ COpenMP           *openmp_container,
+ CMultizoneSolver *multizone_solver_container,
+ as3double         physicaltime,
+ as3double         timestep
 )
  /*
 	* Function that computes the upcoming solution in time, based on a SSP-RK3.
@@ -101,8 +100,7 @@ void CSSPRK3Temporal::UpdateTime
 				           geometry_container,
                		 iteration_container,
 									 openmp_container,
-               		 solver_container,
-									 interface_container,
+               		 multizone_solver_container,
                		 localtime, timestep,
 									 iStageRK);
 	}
@@ -112,15 +110,14 @@ void CSSPRK3Temporal::UpdateTime
 
 void CSSPRK3Temporal::EvaluateSSPRK3
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- CIteration                               *iteration_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- as3double                                 localtime,
- as3double                                 timestep,
- unsigned short                            iStageRK
+ CConfig          *config_container,
+ CGeometry        *geometry_container,
+ CIteration       *iteration_container,
+ COpenMP          *openmp_container,
+ CMultizoneSolver *multizone_solver_container,
+ as3double         localtime,
+ as3double         timestep,
+ unsigned short    iStageRK
 )
  /*
 	* Function that does a single stage SSP-RK3 evaluation.
@@ -138,8 +135,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 		iteration_container->GridSweep(config_container,
 				                           geometry_container,
 																	 openmp_container,
-																	 solver_container,
-																	 interface_container,
+																	 multizone_solver_container,
 																	 localtime);
 
 		// Get the total number of elements in all zones.
@@ -167,7 +163,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 				const auto iElem = elem_info.mIndexElem; 
 
 				// Extract the relevant solver.
-				auto& solver  = solver_container[iZone];
+				auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
 				// Extract the relevant physical element.
 				auto* element = solver->GetPhysicalElement(iElem);
 
@@ -206,7 +202,7 @@ void CSSPRK3Temporal::EvaluateSSPRK3
 				const auto iElem = elem_info.mIndexElem; 
 
 				// Extract the relevant solver.
-				auto& solver  = solver_container[iZone];
+				auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
 				// Extract the relevant physical element.
 				auto* element = solver->GetPhysicalElement(iElem);
 

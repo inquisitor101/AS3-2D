@@ -6,8 +6,10 @@
 #include "solver_structure.hpp"
 #include "interface_structure.hpp"
 #include "openmp_structure.hpp"
+#include "collective_residual_computation.hpp"
 
 // Forward declaration to avoid compiler issues.
+class CMultizoneSolver;
 class ISolver;
 class IInterface;
 class COpenMP;
@@ -21,11 +23,9 @@ class CIteration
 
 		/*!
 		 * @brief Constructor of CIteration, which is responsible for an iteration via a single grid sweep.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
 		 */
-		CIteration(CConfig                               *config_container,
-				       as3vector1d<std::unique_ptr<ISolver>> &solver_container);
+		CIteration(const CConfig          *config_container,
+				       const CMultizoneSolver *multizone_solver_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -38,16 +38,14 @@ class CIteration
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] interface_container input vector of interface containers.
+		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] localtime local physical time.
 		 */
-		void GridSweep(CConfig                                  *config_container,
-		               CGeometry                                *geometry_container,
-									 COpenMP                                  *openmp_container,
-									 as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
-									 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
-									 as3double                                 localtime);
+		void GridSweep(CConfig          *config_container,
+		               CGeometry        *geometry_container,
+									 COpenMP          *openmp_container,
+									 CMultizoneSolver *multizone_solver_container,
+									 as3double         localtime);
 
 	protected:
 
@@ -60,18 +58,16 @@ class CIteration
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container input multizone solver container. 
-		 * @param[in] interface_container input vector of interface containers.
+		 * @param[in] multizone_solver_container input multizone solver container. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
-		void PreProcessIteration(CConfig                                  *config_container,
-		                         CGeometry                                *geometry_container,
-														 COpenMP                                  *openmp_container,
-									           as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
-														 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
-									           CPoolMatrixAS3<as3double>                &workarray,
-														 as3double                                 localtime);
+		void PreProcessIteration(CConfig                   *config_container,
+		                         CGeometry                 *geometry_container,
+														 COpenMP                   *openmp_container,
+									           CMultizoneSolver          *multizone_solver_container,
+									           CPoolMatrixAS3<as3double> &workarray,
+														 as3double                  localtime);
 
 		/*!
 		 * @brief Function that postprocesses the solution, after sweeping the grid.
@@ -79,18 +75,16 @@ class CIteration
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container input multizone solver container. 
-		 * @param[in] interface_container input vector of interface containers.
+		 * @param[in] multizone_solver_container input multizone solver container. 
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
-		void PostProcessIteration(CConfig                                  *config_container,
-		                          CGeometry                                *geometry_container,
-															COpenMP                                  *openmp_container,
-									            as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
-															as3vector1d<std::unique_ptr<IInterface>> &interface_container,
-									            CPoolMatrixAS3<as3double>                &workarray,
-															as3double                                 localtime);
+		void PostProcessIteration(CConfig                   *config_container,
+		                          CGeometry                 *geometry_container,
+															COpenMP                   *openmp_container,
+									            CMultizoneSolver          *multizone_solver_container,
+									            CPoolMatrixAS3<as3double> &workarray,
+															as3double                  localtime);
 
 		/*!
 		 * @brief Function that computes the residual in all zones.
@@ -98,18 +92,16 @@ class CIteration
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] geometry_container input geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container input multizone solver container.
-		 * @param[in] interface_container input vector of interface containers.
+		 * @param[in] multizone_solver_container input multizone solver container.
 		 * @param[in] workarray memory for the working array.
 		 * @param[in] localtime local physical time.
 		 */
-		void ComputeResidual(CConfig                                  *config_container,
-		                     CGeometry                                *geometry_container,
-												 COpenMP                                  *openmp_container,
-									       as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
-												 as3vector1d<std::unique_ptr<IInterface>> &interface_container,
-									       CPoolMatrixAS3<as3double>                &workarray,
-												 as3double                                 localtime);
+		void ComputeResiduals(CConfig                   *config_container,
+		                      CGeometry                 *geometry_container,
+												  COpenMP                   *openmp_container,
+									        CMultizoneSolver          *multizone_solver_container,
+									        CPoolMatrixAS3<as3double> &workarray,
+												  as3double                  localtime);
 
 
 

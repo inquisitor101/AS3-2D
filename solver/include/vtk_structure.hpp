@@ -8,6 +8,7 @@
 
 
 // Forward declaration to avoid compiler issues.
+class CMultizoneSolver;
 class ISolver;
 class COpenMP;
 
@@ -21,8 +22,8 @@ class IFileVTK
 		/*!
 		 * @brief Constructor of IFileVTK, which serves as an interface for VTK-type formats.
 		 */
-		IFileVTK(CConfig   *config_container,
-				     CGeometry *geometry_container);
+		IFileVTK(const CConfig   *config_container,
+				     const CGeometry *geometry_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -32,16 +33,11 @@ class IFileVTK
 		/*!
 		 * @brief Pure virtual function that writes VTK data a file. 
 		 * Must be implemented by a derived class.
-		 *
-		 * @param[in] config_container pointer to the configuration container.
-		 * @param[in] geometry_container pointer to the geometry container.
-		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container reference to the solver container.
 		 */
-		virtual void WriteFileVTK(CConfig                               *config_container,
-															CGeometry                             *geometry_container,
-															COpenMP                               *openmp_container,
-															as3vector1d<std::unique_ptr<ISolver>> &solver_container) = 0;
+		virtual void WriteFileVTK(const CConfig          *config_container,
+															const CGeometry        *geometry_container,
+															const COpenMP          *openmp_container,
+															const CMultizoneSolver *multizone_solver_container) = 0;
 
 	protected:
 		as3vector1d<std::string> mVariableNames;     ///< Variable names for writing.
@@ -78,8 +74,8 @@ class CLegacyBinaryVTK final : public IFileVTK
 		/*!
 		 * @brief Constructor of CLegacyBinaryVTK, which is reponsible for VTK in binary and legacy format.
 		 */
-		CLegacyBinaryVTK(CConfig   *config_container,
-				             CGeometry *geometry_container);
+		CLegacyBinaryVTK(const CConfig   *config_container,
+				             const CGeometry *geometry_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -94,10 +90,10 @@ class CLegacyBinaryVTK final : public IFileVTK
 		 * @param[in] openmp_container OpenMP shared parallelization container.
 		 * @param[in] solver_container reference to the solver container.
 		 */
-		void WriteFileVTK(CConfig                               *config_container,
-											CGeometry                             *geometry_container,
-											COpenMP                               *openmp_container,
-											as3vector1d<std::unique_ptr<ISolver>> &solver_container) final;
+		void WriteFileVTK(const CConfig          *config_container,
+											const CGeometry        *geometry_container,
+											const COpenMP          *openmp_container,
+											const CMultizoneSolver *multizone_solver_container) final;
 
 	protected:
 
@@ -113,13 +109,13 @@ class CLegacyBinaryVTK final : public IFileVTK
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] geometry_container pointer to geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container reference to the solver container.
+		 * @param[in] multizone_solver_container pointer to the multizone solver container.
 		 * @param[in] vars_buf reference to the variables buffer data.
 		 */
-	  void DetermineVisualizationData(CConfig                               *config_container,
-				                            CGeometry                             *geometry_container,
-																		COpenMP                               *openmp_container,
-				                            as3vector1d<std::unique_ptr<ISolver>> &solver_container,
-																		as3vector2d<float>                    &vars_buf);
+	  void DetermineVisualizationData(const CConfig          *config_container,
+				                            const CGeometry        *geometry_container,
+																		const COpenMP          *openmp_container,
+				                            const CMultizoneSolver *multizone_solver_container,
+																		as3vector2d<float>     &vars_buf);
 };
 

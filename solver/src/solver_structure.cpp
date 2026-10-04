@@ -1,5 +1,106 @@
 #include "solver_structure.hpp"
 
+//-----------------------------------------------------------------------------------
+// CMultizoneSolver member functions.
+//-----------------------------------------------------------------------------------
+
+CMultizoneSolver::CMultizoneSolver
+(
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
+)
+ /*
+  *
+  */
+{
+  // Deduce the number of zones.
+  mNZone = geometry_container->GetnZone();
+
+	// Allocate the necessary number of solvers.
+	mMultizoneSolverContainer.reserve( mNZone );
+
+	// Initialize each solver.
+	for(unsigned short iZone=0; iZone<mNZone; iZone++)
+	{
+    // Consistency check.
+    if( iZone != geometry_container->GetZoneGeometry(iZone)->GetZoneID() )
+    {
+      ERROR("Zone indices do not match.");
+    }
+
+    // Instantiate the current solver in this zone.
+		mMultizoneSolverContainer.emplace_back
+    (
+     CGenericFactory::CreateSolverContainer(config_container, geometry_container->GetZoneGeometry(iZone) )
+    );
+	}
+}
+
+//-----------------------------------------------------------------------------------
+
+void CMultizoneSolver::InitializeInterfaces
+(
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
+)
+ /*
+  *
+  */
+{
+  // Initialize the interfaces.
+  const auto& idir_interfaces = geometry_container->GetInterfaceFamiliesIFace();
+  const auto& jdir_interfaces = geometry_container->GetInterfaceFamiliesJFace();
+
+  const auto nInterfaceFamiliesIFace = idir_interfaces.size();
+  const auto nInterfaceFamiliesJFace = jdir_interfaces.size();
+  const auto nInterfaceFamilies      = nInterfaceFamiliesIFace + nInterfaceFamiliesJFace;
+ 
+  // Reserve the required memory for the indicial mapping of the interfaces.
+  mIndexInterfaceIFace.reserve( idir_interfaces.size() );
+  mIndexInterfaceJFace.reserve( jdir_interfaces.size() );
+  
+  // Reserve the required number of (unique) interface containers.
+  mMultizoneInterfaceContainer.reserve( idir_interfaces.size() + jdir_interfaces.size() );
+
+
+  // Loop over each interface which contains the ith face as a IFace.. 
+  for(const auto& family : idir_interfaces )
+  {
+    // Glocal-book-keeping index.
+    const size_t iInterface = mMultizoneInterfaceContainer.size();
+
+    // Initialize each interface object.
+    mMultizoneInterfaceContainer.emplace_back
+    (
+     CGenericFactory::CreateInterfaceContainer(config_container,
+                                               this,family)
+    );
+
+    // Book-keep the index map.
+    mIndexInterfaceIFace.push_back( iInterface );
+  }
+
+
+  // Loop over each interface which contains the ith face as a IFace.. 
+  for(const auto& family : jdir_interfaces )
+  {
+    // Glocal-book-keeping index.
+    const size_t iInterface = mMultizoneInterfaceContainer.size();
+
+    // Initialize each interface object.
+    mMultizoneInterfaceContainer.emplace_back
+    (
+     CGenericFactory::CreateInterfaceContainer(config_container,
+                                               this, family)
+    );
+  
+    // Book-keep the index map.
+    mIndexInterfaceJFace.push_back( iInterface );
+  }
+}
+
+
+
 
 //-----------------------------------------------------------------------------------
 // ISolver member functions.
@@ -8,32 +109,25 @@
 
 ISolver::ISolver
 (
- CConfig       *config_container,
- CGeometry     *geometry_container,
- unsigned short iZone,
- unsigned short nVar
+ const CConfig       *config_container,
+ const CZoneGeometry *zone_geometry,
+ unsigned short       nVar
 )
 	:
-		mZoneID(iZone)
+		mZoneID( zone_geometry->GetZoneID() )
  /*
 	* Constructor for the interface solver class.
 	*/
 {
 	// Instantiate a standard element object.
-	mStandardElementContainer = CGenericFactory::CreateStandardElement(config_container, iZone);
+	mStandardElementContainer = CGenericFactory::CreateStandardElement(config_container, mZoneID);
 
 	// Instantiate a tensor-product object.
 	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(), nVar);
 
 	// Instantiate a Riemann solver object.
 	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer(config_container,
-			                                                                    config_container->GetTypeRiemannSolver(iZone));
-
-	// Get a reference to the current zone.
-	auto* zone = geometry_container->GetZoneGeometry(iZone);
-
-	// Ensure the zone matches this one.
-	if( iZone != zone->GetZoneID() ) ERROR("Geometry zone does not match Solver zone.");
+			                                                                    config_container->GetTypeRiemannSolver(mZoneID));
 }
 
 //-----------------------------------------------------------------------------------
@@ -57,12 +151,11 @@ ISolver::~ISolver
 
 CEESolver::CEESolver
 (
- CConfig       *config_container,
- CGeometry     *geometry_container,
- unsigned short iZone
+ const CConfig       *config_container,
+ const CZoneGeometry *zone_geometry
 )
 	:
-		ISolver(config_container, geometry_container, iZone, CEESolver::mNVar)
+		ISolver(config_container, zone_geometry, CEESolver::mNVar)
  /*
 	* Constructor for the (non-linear) Euler equations class.
 	*/

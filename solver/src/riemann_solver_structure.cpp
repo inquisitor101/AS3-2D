@@ -9,7 +9,7 @@
 
 IRiemannSolver::IRiemannSolver
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
 	* Constructor for the interface Riemann solver class.
@@ -39,7 +39,7 @@ IRiemannSolver::~IRiemannSolver
 
 CRoeRiemannSolver::CRoeRiemannSolver
 (
- CConfig *config_container
+ const CConfig *config_container
 )
 	:
 		IRiemannSolver(config_container)

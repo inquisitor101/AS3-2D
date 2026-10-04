@@ -8,8 +8,8 @@
 
 CIteration::CIteration
 (
- CConfig                               *config_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ const CConfig          *config_container,
+ const CMultizoneSolver *multizone_solver_container
 )
  /*
 	* Constructor for the iteration class.
@@ -18,6 +18,9 @@ CIteration::CIteration
 	// Check the relevant number of data entries required in the work array.
 	for(unsigned short iZone=0; iZone<config_container->GetnZone(); iZone++)
 	{
+    // Get reference to the relevant solver.
+    const auto* solver_container = multizone_solver_container->GetSinglezoneSolver(iZone);
+
 		// For now, take the maximum number of items.
 		switch( config_container->GetTypeSolver(iZone) )
 		{
@@ -26,9 +29,9 @@ CIteration::CIteration
 				const size_t nItem2D = 3;  // volume  terms needed.
 				const size_t nItem1D = 2;  // surface terms needed.
 				
-				const size_t nVar    = solver_container[iZone]->GetnVar();
-				const size_t nInt1D  = solver_container[iZone]->GetStandardElement()->GetnInt1D();
-				const size_t nInt2D  = solver_container[iZone]->GetStandardElement()->GetnInt2D();
+				const size_t nVar    = solver_container->GetnVar();
+				const size_t nInt1D  = solver_container->GetStandardElement()->GetnInt1D();
+				const size_t nInt2D  = solver_container->GetStandardElement()->GetnInt2D();
 
 				// Compute the total number of required volume and surface terms in the work array.
 				const size_t nVol  = nItem2D*nInt2D*nVar;
@@ -65,13 +68,12 @@ CIteration::~CIteration
 
 void CIteration::PreProcessIteration
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- CPoolMatrixAS3<as3double>                &workarray,
- as3double                                 localtime 
+ CConfig                   *config_container,
+ CGeometry                 *geometry_container,
+ COpenMP                   *openmp_container,
+ CMultizoneSolver          *multizone_solver_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime 
 )
  /*
 	* Function that preprocesses the solution, before sweeping the grid.
@@ -84,13 +86,12 @@ void CIteration::PreProcessIteration
 
 void CIteration::PostProcessIteration
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- CPoolMatrixAS3<as3double>                &workarray,
- as3double                                 localtime 
+ CConfig                   *config_container,
+ CGeometry                 *geometry_container,
+ COpenMP                   *openmp_container,
+ CMultizoneSolver          *multizone_solver_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime 
 )
  /*
 	* Function that postprocesses the solution, after sweeping the grid.
@@ -101,352 +102,59 @@ void CIteration::PostProcessIteration
 
 //-----------------------------------------------------------------------------------
 
-void CIteration::ComputeResidual
+void CIteration::ComputeResiduals
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container,
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- CPoolMatrixAS3<as3double>                &workarray,
- as3double                                 localtime
+ CConfig                   *config_container,
+ CGeometry                 *geometry_container,
+ COpenMP                   *openmp_container,
+ CMultizoneSolver          *multizone_solver_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
 )
  /*
-	* Function that computes the residual in all zones.
+	* Function that computes the residual in all zones. Note, these all use 
+  * a collective call via an optimized OpenMP for loop. They must be executed 
+  * inside an OpenMP parallel region
 	*/
 {
-	// Get the total number of elements in all zones.
-	const auto nElemTotal = geometry_container->GetnElemTotal();
-
-	// Get the total faces in the i- and j-directions.
-	const auto& idir_faces_multizone = geometry_container->GetMultizoneIFaces();
-	const auto& jdir_faces_multizone = geometry_container->GetMultizoneJFaces();
-	
-	// Get the total number faces in the i- and j-directions.
-  const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
-  const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nElemTotal; i++)
-	{
-		// Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
-
-		// Deduce the current element's zone and index.
-		const auto iZone = elem_info.mIndexZone; 
-		const auto iElem = elem_info.mIndexElem; 
-
-		// Extract the relevant solver.
-		auto& solver  = solver_container[iZone];
-		// Extract the relevant grid.
-		auto* grid    = geometry_container->GetZoneGeometry(iZone);
-
-		// Compute the volume terms on this element. Note, this step also initializes the residual.
-		solver->ComputeVolumeResidual(grid, workarray, localtime, iElem); 
-	}
-
-
-		
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesIDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-
-		// Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-        // Extract the current face.
-				const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-			
-        const auto iZone  = family_face.GetiZone();
-				const auto iElemL = internal_face.mIndexElementM;
-
-				const auto* grid = geometry_container->GetZoneGeometry(iZone);
-
-				// TODO: move the compute residuals to a separate numerics_container and pass each solver to it??
-				solver_container[iZone]->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElemL);
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-       
-        // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual(solver_container, family_face, face_info, workarray, localtime);
-        break;
-      }
-
-			default: ERROR("Unknown face type, could not compute its residual.");
-		}
-	}
-
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesIDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-		
-    // Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-        // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-
-				const auto iZone  = family_face.GetiZone();
-				const auto iElemL = internal_face.mIndexElementM;
-
-        auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemL);
-
-        auto& tmpL = physical_element->mResMinus;
-        auto& resL = physical_element->mRes2D;
-        
-        for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
-
-        const auto iZoneM = family_face.GetiZone();
-        const auto iZoneP = family_face.GetjZone();
-
-        const auto iElemM = interface_face.mIndexElementI;
-        const auto iElemP = interface_face.mIndexElementJ;
-
-        const EFaceLocation iFaceM = family_face.GetiFaceLocation();
-        const EFaceLocation iFaceP = family_face.GetjFaceLocation();
-
-        auto* physical_element_m = solver_container[iZoneM]->GetPhysicalElement(iElemM);
-        auto* physical_element_p = solver_container[iZoneP]->GetPhysicalElement(iElemP);
-
-        auto& tmp_m = physical_element_m->mResMinus;
-        auto& res_m = physical_element_m->mRes2D;
-
-        auto& tmp_p = physical_element_p->mResMinus;
-        auto& res_p = physical_element_p->mRes2D;
-
-        if( family_face.GetisMaxFaceI() )
-        {
-          for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
-        }
-
-        if( family_face.GetisMaxFaceJ() )
-        {
-          for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
-        }
-
-        break;
-      }
-
-			default: ERROR("Unknown face type, could not compute its residual.");
-		}
-	}
-
-
-
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesJDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-
-		// Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-       
-        // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-
-        const auto iZone  = family_face.GetiZone();
-        const auto iElemB = internal_face.mIndexElementM;
-
-        const auto* grid = geometry_container->GetZoneGeometry(iZone);
-
-				// TODO: move the compute residuals to a separate numerics_container and pass each solver to it??
-				solver_container[iZone]->ComputeSurfaceResidualJDir(grid, workarray, localtime, iElemB);
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-
-        // TESTING: doesn't matter the index 0 or not, as it doesnt use any member variables of IInterface.
-        interface_container[0]->ComputeInterfaceResidual(solver_container, family_face, face_info, workarray, localtime);
-        break;
-      }
-
-			default: ERROR("Unknown face type, could not compute its residual.");
-		}
-	}
-
-
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesJDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info = geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-
-		// Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-       
-        // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-
-				const auto iZone  = family_face.GetiZone();
-				const auto iElemB = internal_face.mIndexElementM;
-
-        auto* physical_element = solver_container[iZone]->GetPhysicalElement(iElemB);
-
-        auto& tmpB = physical_element->mResMinus;
-        auto& resB = physical_element->mRes2D;
-        
-        for(size_t l=0; l<resB.size(); l++) resB[l] += tmpB[l];
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
-
-        const auto iZoneM = family_face.GetiZone();
-        const auto iZoneP = family_face.GetjZone();
-
-        const auto iElemM = interface_face.mIndexElementI;
-        const auto iElemP = interface_face.mIndexElementJ;
-
-        const EFaceLocation iFaceM = family_face.GetiFaceLocation();
-        const EFaceLocation iFaceP = family_face.GetjFaceLocation();
-
-        auto* physical_element_m = solver_container[iZoneM]->GetPhysicalElement(iElemM);
-        auto* physical_element_p = solver_container[iZoneP]->GetPhysicalElement(iElemP);
-
-        auto& tmp_m = physical_element_m->mResMinus;
-        auto& res_m = physical_element_m->mRes2D;
-
-        auto& tmp_p = physical_element_p->mResMinus;
-        auto& res_p = physical_element_p->mRes2D;
-
-        if( family_face.GetisMaxFaceI() )
-        {
-          for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
-        }
-
-        if( family_face.GetisMaxFaceJ() )
-        {
-          for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
-        }
-
-        break;
-      }
-
-			default: ERROR("Unknown face type, could not compute its residual.");
-		}
-	}
-
-
-
-	// Multiply by the inverse mass matrix.
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nElemTotal; i++)
-	{
-    // Extract the element indices.
-		const auto elem_info = geometry_container->GetFlattenedIndexVolumeElement(i);
-
-		// Deduce the current element's zone and index.
-		const auto iZone = elem_info.mIndexZone; 
-		const auto iElem = elem_info.mIndexElem; 
-
-		// Extract the relevant solver.
-		auto& solver  = solver_container[iZone];
-		// Extract the relevant physical element.
-		auto* element = solver->GetPhysicalElement(iElem);
-
-    // In principle, this can be moved outside the loop, but it won't matter much,
-    // as it isn't allocating memory, just using preallocated sections in it.
-    const auto nVar  = solver->GetnVar();
-    const auto nDOFs = solver->GetStandardElement()->GetnSol2D();
-    auto tmp = workarray.GetWorkMatrixAS3( nVar, nDOFs );
-
-    const as3double *minv = element->mInvMassMatrix.data();
-    as3double        *res = element->mRes2D.data();
-
-    solver->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, tmp.data()); 
-  }
+  // First, we compute the volume residual, which also initializes the residuals.
+  NResidualComputation::ComputeVolumeResidualsCollective(geometry_container, 
+                                                         multizone_solver_container, 
+                                                         workarray, localtime);
+
+  // Then, we compute the IFace residuals.
+  NResidualComputation::ComputeIFaceResidualsCollective(geometry_container, 
+                                                        multizone_solver_container, 
+                                                        workarray, localtime);
+
+  // Afterwards, we must accumulate the temporary stored IFace residuals.
+  NResidualComputation::AccumulateIFaceResidualsCollective(geometry_container, 
+                                                           multizone_solver_container);
+
+  // Same with JFace residuals.
+  NResidualComputation::ComputeJFaceResidualsCollective(geometry_container,
+                                                        multizone_solver_container,
+                                                        workarray, localtime);
+
+  // Also, accumulate the temporary stored JFace residuals.
+  NResidualComputation::AccumulateJFaceResidualsCollective(geometry_container,
+                                                           multizone_solver_container);
+
+  // Finally, we update the residuals by including the mass matrix's effect.
+  NResidualComputation::ApplyInverseMassMatricesCollective(geometry_container, 
+                                                           multizone_solver_container, 
+                                                           workarray);
 }
 
 //-----------------------------------------------------------------------------------
 
 void CIteration::GridSweep
 (
- CConfig                                  *config_container,
- CGeometry                                *geometry_container,
- COpenMP                                  *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>>    &solver_container, 
- as3vector1d<std::unique_ptr<IInterface>> &interface_container,
- as3double                                 localtime 
+ CConfig          *config_container,
+ CGeometry        *geometry_container,
+ COpenMP          *openmp_container,
+ CMultizoneSolver *multizone_solver_container, 
+ as3double         localtime 
 )
  /*
 	* Function that performs a grid sweep over all the zones. 
@@ -462,28 +170,25 @@ void CIteration::GridSweep
 	PreProcessIteration(config_container,
 			                geometry_container,
 											openmp_container,
-											solver_container,
-											interface_container,
+											multizone_solver_container,
 											workarray,
 											localtime);
 
 
 	// Compute the residual over all zones.
-	ComputeResidual(config_container,
-			            geometry_container,
-									openmp_container,
-									solver_container,
-									interface_container,
-									workarray,
-									localtime);
+	ComputeResiduals(config_container,
+			             geometry_container,
+									 openmp_container,
+									 multizone_solver_container,
+									 workarray,
+									 localtime);
 
 
 	// Check for any postprocessing steps.
 	PostProcessIteration(config_container,
 			                 geometry_container,
 											 openmp_container,
-											 solver_container,
-											 interface_container,
+											 multizone_solver_container,
 											 workarray,
 											 localtime);
 }

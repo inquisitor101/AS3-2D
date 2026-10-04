@@ -30,8 +30,8 @@ CDriver::CDriver
 	mTemporalContainer = CGenericFactory::CreateTemporalContainer(mConfigContainer.get());
 
 	// Initialize the solver containers.
-	mSolverContainer = CGenericFactory::CreateMultizoneSolverContainer(mConfigContainer.get(), 
-			                                                               mGeometryContainer.get());
+	mMultizoneSolverContainer = std::make_unique<CMultizoneSolver>(mConfigContainer.get(), 
+			                                                           mGeometryContainer.get());
 
 	// Initialize the output container.
 	mOutputContainer = std::make_unique<COutput>(mConfigContainer.get(), 
@@ -39,7 +39,7 @@ CDriver::CDriver
 
 	// Initialize the iteration container, must be initialized after the solver container.
 	mIterationContainer = std::make_unique<CIteration>(mConfigContainer.get(),
-			                                               mSolverContainer); 
+			                                               mMultizoneSolverContainer.get()); 
 
 	// Initialize the data monitoring container.
 	mMonitoringContainer = CGenericFactory::CreateMonitoringContainer(mConfigContainer.get());
@@ -135,63 +135,45 @@ void CDriver::InitializeData
 	std::cout << "Initializing multizone components in: " << std::endl;
 
 	// Loop over each zone and instantiate the necessary objects.
-	for(size_t iZone=0; iZone<mSolverContainer.size(); iZone++)
+	for(size_t iZone=0; iZone<mMultizoneSolverContainer->GetnZone(); iZone++)
 	{
 		// Report output.
 		std::cout << "  zone: " << iZone << ")" << std::endl;
 
 		// Extract the solver and geometry in this zone.
 		auto* zone   = mGeometryContainer->GetZoneGeometry(iZone);
-		auto* solver = mSolverContainer[iZone].get();
+		auto* solver = mMultizoneSolverContainer->GetSinglezoneSolver(iZone);
 
 		// Initialize the physical elements.
-		mSolverContainer[iZone]->InitPhysicalElements(mConfigContainer.get(),
-				                                          mGeometryContainer.get());
+		solver->InitPhysicalElements(mConfigContainer.get(),
+				                         mGeometryContainer.get());
 	
 		// Initialize the boundary conditions.
-		mSolverContainer[iZone]->InitBoundaryConditions(mConfigContainer.get(),
-				                                            mGeometryContainer.get());
+		solver->InitBoundaryConditions(mConfigContainer.get(),
+				                           mGeometryContainer.get());
 
 		// Initialize the solution.
 		mInitialContainer->InitializeSolution(mConfigContainer.get(), zone, solver);
 	}
 
-	// Extract the interface boundaries.
-	auto& interface = mConfigContainer->GetInterfaceParamMarker();
-
-	// If interface conditions are specified, initialize them.
-	if( interface.size() )
-	{
-		// Allocate the required number of interface containers.
-		mInterfaceContainer.reserve( interface.size() );
-
-		// Initialize the interface boundaries.
-		for(size_t i=0; i<interface.size(); i++)
-		{
-			mInterfaceContainer.emplace_back
-			(
-			 CGenericFactory::CreateInterfaceContainer(mConfigContainer.get(), 
-					                                       mGeometryContainer.get(),
-																								 interface[i].get(),
-																								 mSolverContainer)
-			);
-		}
-	}
 
   // Initializes the grid topology (element and faces).
 	mGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
+
+  // Initialize the interfaces, after determining the grid topology first!
+  mMultizoneSolverContainer->InitializeInterfaces(mConfigContainer.get(), mGeometryContainer.get());
 
 
 	// Report output.
 	std::cout << "Done." << std::endl;
 
 	// Display the boundary conditions over all zones.
-	NLogger::DisplayBoundaryConditions(mConfigContainer.get(), 
-			                               mGeometryContainer.get(), 
-																		 mInterfaceContainer);
+	NLogger::DisplayBoundaryConditions( mConfigContainer.get(), 
+			                                mGeometryContainer.get(), 
+																		  mMultizoneSolverContainer.get() );
 
 	// Display the shared-memory parallelization information, if any.
-	NLogger::DisplayOpenMPInfo(mOpenMPContainer.get(), mGeometryContainer.get(), mSolverContainer);
+	NLogger::DisplayOpenMPInfo( mOpenMPContainer.get(), mGeometryContainer.get(), mMultizoneSolverContainer.get() );
 }
 
 //-----------------------------------------------------------------------------------
@@ -217,10 +199,10 @@ void CDriver::WriteOutput
 	// Check if we need to write the visualization file.
 	if( i%fvis == 0 )
 	{
-		mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
-				                              mGeometryContainer.get(),
-																			mOpenMPContainer.get(),
-																			mSolverContainer);
+		mOutputContainer->WriteVisualFile( mConfigContainer.get(), 
+				                               mGeometryContainer.get(),
+																			 mOpenMPContainer.get(),
+																			 mMultizoneSolverContainer.get() );
 	
 		// Update the visualization flag.
 		isvis = true;
@@ -233,10 +215,10 @@ void CDriver::WriteOutput
 		// Write the visualization file, if it hasnt been written.
 		if( !isvis )
 		{
-			mOutputContainer->WriteVisualFile(mConfigContainer.get(), 
-					                              mGeometryContainer.get(),
-																				mOpenMPContainer.get(),
-																				mSolverContainer);
+			mOutputContainer->WriteVisualFile( mConfigContainer.get(), 
+					                               mGeometryContainer.get(),
+																				 mOpenMPContainer.get(),
+																				 mMultizoneSolverContainer.get() );
 		}
 	}
 
@@ -332,7 +314,7 @@ as3double CDriver::ComputeTimeStep
 		const auto iElem = elem_info.mIndexElem; 
 
 		// Extract the relevant solver.
-		auto& solver  = mSolverContainer[iZone];
+		auto* solver  = mMultizoneSolverContainer->GetSinglezoneSolver(iZone);
 		// Extract the relevant physical element.
 		auto* element = solver->GetPhysicalElement(iElem);
 
@@ -466,13 +448,12 @@ void CDriver::ExecuteTimeSyncStep
 
 
 		// Update the solution in time.
-		mTemporalContainer->UpdateTime(mConfigContainer.get(),
-				                           mGeometryContainer.get(),
-																	 mIterationContainer.get(),
-																	 mOpenMPContainer.get(),
-																	 mSolverContainer,
-																	 mInterfaceContainer,
-																	 time, dt);
+		mTemporalContainer->UpdateTime( mConfigContainer.get(),
+				                            mGeometryContainer.get(),
+																	  mIterationContainer.get(),
+																	  mOpenMPContainer.get(),
+																	  mMultizoneSolverContainer.get(),
+																	  time, dt );
 
 		// Update the elapsed time and increment the number of sub-steps.
 		time += dt; nSubStep++;

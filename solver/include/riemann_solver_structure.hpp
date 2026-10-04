@@ -16,7 +16,7 @@ class IRiemannSolver
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 */
-		IRiemannSolver(CConfig *config_container);
+		IRiemannSolver(const CConfig *config_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -68,7 +68,7 @@ class CRoeRiemannSolver final: public IRiemannSolver
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 */
-		CRoeRiemannSolver(CConfig *config_container);
+		CRoeRiemannSolver(const CConfig *config_container);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.

@@ -200,36 +200,40 @@ CMatrixAS3<as3double> NLinearAlgebra::MatrixVectorMult
 //-----------------------------------------------------------------------------------
 
 void NLinearAlgebra::MatrixVectorTransMult
-(
+( 
  CMatrixAS3<as3double> &matA,
  CMatrixAS3<as3double> &vecB,
- CMatrixAS3<as3double> &vecC
+ CMatrixAS3<as3double> &vecC,
+ CMatrixAS3<as3double> &tmpV
 )
  /*
 	* Function that computes a matrix-vector multiplication manually, with the vector transposed.
 	*/
-{
-	// Consistency check.
-#if DEBUG	
-	// Ensure the common dimension of the dot product per vector is correct.
-	if( matA.col() != vecB.col() ) ERROR("Incompatible dot product dimension.");
-
-	// Check that the input/output vectors are of identical dimensions.
-	if( (vecB.row() != vecC.row()) || (vecB.col() != vecC.col()) )
-	{
-		ERROR("Vector dimensions are inconsistent.");
-	}
-#endif
-
-	// Extract the numbner of rows and columns of A.
+{	
+  // Extract the numbner of rows and columns of A.
 	const size_t nRow = matA.row();
 	const size_t nCol = matA.col();
-
 	// Extract the number of vectors that are matrix-vector multiplied with matA.
 	const size_t nVec = vecB.row();
 
-	// Create a temporary vector for storing the results.
-	as3double tmp[nRow];
+  // Consistency check.
+#if DEBUG
+  // Required shapes:
+  //   A: nRow * nCol
+  //   B: nVec * nCol
+  //   C: nVec * nRow
+  if(vecB.col() != nCol ||
+     vecC.row() != nVec ||
+     vecC.col() != nRow)
+  {
+    ERROR("Incompatible matrix-vector dimensions.");
+  }
+
+  if(tmp.size() < nRow) ERROR("Insufficient temporary storage.");
+#endif
+
+	// Obtain a temporary vector for storing the results.
+	as3double *tmp = tmpV.data();
 
 	// Perform actual matrix-vector multiplication on each vector: i.
 	for(size_t i=0; i<nVec; i++)

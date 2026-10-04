@@ -8,81 +8,28 @@
 
 IInterface::IInterface
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CInterfaceParamMarker                 *param_container,
- const CMarker                         *imarker_container,
- const CMarker                         *jmarker_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ const CConfig               *config_container,
+ const CMultizoneSolver      *multizone_solver_container,
+ const CInterfaceFacesFamily &interface_family
 )
-	:
-		mIName( imarker_container->GetNameMarker() ),
-		mJName( jmarker_container->GetNameMarker() ),
-		mIZone( imarker_container->GetZoneID()     ),
-		mJZone( jmarker_container->GetZoneID()     )
  /*
-	* Constructor for the interface zone interface class.
-	*/
+  *
+  */
 {
-	// Temporary lambda to find the face direction on a given marker.
-	auto lFaceDir = [=](const CMarker *marker_container) -> EFaceLocation
-	{
-		// Select the face direction based on the first element index.
-		EFaceLocation iface = marker_container->GetElementFaces(0).mFace; 
-		
-		// Loop over each element and ensure the face is constant.
-		for( auto& marker: marker_container->GetElementFaces() )
-		{
-			if( marker.mFace != iface )
-			{
-				ERROR(marker_container->GetNameMarker() + " must have the same face direction.");
-			}
-		}
+  // Assign the general interface properties.
+  mIName = interface_family.GetiFaceName();
+  mJName = interface_family.GetjFaceName();
 
-		// Return the face direction.
-		return iface;
-	};
+  mIZone = interface_family.GetiZone();
+  mJZone = interface_family.GetjZone();
 
-	// Deduce the faces of each marker. Note, it suffices to consider only the 
-	// first element, as the entire marker must have the same face direction.
-	mIFace = lFaceDir(imarker_container); 
-	mJFace = lFaceDir(jmarker_container); 
+  mIFace = interface_family.GetiFaceLocation();
+  mJFace = interface_family.GetjFaceLocation();
 
-	// Deduce the number of elements on both markers.
-	mNElem = imarker_container->GetnElem();
-	
-	// Check that the number of elements is not zero.
-	if( mNElem == 0 ) ERROR("Interface markers must not be empty.");
-	
-	// Ensure that both markers have the same number of elements. 
-	if( mNElem != jmarker_container->GetnElem() )
-	{
-		ERROR("Interface markers must share the same number of elements.");
-	}
+  mNFace = interface_family.GetnFace(); 
 
-	// Initialize the elements of both pair of markers.
-	mIndexElement.reserve(mNElem);
-
-	for(unsigned int i=0; i<mNElem; i++)
-	{
-		// The assumption in AS3 is that the matching face is reversed. 
-		// This is because all zones use a clockwise convention to tag 
-		// their boundary markers. The the matching (j-)index is:
-		const unsigned int j = mNElem - i - 1;
-
-		// Deduce the actual element indices, not their marker index.
-		const unsigned int I = imarker_container->GetElementFaces(i).mIndex;
-		const unsigned int J = jmarker_container->GetElementFaces(j).mIndex;
-
-		mIndexElement.emplace_back(I,J);
-	}
-
-	// Process the markers, to ensure they coincide geometrically.
-	ProcessMatchingMarkers(config_container, 
-			                   geometry_container, 
-												 imarker_container, 
-												 jmarker_container,
-												 param_container);
+	mNPolyI = multizone_solver_container->GetSinglezoneSolver(mIZone)->GetStandardElement()->GetnPolySol();
+	mNPolyJ = multizone_solver_container->GetSinglezoneSolver(mJZone)->GetStandardElement()->GetnPolySol();
 }
 
 //-----------------------------------------------------------------------------------
@@ -98,96 +45,6 @@ IInterface::~IInterface
 
 }
 
-//-----------------------------------------------------------------------------------
-
-void IInterface::ProcessMatchingMarkers
-(
- CConfig               *config_container,
- CGeometry             *geometry_container,
- const CMarker         *imarker_container,
- const CMarker         *jmarker_container,
- CInterfaceParamMarker *param_container
-)
- /*
-	* Function that processes each pair of markers, such that their common face coincides.
-	*/
-{
-	// Extract the grid geometry in each of these zones.
-	auto* igrid = geometry_container->GetZoneGeometry(mIZone);
-	auto* jgrid = geometry_container->GetZoneGeometry(mJZone);
-
-	// Extract the properties of each marker region (element indices and faces).
-	auto& imarker = imarker_container->GetElementFaces(); 
-	auto& jmarker = jmarker_container->GetElementFaces();
-
-	// Ensure the number of indices in each marker matches.
-	if( (imarker.size() != jmarker.size()) || (imarker.size() != mNElem) ) 
-	{
-		ERROR("Interface markers have different number of elements.");
-	}
-
-	// Loop over each pair of elements and check that their faces coincide.
-	for(size_t i=0; i<mNElem; i++)
-	{
-		// The assumption in AS3 is that the matching face is reversed. 
-		// This is because all zones use a clockwise convention to tag 
-		// their boundary markers. The the matching (j-)index is:
-		const size_t j = mNElem - i - 1;
-
-		// Extract the nodal indices of the first element on this marker.
-		auto& icoor = igrid->GetElementGeometry( imarker[i].mIndex )->GetCoordSolDOFs(); 
-		auto& jcoor = jgrid->GetElementGeometry( jmarker[j].mIndex )->GetCoordSolDOFs(); 
-		
-		// Extract the nodal indices from the face type.
-		auto& inode = igrid->GetFaceNodalIndices( imarker[i].mFace );
-		auto& jnode = jgrid->GetFaceNodalIndices( jmarker[j].mFace ); 
-
-		// NOTE 
-		// For now, force the polynomial orders to be the same. Otherwise, we 
-		// have to come up with an integration rule that is based on the higher
-		// order polynomial, to ensure local conservation.
-		if( inode.size() != jnode.size() )
-		{
-			ERROR("Polynomial order must be identical (for now) in zones: "
-					  + std::to_string(mIZone) + ", " + std::to_string(mJZone));
-		}
-
-		// Relative tolerance value.
-		const as3double tol = static_cast<as3double>( 1.0e-8 );
-		
-		// Check if the periodic faces coincide, after translation.
-		for(size_t k=0; k<inode.size(); k++)
-		{
-			// Extract coordinates for the current  marker.
-			const as3double ix = icoor(0, inode[k]);
-			const as3double iy = icoor(1, inode[k]);
-			// Extract coordinates for the matching marker.
-			const as3double jx = jcoor(0, jnode[k]);
-			const as3double jy = jcoor(1, jnode[k]);
-			
-			// Compute the difference between them in absolute.
-			const as3double dx = std::abs( ix - jx + param_container->mVectorTrans[0] );
-			const as3double dy = std::abs( iy - jy + param_container->mVectorTrans[1] );
-
-			// Relative error, based on the values of the coordinates.
-			const as3double xtol = tol*std::max( std::abs(ix), std::abs(jx) );
-			const as3double ytol = tol*std::max( std::abs(iy), std::abs(jy) );
-
-			// If the boundaries do not coincide, abort with an error.
-			if( (dx > xtol) || (dy > ytol) ) 
-			{
-				ERROR("Interface boundaries: " + mIName + ", " + mJName + " do not match.");
-			}
-		}
-	
-    // Additional consistency check.
-    if ( (mIndexElement[i].first != imarker[i].mIndex) or (mIndexElement[i].second != jmarker[j].mIndex) )
-    {
-      ERROR("Interface element indices do not coincide on a shared face.");
-    }
-  
-  }
-}
 
 
 //-----------------------------------------------------------------------------------
@@ -197,61 +54,43 @@ void IInterface::ProcessMatchingMarkers
 
 CEEInterface::CEEInterface
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- CInterfaceParamMarker                 *param_container,
- const CMarker                         *imarker_container,
- const CMarker                         *jmarker_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ const CConfig               *config_container,
+ const CMultizoneSolver      *multizone_solver_container,
+ const CInterfaceFacesFamily &interface_family
 )
-	:
-		IInterface(config_container, 
-				       geometry_container, 
-							 param_container,
-							 imarker_container,
-							 jmarker_container,
-				       solver_container)
+  :
+    IInterface(config_container,
+               multizone_solver_container,
+               interface_family)
  /*
-	* Constructor for the (non-linear) Euler equations zone interface class.
-	*/
+  *
+  */
 {
-	// Check that the (owner) imarker indeed is of type interface.
-	if( imarker_container->GetTypeBC() != ETypeBC::INTERFACE )
-	{
-		ERROR(imarker_container->GetNameMarker() + " must be an interface boundary.");
-	}
-
-	// Check that the (matching) jmarker indeed is of type interface.
-	if( jmarker_container->GetTypeBC() != ETypeBC::INTERFACE )
-	{
-		ERROR(jmarker_container->GetNameMarker() + " must be an interface boundary.");
-	}
-
   // Extract the relevant solvers.
-  const auto& isolver = solver_container[mIZone];
-  const auto& jsolver = solver_container[mJZone];
+  const auto* isolver = multizone_solver_container->GetSinglezoneSolver(mIZone);
+  const auto* jsolver = multizone_solver_container->GetSinglezoneSolver(mJZone);
 
-	// Extract the polynomial orders in each marker zone.
-	unsigned short ipoly = isolver->GetStandardElement()->GetnPolySol();
-	unsigned short jpoly = jsolver->GetStandardElement()->GetnPolySol();
-	
 	// Extract the number of integration points in each marker zone.
-	unsigned short inint = isolver->GetStandardElement()->GetnInt1D();
-	unsigned short jnint = jsolver->GetStandardElement()->GetnInt1D();
+	const unsigned short inint = isolver->GetStandardElement()->GetnInt1D();
+	const unsigned short jnint = jsolver->GetStandardElement()->GetnInt1D();
 
 	// Extract the type of DOFs in each zone.
-	ETypeDOF idof = isolver->GetStandardElement()->GetTypeDOFsSol();
-	ETypeDOF jdof = jsolver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeDOF itype_dof = isolver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeDOF jtype_dof = jsolver->GetStandardElement()->GetTypeDOFsSol();
 
-	// Only choose EQD when both markers are EQD. Otherwise, always select LGL.
-	ETypeDOF dof = ((idof == ETypeDOF::EQD) && (jdof == ETypeDOF::EQD)) ? ETypeDOF::EQD : ETypeDOF::LGL;
+	// For now, only use the same type of nodal points.
+	if( itype_dof != jtype_dof )
+  {
+    ERROR("Currently, only same nodal points are supported.");
+  }
+  const ETypeDOF type_dof = itype_dof; // since i and j have the same distribution (for now).
 
 	// Take the integration rule based on the highest polynomial.
 	mNInt1D = std::max( inint, jnint );
 
 	// Instantiate the appropriate (temporary) standard element containers in each zone.
-	CStandardElement ielement(dof, ipoly, mNInt1D);
-	CStandardElement jelement(dof, jpoly, mNInt1D);
+	CStandardElement ielement(type_dof, mNPolyI, mNInt1D);
+	CStandardElement jelement(type_dof, mNPolyJ, mNInt1D);
 
 	// Obtain the integration weights on this interface.
 	mWInt1D = ielement.GetwInt1D();
@@ -261,8 +100,8 @@ CEEInterface::CEEInterface
 	mJTensorProductContainer = CGenericFactory::CreateTensorContainer( &jelement, jsolver->GetnVar() );
 
 	// Extract the type of Riemann solver in each zone.
-	auto iriemann = isolver->GetRiemannSolver()->GetTypeRiemannSolver(); 
-	auto jriemann = jsolver->GetRiemannSolver()->GetTypeRiemannSolver();
+	const auto iriemann = isolver->GetRiemannSolver()->GetTypeRiemannSolver(); 
+	const auto jriemann = jsolver->GetRiemannSolver()->GetTypeRiemannSolver();
 	
 	// For now, force the Riemann solvers in both zones to be identical.
 	if( iriemann != jriemann )
@@ -274,14 +113,91 @@ CEEInterface::CEEInterface
 	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer( config_container, iriemann );
 
 	// Ensure the number of working variables in the iZone is as expected.
-	if( mNVar != isolver->GetnVar() )
+	if( isolver->GetnVar() != jsolver->GetnVar() )
 	{
-		ERROR("Number of variables mismatches in iZone: " + std::to_string(mIZone));
+		ERROR("Number of variables mismatches in iZone: " + std::to_string(mIZone) + " and jZone: " + std::to_string(mJZone) );
 	}
-	if( mNVar != solver_container[mJZone]->GetnVar() )
-	{
-		ERROR("Number of variables mismatches in jZone: " + std::to_string(mJZone));
-	}
+
+  // Set the number of variables for this class.
+  mNVar = isolver->GetnVar(); // since i and j have the same nVar (for now).
+
+
+  // Initialize the compute kernerls for the solution interpolation and residual computation.
+  InitializeComputeKernels();
+}
+
+//-----------------------------------------------------------------------------------
+
+void CEEInterface::InitializeComputeKernels
+(
+ void
+)
+ /*
+  *
+  */
+{
+  // Temporary lambda to determine which surface interpolation function to use.
+  auto lGetFuncPointerInterpFace = [](auto* tensor_container, EFaceLocation face_location)
+  {
+	  // Create a function pointer for the iface in the imarker.
+	  AInterpolateSurface FInterpFace;
+
+	  // Definitions of the four interpolation functions on the (owner) iface, 
+	  // which are given as lambda's that bind to std::function.
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->CompileTimeSurfaceJMAX(in...); };
+
+	  // Assign the appropriate interpolation functions for the (owner) iface.
+	  switch(face_location)
+	  {
+	  	case(EFaceLocation::IMIN): {FInterpFace = iSurfIMIN; break;}
+	  	case(EFaceLocation::IMAX): {FInterpFace = iSurfIMAX; break;}
+	  	case(EFaceLocation::JMIN): {FInterpFace = iSurfJMIN; break;}
+	  	case(EFaceLocation::JMAX): {FInterpFace = iSurfJMAX; break;}
+	  	default: ERROR("Face is unknown.");
+	  }
+
+	  // Return the function pointer.
+	  return FInterpFace;
+  };
+
+
+  // Temporary lambda to determine which surface residual function to use.
+  auto lGetSurfaceResidualFace = [](auto* tensor_container, EFaceLocation face_location)
+  {
+	  // Create a function pointer for the iface in the imarker.
+	  AComputeResidualFace FResFace;
+
+	  // Definitions of the four interpolation functions on the (owner) iface, 
+	  // which are given as lambda's that bind to std::function.
+	  auto iSurfIMIN = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceIMIN(in...); };
+	  auto iSurfIMAX = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceIMAX(in...); };
+	  auto iSurfJMIN = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceJMIN(in...); };
+	  auto iSurfJMAX = [tensor_container](auto... in){ tensor_container->CompileTimeResidualSurfaceJMAX(in...); };
+
+	  // Assign the appropriate interpolation functions for the (owner) iface.
+	  switch(face_location)
+	  {
+	  	case(EFaceLocation::IMIN): {FResFace = iSurfIMIN; break;}
+	  	case(EFaceLocation::IMAX): {FResFace = iSurfIMAX; break;}
+	  	case(EFaceLocation::JMIN): {FResFace = iSurfJMIN; break;}
+	  	case(EFaceLocation::JMAX): {FResFace = iSurfJMAX; break;}
+	  	default: ERROR("Face is unknown.");
+	  }
+
+	  // Return the function pointer.
+	  return FResFace;
+  };
+
+  // Assign the relevant interpolation functions.
+  mlInterpolateSurfaceI = lGetFuncPointerInterpFace( mITensorProductContainer.get(), mIFace );
+  mlInterpolateSurfaceJ = lGetFuncPointerInterpFace( mJTensorProductContainer.get(), mJFace );
+
+  // Assign the relevant residual functions.
+  mlComputeResidualFaceI = lGetSurfaceResidualFace( mITensorProductContainer.get(), mIFace );
+  mlComputeResidualFaceJ = lGetSurfaceResidualFace( mJTensorProductContainer.get(), mJFace );
 }
 
 //-----------------------------------------------------------------------------------
@@ -301,12 +217,12 @@ CEEInterface::~CEEInterface
 
 void CEEInterface::ComputeInterfaceResidual
 (
- as3vector1d<std::unique_ptr<ISolver>> &solver_container,
- const CInterfaceFacesFamily           &family_face,
- CFlattenedFaceIndex                    face_info,
- CPoolMatrixAS3<as3double>             &workarray,
- as3double                              localtime
-)
+ CMultizoneSolver            *multizone_solver_container,
+ const CInterfaceFacesFamily &family_face,
+ CFlattenedFaceIndex          face_info,
+ CPoolMatrixAS3<as3double>   &workarray,
+ as3double                    localtime
+) const
  /*
 	* Function that computes the residual on a single element interface face. 
 	*/
@@ -325,8 +241,8 @@ void CEEInterface::ComputeInterfaceResidual
   const EFaceLocation face_location_p = family_face.GetjFaceLocation();
 
 	// Get the solvers of this class.
-	auto& solver_m = solver_container[iZoneM];
-	auto& solver_p = solver_container[iZoneP];
+	auto* solver_m = multizone_solver_container->GetSinglezoneSolver(iZoneM);
+	auto* solver_p = multizone_solver_container->GetSinglezoneSolver(iZoneP);
 
   // Get the respective standard elements.
   const auto* standard_element_m = solver_m->GetStandardElement();
@@ -337,6 +253,18 @@ void CEEInterface::ComputeInterfaceResidual
   auto&        wInt1D = standard_element_m->GetwInt1D();
   // Also the number of solution variables.
   const size_t nVar   = solver_m->GetnVar();
+
+// DEBUGGING start
+  if( iZoneM != mIZone || iZoneP != mJZone )
+  {
+    std::cout << "iZoneM: " << iZoneM << ", mIZone: " << mIZone << ", "
+              << "iZoneP: " << iZoneP << ", mJZone: " << mJZone << std::endl; 
+  
+    ERROR("zone indices do not match");
+  }
+  if( nInt1D != mNInt1D ) ERROR("nIntergration does not match.");
+  if( face_location_m != mIFace || face_location_p != mJFace ) ERROR("face locations do not match.");
+// DEBUGGING over
 
   // Consistency check.
   if( standard_element_m->GetnInt1D() != standard_element_p->GetnInt1D() 
@@ -386,12 +314,7 @@ void CEEInterface::ComputeInterfaceResidual
     res_p = &elem_p->mRes2D;
   }
 
-  // TODO: need to preprocess faces once based on their parent group interface 
-  // (e.g., create their CTensorProduct and IRiemannSolver).
-  
-  // XXX: DEBUGGING start
-  // For now, we assume both faces have identical polynomials, riemann solvers, equations and integration rules.
-
+  // TODO: remove these 
   // Get relevant tensor products.
   auto* tensor_container_m = solver_m->GetTensorProduct();
   auto* tensor_container_p = solver_p->GetTensorProduct();
@@ -491,7 +414,28 @@ void CEEInterface::ComputeInterfaceResidual
 	ComputeResFace_P(flux.data(), nullptr, nullptr, res_p->data());
 
 
-  // XXX: DEBUGGING end 
+  // CHANGED: new version is below..
+
+	//// Compute the solution on the integration nodes of the owner element.
+	//mlInterpolateSurfaceI(sol_m.data(), var_m.data(), nullptr, nullptr); 
+
+	//// Compute the solution on the integration nodes of the matching element.
+	//mlInterpolateSurfaceJ(sol_p.data(), var_p.data(), nullptr, nullptr); 
+
+
+
+  //// Compute the flux state, weighted by the integration nodes and metrics. 
+  //mRiemannSolverContainer->ComputeFlux(wInt1D, met_m, var_m, var_p, flux);
+
+  //// Compute the residual on the owned element, which is on the iface boundary.
+  //mlComputeResidualFaceI(flux.data(), nullptr, nullptr, res_m->data());
+
+	//// For local conservation, negate the flux, since it leaves the owner element 
+	//// to enter the matching element.
+	//for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+	//// Compute the residual on the matching element, which is on the jface boundary.
+	//mlComputeResidualFaceJ(flux.data(), nullptr, nullptr, res_p->data());
 }
 
 

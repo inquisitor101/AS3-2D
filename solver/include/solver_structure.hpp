@@ -10,6 +10,74 @@
 #include "riemann_solver_structure.hpp"
 #include "standard_element_structure.hpp"
 #include "physical_element_structure.hpp"
+#include "interface_structure.hpp"
+
+// Forward declaration to avoid compiler problems.
+class ISolver;
+class IInterface;
+
+
+class CMultizoneSolver
+{
+  public:
+    CMultizoneSolver(const CConfig   *config_container,
+                     const CGeometry *geometry_container);
+
+    void InitializeInterfaces(const CConfig   *config_container,
+                              const CGeometry *geometry_container);
+
+    
+    const ISolver* GetSinglezoneSolver(size_t iSolver) const 
+    { 
+      return mMultizoneSolverContainer[iSolver].get();
+    }
+    
+    ISolver* GetSinglezoneSolver(size_t iSolver)
+    {
+      return mMultizoneSolverContainer[iSolver].get();
+    }
+
+    const auto& GetMultizoneInterface(void) const
+    {
+      return mMultizoneInterfaceContainer;
+    }
+    
+    const auto* GetSinglezoneInterface(size_t iInterface) const 
+    {
+      return mMultizoneInterfaceContainer[iInterface].get();
+    }
+
+    size_t GetnZone(void) const { return mNZone; }
+
+    size_t GetIndexInterfaceIFace(size_t iFamily) const
+    {
+#if DEBUG
+      if(iFamily >= mIndexInterfaceIFace.size()) ERROR("I-Family index is out of range.");
+#endif
+      return mIndexInterfaceIFace[iFamily];
+    }
+    
+    size_t GetIndexInterfaceJFace(size_t iFamily) const
+    {
+#if DEBUG
+      if(iFamily >= mIndexInterfaceJFace.size()) ERROR("J-Family index is out of range.");
+#endif
+      return mIndexInterfaceJFace[iFamily];
+    } 
+
+  protected:
+
+  private:
+    size_t mNZone;
+    as3vector1d<std::unique_ptr<ISolver>>    mMultizoneSolverContainer;
+    as3vector1d<std::unique_ptr<IInterface>> mMultizoneInterfaceContainer;
+
+    as3vector1d<size_t> mIndexInterfaceIFace; // index for interfaces whose i-face is is of type: IFace..
+    as3vector1d<size_t> mIndexInterfaceJFace; // index for interfaces whose i-face is of type: JFace.
+};
+
+
+
 
 
 /*!
@@ -19,17 +87,9 @@ class ISolver
 {
 	public:
 		
-		/*!
-		 * @brief Constructor of ISolver, which serves as an interface for the solver.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] iZone zone ID of this container.
-		 */
-		ISolver(CConfig       *config_container,
-				    CGeometry     *geometry_container,
-						unsigned short iZone,
-            unsigned short nVar);
+		ISolver(const CConfig       *config_container,
+				    const CZoneGeometry *zone_geometry,
+            unsigned short       nVar);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
@@ -164,16 +224,8 @@ class CEESolver : public ISolver
 {
 	public:
 
-		/*!
-		 * @brief Constructor of CEESolver, which initializes an Euler equations solver.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 * @param[in] iZone zone ID of this container.
-		 */
-		CEESolver(CConfig       *config_container,
-				      CGeometry     *geometry_container,
-							unsigned short iZone);
+		CEESolver(const CConfig       *config_container,
+				      const CZoneGeometry *zone_geometry);
 		
 		/*!
 		 * @brief Destructor, which frees any allocated memory.

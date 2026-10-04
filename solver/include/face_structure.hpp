@@ -138,6 +138,12 @@ class CInterfaceFacesFamily
 		bool GetisMaxFaceI(void) const {return mIsMaxFaceI;}
 		bool GetisMaxFaceJ(void) const {return mIsMaxFaceJ;}
 
+    const std::string& GetiFaceName() const { return mFaceNameI; }
+    const std::string& GetjFaceName() const { return mFaceNameJ; }
+
+    ETypeFace GetiTypeFace(void) const { return mTypeFaceI; }
+    ETypeFace GetjTypeFace(void) const { return mTypeFaceJ; }
+
   private:
     ETypeFace   mTypeFaceI;
     ETypeFace   mTypeFaceJ;
@@ -164,6 +170,8 @@ class CInterfaceFacesFamily
 
 //-----------------------------------------------------------------------------------
 
+
+// TODO: change this to CGroupFamilyFaces ?
 template<typename TFamily>
 class CGroupFaces
 {
@@ -317,6 +325,7 @@ class CMultizoneFaceGeometry
 
     ETypeFace GetTypeFace(void) const { return mTypeFace; }
 
+    size_t GetnInterfaceFamilies(void) const { return mInterfaceFacesGroup.GetnFamily(); }
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 

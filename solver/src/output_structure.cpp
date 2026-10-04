@@ -7,8 +7,8 @@
 
 COutput::COutput
 (
- CConfig   *config_container,
- CGeometry *geometry_container
+ const CConfig   *config_container,
+ const CGeometry *geometry_container
 )
  /*
 	* Constructor for the output class, which is responsible for the entire output routines.
@@ -34,10 +34,10 @@ COutput::~COutput
 
 void COutput::WriteVisualFile
 (
- CConfig                               *config_container,
- CGeometry                             *geometry_container,
- COpenMP                               *openmp_container,
- as3vector1d<std::unique_ptr<ISolver>> &solver_container
+ const CConfig          *config_container,
+ const CGeometry        *geometry_container,
+ const COpenMP          *openmp_container,
+ const CMultizoneSolver *multizone_solver_container
 )
  /*
 	* Function that writes a visualization file.
@@ -47,5 +47,5 @@ void COutput::WriteVisualFile
 	if( mVTKContainer ) mVTKContainer->WriteFileVTK(config_container, 
 			                                            geometry_container,
 																									openmp_container,
-																									solver_container);
+																									multizone_solver_container);
 }

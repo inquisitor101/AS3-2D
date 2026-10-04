@@ -61,11 +61,10 @@ namespace NLogger
 	 *
 	 * @param[in] config_container configuration/dictionary container.
 	 * @param[in] geometry_container input geometry container.
-	 * @param[in] interface_container input vector of interface containers.
 	 */
-	void DisplayBoundaryConditions(CConfig                                  *config_container,
-																 CGeometry                                *geometry_container,
-																 as3vector1d<std::unique_ptr<IInterface>> &interface_container);
+	void DisplayBoundaryConditions(const CConfig          *config_container,
+																 const CGeometry        *geometry_container,
+																 const CMultizoneSolver *multizone_solver_container);
 
 
 	/*!
@@ -74,9 +73,9 @@ namespace NLogger
 	 * @param[in] openmp_container OpenMP shared parallelization container.
 	 * @param[in] solver_container input multizone solver container.
 	 */
-	void DisplayOpenMPInfo(COpenMP                               *openmp_container,
-			                   const CGeometry                       *geometry_container,
-												 as3vector1d<std::unique_ptr<ISolver>> &solver_container);
+	void DisplayOpenMPInfo(COpenMP                *openmp_container,
+			                   const CGeometry        *geometry_container,
+												 const CMultizoneSolver *multizone_solver_container);
 }
 
 
