@@ -111,12 +111,12 @@ class CInterfaceFacesFamily
     CInterfaceFacesFamily(const CMultizoneGeometry *multizone_geometry_container,
                           const CMarker            *imarker_container,
                           const CMarker            *jmarker_container,
-                          CInterfaceParamMarker    *param_interface);
+                          CPeriodicParamMarker     *param_interface);
 
     void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container,
                                   const CMarker            *imarker_container,
                                   const CMarker            *jmarker_container,
-                                  CInterfaceParamMarker    *param_interface);
+                                  CPeriodicParamMarker     *param_interface);
 
     const AInterfaceFaceVector& GetInterfaceFaces(void) const
     {
@@ -165,7 +165,7 @@ class CInterfaceFacesFamily
 		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container,
 																const CMarker            *imarker_container,
 																const CMarker            *jmarker_container,
-																CInterfaceParamMarker    *param_interface);
+																CPeriodicParamMarker     *param_interface);
 };
 
 //-----------------------------------------------------------------------------------

@@ -151,11 +151,13 @@ bool CConfig::ReadZoneConfigurationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mInputGridFormat = GenericScalarMap(MapFormatFile, buffer, "INPUT_GRID_FORMAT");
 
-	// Close the file, since it will be opened later.
-	paramfile.close();
+  // Read the grid directory.
+  NInputUtility::AddScalarOption(paramfile, "GRID_DIRECTORY", mGridDirectory, true);
+  // Add a backslash, in case there is none.
+  if(mGridDirectory.empty() || mGridDirectory.back() != '/') { mGridDirectory += '/'; }
 
-	// Extract the information in the zone connectivity file.
-	ExtractZoneGridFiles(filename);
+  // Close the file, since it will be opened later.
+	paramfile.close();
 
 	// Report output.
 	std::cout << " Done." << std::endl;
@@ -320,7 +322,7 @@ bool CConfig::ReadBoundaryConditionOptions
 	if( mMarkerTag.size() )
 	{
 		// Ensure both interface and boundary markers are correct in size.
-		if( mMarkerTag.size() != (mBoundaryParamMarker.size() + 2*mInterfaceParamMarker.size()) )
+		if( mMarkerTag.size() != (mBoundaryParamMarker.size() + 2*mPeriodicParamMarker.size()) )
 		{
 			ERROR("Markers are not consistent in size.");
 		}
@@ -340,7 +342,7 @@ bool CConfig::ReadBoundaryConditionOptions
 	else
 	{
 		// No boundary information is detected, this is nonsense.
-		ERROR("Marker boundary/interface conditions are missing.");
+		ERROR("Marker boundary/periodic conditions are missing.");
 	}
 
 	// Report output.
@@ -376,7 +378,7 @@ void CConfig::ExtractInfoInterfaceBC
 		as3vector1d<std::string> buffer;
 		
 		// Read the information of the periodic marker, if specified.
-		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_INTERFACE", buffer, defval, false);
+		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_PERIODIC", buffer, defval, false);
 
 		// Check if any new values are found.
 		if( buffer != defval )
@@ -384,11 +386,11 @@ void CConfig::ExtractInfoInterfaceBC
 			// Ensure the values specified are 4: iName, jName, rx, ry.
 			if( buffer.size() != 4 )
 			{
-				ERROR("Interface BCs must specify two markers and a 2D translation vector.");
+				ERROR("Periodic BCs must specify two markers and a 2D translation vector.");
 			}
 
 			// Accumulate the information.
-			mInterfaceParamMarker.push_back( std::make_unique<CInterfaceParamMarker>(buffer) );
+			mPeriodicParamMarker.push_back( std::make_unique<CPeriodicParamMarker>(buffer) );
 		}
 		else
 		{
@@ -398,13 +400,13 @@ void CConfig::ExtractInfoInterfaceBC
 	}
 
 	// Accumulate the marker tag information, if need be.
-	if( mInterfaceParamMarker.size() )
+	if( mPeriodicParamMarker.size() )
 	{
-		for( auto& interface: mInterfaceParamMarker )
+		for( auto& periodic: mPeriodicParamMarker )
 		{
 			// Accumulate both pair of boundaries.
-			mMarkerTag.push_back( {interface->mName,         interface->GetTypeBC()} );
-			mMarkerTag.push_back( {interface->mNameMatching, interface->GetTypeBC()} );
+			mMarkerTag.push_back( {periodic->mName,         periodic->GetTypeBC()} );
+			mMarkerTag.push_back( {periodic->mNameMatching, periodic->GetTypeBC()} );
 		}
 	}
 
@@ -516,76 +518,6 @@ void CConfig::IC_IsentropicVortex
 
 //-----------------------------------------------------------------------------------
 
-void CConfig::ExtractZoneGridFiles
-(
- const char *filename
-)
- /*
-	* Function that extracts the grid zone connectivity information.
-	*/
-{
-	// Message stream.
-	std::ostringstream message;
-
-  // Check if file exists.
-  std::ifstream paramfile(filename);
-
-	// Reserve memory for the grid filenames.
-	mZoneGridFilename.resize(mNZone);
-
-	// Loop over all the expected zones and read their grid filenames.
-	for(unsigned short i=0; i<mNZone; i++)
-	{
-		// Current zone filename.
-		std::string ifile = "GRID_FILENAME_ZONE_" + std::to_string(i);
-		NInputUtility::AddScalarOption(paramfile, ifile.c_str(), mZoneGridFilename[i], true);
-
-		// Ensure that the grid extension is correct.
-		switch( mMeshFormat )
-		{
-			// Ensure a Plot3D grid is supplied.
-			case( EMeshFormat::PLOT3D ): 
-			{
-				if( NInputUtility::GetFileExtension(mZoneGridFilename[i]) != "xyz" ) 
-				{
-					ERROR("Wrong mesh format detected. AS3 expects a Plot3D grid."); 
-				}
-
-				// This is not supported for now, issue an error.
-				ERROR("PLOT3D is not (yet) supported.");
-				break;
-			}
-
-			// Ensure an AS3 grid is supplied.
-			case( EMeshFormat::AS3 ): 
-			{
-				if( NInputUtility::GetFileExtension(mZoneGridFilename[i]) != "as3" ) 
-				{
-					ERROR("Wrong mesh format detected. AS3 expects a native (AS3) grid."); 
-				}
-				break;
-			}
-
-			// Issue an error if format is unknown.
-			default: ERROR("Unknown mesh format found.");
-		}
-
-		// Check if the file exists.
-		std::ifstream file(mZoneGridFilename[i]);
-		if( !file.good() )
-		{
-			std::ostringstream message;
-			message << "Could not open file: "
-				      << "'" << mZoneGridFilename[i] << "'";
-			ERROR(message.str());
-		}
-	}
-
-	// Close file.
-  paramfile.close();
-}
-
-//-----------------------------------------------------------------------------------
 
 
 

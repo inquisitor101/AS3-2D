@@ -1,10 +1,13 @@
 #pragma once
 
+#include <iosfwd>
 #include <iomanip>
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "solver_structure.hpp"
 #include "monitoring_structure.hpp"
+#include "import_structure.hpp"
+#include "marker_structure.hpp"
 
 
 /*!
@@ -76,6 +79,14 @@ namespace NLogger
 	void DisplayOpenMPInfo(COpenMP                  *openmp_container,
 			                   const CMultizoneGeometry *multizone_geometry_container,
 												 const CMultizoneSolver   *multizone_solver_container);
+
+
+  void DisplayAS3BinaryMetadata(const NImportFile::NAS3BinaryFile::CAS3BinaryMetadata &metadata,
+                                std::ostream                                          &out);
+
+  void DisplayInternalMarkers(const as3vector1d<CInternalFamilyMarker> &families);
+  void DisplayExternalMarkers(const as3vector1d<CExternalFamilyMarker> &families);
+  void DisplayPeriodicMarkers(const as3vector1d<CPeriodicFamilyMarker> &families);
 }
 
 

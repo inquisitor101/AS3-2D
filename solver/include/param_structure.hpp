@@ -24,24 +24,24 @@ struct IBoundaryParamMarker
 //-----------------------------------------------------------------------------------
 
 /*!
- * @brief A struct used for storing the parameters in interface/periodic markers. 
+ * @brief A struct used for storing the parameters in periodic markers. 
  */
-struct CInterfaceParamMarker : public IBoundaryParamMarker
+struct CPeriodicParamMarker : public IBoundaryParamMarker
 {
 	/*!
 	 * @brief Constructor that defines the parameters of this class.
 	 * 
 	 * @param[in] buffer vector of strings containing the parameters.
 	 */
-	explicit CInterfaceParamMarker(as3vector1d<std::string> buffer);
+	explicit CPeriodicParamMarker(as3vector1d<std::string> buffer);
 
 	/*!
-	 * @brief Function that returns the type of BC on this marker, which is an interface.
+	 * @brief Function that returns the type of BC on this marker, which is periodic.
 	 */
-	ETypeBC GetTypeBC(void) const override {return ETypeBC::INTERFACE;}
+	ETypeBC GetTypeBC(void) const override {return ETypeBC::PERIODIC;}
 
-	std::string mNameMatching;   ///< Name of the matching marker.
-	as3double   mVectorTrans[2]; ///< Translation vector, from I to J.
+	std::string              mNameMatching; ///< Name of the matching marker.
+  std::array<as3double, 2> mVectorTrans;  ///< Translation vector, from I to J.
 };
 
 

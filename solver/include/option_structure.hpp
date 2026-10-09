@@ -113,7 +113,7 @@ MapTypeDOF =
  */
 enum class ETypeBC
 {
-	INTERFACE
+  PERIODIC
 };
 
 /*!
@@ -122,7 +122,7 @@ enum class ETypeBC
 const std::map<std::string, ETypeBC>
 MapTypeBCs = 
 {
-	{ "INTERFACE",  ETypeBC::INTERFACE  }
+	{ "PERIODIC",  ETypeBC::PERIODIC }
 };
 
 //--------------------------------------
@@ -354,6 +354,17 @@ enum class ETypeFace
 enum class EFaceLoadBalanceStrategy
 {
   GREEDY
+};
+
+//--------------------------------------
+
+/*!
+ * @brief Strategy used to construct the type of zone edge markers.
+ */
+enum class ETypeZoneMarker
+{
+  INTERNAL,
+  EXTERNAL
 };
 
 

@@ -57,7 +57,7 @@ class CMultizoneGeometry
 		const CMultizoneFaceGeometry& GetMultizoneIFaces(void) const { return mMultizoneIFaces; }
 		const CMultizoneFaceGeometry& GetMultizoneJFaces(void) const { return mMultizoneJFaces; }
 
-    unsigned short GetnZone(void) const { return mNZone; }
+    size_t GetnZone(void) const { return mNZone; }
 
 		size_t GetnIFace(void) const { return mMultizoneIFaces.GetnFacesTotal(); }
 		size_t GetnJFace(void) const { return mMultizoneJFaces.GetnFacesTotal(); }
@@ -124,9 +124,9 @@ class CMultizoneGeometry
 	protected:
 
 	private:
-		const unsigned short                              mNZone;              ///< Total number of zones.
-		size_t                                            mNElemTotal = 0;
-		as3vector1d<std::unique_ptr<CSinglezoneGeometry>> mSinglezoneGeometry; ///< Container with the zone geometry.
+		size_t mNZone = 0;  
+		size_t mNElemTotal = 0;
+		as3vector1d<std::unique_ptr<CSinglezoneGeometry>> mSinglezoneGeometry; 
 
 
 		as3vector1d<CFlattenedElementIndex> mFlattenedIndexVolumeElement;
@@ -146,7 +146,11 @@ class CMultizoneGeometry
 		 * @param[in] config_container pointer to the configuration container.
 		 */
 		void CheckExistanceGridFiles(CConfig *config_container);
-		
+
+
+    void ImportGrid(const CConfig *config_container);
+
+
 		// Disable default constructor.
 		CMultizoneGeometry(void) = delete;
 		// Disable default copy constructor.
@@ -164,6 +168,7 @@ class CSinglezoneGeometry
 {
 	public:
 
+    // TODO: remove
 		/*!
 		 * @brief Constructor of CSinglezoneGeometry, which is responsible for a single grid geometry.
 		 * 
@@ -174,13 +179,23 @@ class CSinglezoneGeometry
 		CSinglezoneGeometry(CConfig        *config_container,
 									      std::string     gridfile,
 									      unsigned short  iZone);
-		
+
+    CSinglezoneGeometry(const std::string &gridfile, 
+                        std::size_t        iZone, 
+                        std::size_t        nPoly, 
+                        std::size_t        niElem, 
+                        std::size_t        njElem, 
+                        ETypeDOF           nodalDistribution, 
+                        bool               isAffine);
+
+
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */
 		~CSinglezoneGeometry(void);
 
 
+    // TODO: remove
 		/*!
 		 * @brief Function that initializes and defines all the element geometry in this zone.
 		 */
@@ -189,6 +204,7 @@ class CSinglezoneGeometry
 														unsigned int         niElem,
 														unsigned int         njElem);
 
+    // TODO: remove
 		/*!
 		 * @brief Function that defines all the interface markers in this zone.
 		 */
@@ -202,7 +218,7 @@ class CSinglezoneGeometry
 		 *
 		 * @return mZoneID.
 		 */
-		unsigned short GetZoneID(void) const {return mZoneID;}
+    std::size_t GetZoneID(void) const {return mZoneID;}
 
 		/*!
 		 * @brief Getter function which returns the value of mGridFile.
@@ -230,36 +246,39 @@ class CSinglezoneGeometry
 		 *
 		 * @return mElementGeometry.size().
 		 */
-		unsigned int GetnElem(void) const {return static_cast<unsigned int>( mElementGeometry.size() );}
+    std::size_t GetnElem(void) const {return static_cast<unsigned int>( mElementGeometry.size() );}
 
 		/*!
 		 * @brief Getter function which returns the number of elements in the x-direction.
 		 *
 		 * @return mNiElem.
 		 */
-		unsigned int GetniElem(void) const {return mNiElem;}
+    std::size_t GetniElem(void) const {return mNiElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of elements in the y-direction.
 		 *
 		 * @return mNjElem.
 		 */
-		unsigned int GetnjElem(void) const {return mNjElem;}
+    std::size_t GetnjElem(void) const {return mNjElem;}
 
 		/*!
 		 * @brief Getter function which returns the number of grid nodes in 2D.
 		 *
 		 * @return (mNPolyGrid+1)*(mNPolyGrid+1).
 		 */
-		unsigned int GetnNodeGrid2D(void) const {return (mNPolyGrid+1)*(mNPolyGrid+1);}
+    std::size_t GetnNodeGrid2D(void) const {return (mNPolyGrid+1)*(mNPolyGrid+1);}
 
 		/*!
 		 * @brief Getter function which returns the polynomial order of the grid element.
 		 *
 		 * @return mNPolyGrid.
 		 */
-		unsigned short GetnPolyGrid(void) const {return mNPolyGrid;}
+    std::size_t GetnPolyGrid(void) const {return mNPolyGrid;}
 
+    std::size_t GetnDim(void) const {return 2;}
+
+    // TODO: remove?
 		/*!
 		 * @brief Function that returns the vector containing the nodal indices of the specified face.
 		 *
@@ -282,21 +301,27 @@ class CSinglezoneGeometry
 			throw std::exception();
 		}
 
+    as3vector1d<std::size_t> ComputeSurfaceElementIndices(EFaceLocation face_location) const;
+    as3vector1d<std::size_t> ComputeSurfaceNodeIndices(EFaceLocation face_location) const;
+
+
 	protected:
 
 	private:
-		const unsigned short                           mZoneID;           ///< Current zone index.
-		const std::string															 mGridFile;				  ///< Associated grid file name of this zone.
-		unsigned short                                 mNPolyGrid;        ///< Polynomial order of the grid element.
-		unsigned int                                   mNiElem = 0;       ///< Number of elements in i-direction.
-		unsigned int                                   mNjElem = 0;       ///< Number of elements in j-direction.	
+    std::size_t mZoneID;           ///< Current zone index.
+		std::string	mGridFile;				 ///< Associated grid file name of this zone.
+    std::size_t mNPolyGrid;        ///< Polynomial order of the grid element.
+		std::size_t mNiElem = 0;       ///< Number of elements in i-direction.
+    std::size_t mNjElem = 0;       ///< Number of elements in j-direction.	
+    bool        mIsAffine = false;
 
-		as3vector2d<unsigned short>                    mFaceNodalIndices; ///< Container with the nodal face indices.
-																																			///< [iFace][iNode].
-		as3vector1d<std::unique_ptr<CMarker>>          mMarkerGeometry;   ///< Container with the marker data.
+    ETypeDOF    mNodalDistribution;
+		as3vector2d<unsigned short> mFaceNodalIndices; // TODO: remove? 
+		as3vector1d<std::unique_ptr<CMarker>>          mMarkerGeometry; // TODO: remove?
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
 		
+    // TODO: remove?
     /*!
 		 * @brief Function that generates all 4 nodal indices on a quadrilateral in this zone.
 		 */
@@ -322,8 +347,10 @@ class CElementGeometry
 		/*!
 		 * @brief Constructor of CElementGeometry, which is responsible for a single element geometry.
 		 */
-		CElementGeometry(as3vector1d<double> &x, as3vector1d<double> &y);
-		
+		CElementGeometry(as3vector1d<double> &x, as3vector1d<double> &y); // TODO: remove
+	
+    explicit CElementGeometry(std::size_t nNode2D);
+
 		/*!
 		 * @brief Destructor, which frees any allocated memory.
 		 */

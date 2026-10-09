@@ -1,4 +1,8 @@
 #include "geometry_structure.hpp"
+#include "import_structure.hpp"
+#include "log_structure.hpp"
+
+#include <set>
 
 
 
@@ -20,16 +24,9 @@ CMultizoneGeometry::CMultizoneGeometry
 	// Check and report output for the existance of the specified grid files.
 	CheckExistanceGridFiles(config_container);
 
-	// Reserve memory for the grid zones.
-	mSinglezoneGeometry.resize(mNZone);
 
-	// Indentify the information in each grid zone, separately.
-	for(unsigned short iZone=0; iZone<mNZone; iZone++)
-	{
-		mSinglezoneGeometry[iZone] = std::make_unique<CSinglezoneGeometry>(config_container,
-																						                           config_container->GetZoneGridFilename(iZone),
-																						                           iZone);	
-	}
+  // TODO: import the grid.
+  ImportGrid(config_container);
 }
 
 //-----------------------------------------------------------------------------------
@@ -43,6 +40,129 @@ CMultizoneGeometry::~CMultizoneGeometry
 	*/
 {
 
+}
+
+//-----------------------------------------------------------------------------------
+
+void CMultizoneGeometry::ImportGrid
+(
+ const CConfig *config_container
+)
+ /*
+  *
+  */
+{
+  // For convenience, bring the import namespace in this scope.
+  using namespace NImportFile::NAS3BinaryFile;
+
+  // Extract the grid directory.
+  std::string dir = config_container->GetGridDirectory();
+
+  // Ensure the directory has the proper backslash.
+  if (!dir.empty() && dir.back() != '/') dir += '/';
+
+  // Obtain a metadata object for this grid.
+  const auto metadata = ReadAS3BinaryMetadata(dir + "meta_data.bin");
+
+  // Display information.
+  NLogger::DisplayAS3BinaryMetadata(metadata, std::cout);
+
+  // Deduce the number of zones.
+  mNZone = metadata.mZones.size();
+
+  // Reserve the correct amount of memory for the grid.
+  mSinglezoneGeometry.reserve( mNZone );
+
+  // Obtain the single zone grids.
+  for(size_t iZone=0; iZone<mNZone; iZone++)
+  {
+    const auto& filename = dir + "blocks/block_" + std::to_string(iZone) + ".bin"; 
+    mSinglezoneGeometry.push_back( ReadAS3BinarySinglezoneGrid(filename, metadata, iZone) );
+  }
+ 
+
+  // Import the internal markers.
+  const auto internal_markers = ReadAS3InternalMarkers(dir + "interface_boundaries.bin", metadata);
+
+  // Import the external markers.
+  auto external_markers = ReadAS3ExternalMarkers(dir + "external_boundaries.bin", metadata);
+
+
+  // TODO: The below should be in a function here. 
+
+  // Process the periodic boundaries, specified by the user and remove them from external markers. 
+  const auto& periodic_param = config_container->GetPeriodicParamMarker(); 
+
+  const std::size_t nPeriodic = periodic_param.size();
+
+  as3vector1d<CPeriodicFamilyMarker> periodic_markers;
+  periodic_markers.reserve( nPeriodic );
+
+
+  // Search for an external family by name.
+  auto FindExternalFamily = [&external_markers](const std::string &name)
+  {
+    return std::find_if(
+      external_markers.begin(),
+      external_markers.end(),
+      [&name](const CExternalFamilyMarker &family)
+      {
+        return family.GetName() == name;
+      }
+    );
+  };
+
+  for( const auto& marker : periodic_param )
+  {
+    const auto& iname = marker->mName;
+    const auto& jname = marker->mNameMatching;
+  
+    // Each periodic pair must refer to two different families.
+    if( iname == jname )
+    {
+      ERROR("Periodic boundaries must have different family names: " + iname);
+    }
+  
+    // Find the I family.
+    const auto itI = FindExternalFamily(iname);
+    if( itI == external_markers.end() )
+    {
+      ERROR("Cannot find periodic boundary family: " + iname);
+    }
+  
+    // Find the matching J family.
+    const auto itJ = FindExternalFamily(jname);
+    if( itJ == external_markers.end() )
+    {
+      ERROR("Cannot find periodic boundary family: " + jname);
+    }
+  
+    // Construct the periodic family before invalidating either iterator.
+    periodic_markers.emplace_back(this, *itI, *itJ, marker->mVectorTrans);
+  
+    // Erase the later element first, preserving the earlier iterator.
+    if( itI < itJ )
+    {
+      external_markers.erase(itJ);
+      external_markers.erase(itI);
+    }
+    else
+    {
+      external_markers.erase(itI);
+      external_markers.erase(itJ);
+    }
+  }
+
+
+  // Display information.
+  NLogger::DisplayInternalMarkers(internal_markers);
+  NLogger::DisplayExternalMarkers(external_markers);
+  NLogger::DisplayPeriodicMarkers(periodic_markers);
+
+
+
+
+  // TODO: use the external and internal marker information to initialize the faces.
 }
 
 //-----------------------------------------------------------------------------------
@@ -64,10 +184,12 @@ void CMultizoneGeometry::CheckExistanceGridFiles
 	std::cout << "  expecting " << mNZone << " grid files. " << std::endl;
 	std::cout << "   ... detected: " << std::endl;
 
+  std::string dir = config_container->GetGridDirectory();
+
 	// Loop over all the expected zones and report their grid filenames.
 	for(unsigned short i=0; i<mNZone; i++)
 	{
-		std::string filename = config_container->GetZoneGridFilename(i);
+		std::string filename = dir + "blocks/block_" + std::to_string(i) + ".bin";
 		// Check if the file exists.
 		std::ifstream file(filename);
 		if( !file.good() )
@@ -199,6 +321,47 @@ void CMultizoneGeometry::InitializeGridTopology
 
 CSinglezoneGeometry::CSinglezoneGeometry
 (
+  const std::string &gridfile,
+  std::size_t        iZone,
+  std::size_t        nPoly,
+  std::size_t        niElem,
+  std::size_t        njElem,
+  ETypeDOF           nodalDistribution,
+  bool               isAffine
+)
+  : mZoneID(iZone),
+    mGridFile(gridfile),
+    mNPolyGrid(nPoly),
+    mNiElem(niElem),
+    mNjElem(njElem),
+    mNodalDistribution(nodalDistribution),
+    mIsAffine(isAffine)
+ /*
+  * Initialize zone properties and allocate all element coordinate matrices.
+  */
+{
+  if( mNiElem == 0 || mNjElem == 0 )
+  {
+    ERROR("Invalid element dimensions: " + mGridFile);
+  }
+
+  const std::size_t nNode1D = std::size_t(mNPolyGrid) + 1;
+  const std::size_t nNode2D = nNode1D * nNode1D;
+  const std::size_t nElem = std::size_t(mNiElem) * mNjElem;
+
+  GenerateNodalFaceIndices(); // TODO: make it explicitly depend on nPoly as input
+
+  mElementGeometry.reserve(nElem);
+  for(std::size_t iElem=0; iElem<nElem; iElem++)
+  {
+    mElementGeometry.push_back( std::make_unique<CElementGeometry>(nNode2D) );
+  }
+}
+
+//-----------------------------------------------------------------------------------
+
+CSinglezoneGeometry::CSinglezoneGeometry
+(
  CConfig        *config_container,
  std::string     gridfile,
  unsigned short  iZone
@@ -241,7 +404,8 @@ void CSinglezoneGeometry::GenerateNodalFaceIndices
 	// Deduce the number of solution points in 1D in this zone.
 	const unsigned short nSol1D = mNPolyGrid+1;
 
-	// Allocate memory for the nodal indices on all sides.
+	// TODO: change to a contiguous array, using CMatrixAS3.
+  // Allocate memory for the nodal indices on all sides.
 	mFaceNodalIndices.resize( 4, as3vector1d<unsigned short>(nSol1D) );
 
 	// Offsets in the i- and j-direction.
@@ -353,11 +517,126 @@ void CSinglezoneGeometry::InitializeMarkers
 	}
 }
 
+//-----------------------------------------------------------------------------------
+
+as3vector1d<std::size_t> CSinglezoneGeometry::ComputeSurfaceElementIndices
+(
+ EFaceLocation face_location
+) const
+ /*
+  * Return surface elements in increasing local i or j order.
+  */
+{
+  // Prevent unsigned underflow when computing niElem-1 or njElem-1.
+  if( mNiElem == 0 || mNjElem == 0 )
+  {
+    ERROR("Cannot compute surface indices for an empty zone.");
+  }
+
+  // Initialize a structure for common values.
+  struct
+  {
+    std::size_t mNbElem;
+    std::size_t mStride;
+    std::size_t mIStart;
+  } common{};
+
+  // The below returns the element indices on a surface, based on the local 
+  // orientation and local indexing (hence the combination of cw and ccw).
+  // i.e.,
+  //        for(jElem<njElem)
+  //          for(iElem<niElem) index = jElem * niElem + iElem
+  // for, 
+  //  *) IMIN: iElem = 0
+  //  *) IMAX: iElem = niElem-1
+  //  *) JMIN: jElem = 0
+  //  *) JMAX: jElem = njElem-1
+  switch( face_location )
+  {
+    case( EFaceLocation::JMIN ): { common = {mNiElem,       1,                     0}; break; }
+    case( EFaceLocation::JMAX ): { common = {mNiElem,       1, (mNjElem-1) * mNiElem}; break; }
+    case( EFaceLocation::IMIN ): { common = {mNjElem, mNiElem,                     0}; break; }
+    case( EFaceLocation::IMAX ): { common = {mNjElem, mNiElem,             mNiElem-1}; break; }
+    default: ERROR("Unknown face location input.");
+  }
+
+  // Populate the element indices.
+  as3vector1d<std::size_t> indices( common.mNbElem );
+  for(std::size_t k=0; k<common.mNbElem; k++)
+  {
+    indices[k] = k * common.mStride + common.mIStart;
+  }
+
+  return indices;
+} 
+
+//-----------------------------------------------------------------------------------
+
+as3vector1d<std::size_t> CSinglezoneGeometry::ComputeSurfaceNodeIndices
+(
+ EFaceLocation face_location
+) const
+ /*
+  * Return surface nodes in increasing local i or j order.
+  */
+{
+  // Number of nodes in each local direction of the element.
+  const std::size_t nNode1D = mNPolyGrid + 1;
+
+  // Initialize a structure for common values.
+  struct
+  {
+    std::size_t mStride;
+    std::size_t mIStart;
+  } common{};
+
+  // The below returns the node indices on a surface, based on the local
+  // orientation and local indexing (hence the combination of cw and ccw).
+  // i.e.,
+  //        for(jNode<nNode1D)
+  //          for(iNode<nNode1D) index = jNode * nNode1D + iNode
+  // for,
+  //  *) IMIN: iNode = 0
+  //  *) IMAX: iNode = nNode1D-1
+  //  *) JMIN: jNode = 0
+  //  *) JMAX: jNode = nNode1D-1
+  switch( face_location )
+  {
+    case( EFaceLocation::JMIN ): { common = {      1,                     0}; break; }
+    case( EFaceLocation::JMAX ): { common = {      1, (nNode1D-1) * nNode1D}; break; }
+    case( EFaceLocation::IMIN ): { common = {nNode1D,                     0}; break; }
+    case( EFaceLocation::IMAX ): { common = {nNode1D,             nNode1D-1}; break; }
+    default: ERROR("Unknown face location input.");
+  }
+
+  // Populate the node indices.
+  as3vector1d<std::size_t> indices( nNode1D );
+  for(std::size_t k=0; k<nNode1D; k++)
+  {
+    indices[k] = k * common.mStride + common.mIStart;
+  }
+
+  return indices;
+}
+
 
 //-----------------------------------------------------------------------------------
 // CElementGeometry member functions.
 //-----------------------------------------------------------------------------------
 
+CElementGeometry::CElementGeometry
+(
+ std::size_t nNode2D
+)
+  : mCoordSolDOFs(2, nNode2D)
+ /*
+  * Allocate the final coordinate matrix without intermediate coordinate vectors.
+  */
+{
+
+}
+
+//-----------------------------------------------------------------------------------
 
 CElementGeometry::CElementGeometry
 (

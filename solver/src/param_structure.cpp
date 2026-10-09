@@ -2,16 +2,16 @@
 
 
 //-----------------------------------------------------------------------------------
-// CInterfaceParamMarker member functions.
+// CPeriodicParamMarker member functions.
 //-----------------------------------------------------------------------------------
 
 
-CInterfaceParamMarker::CInterfaceParamMarker
+CPeriodicParamMarker::CPeriodicParamMarker
 (
  as3vector1d<std::string> buffer
 )
  /*
-	* Constructor that initializes the parameters needed in an interface BC.
+	* Constructor that initializes the parameters needed in an periodic BC.
 	*/
 {
 	// Deduce the translation vector from the buffer string and store it into tmp.
@@ -29,7 +29,7 @@ CInterfaceParamMarker::CInterfaceParamMarker
 	mVectorTrans[1] = tmp[1];
 	
 	// Ensure the boundary markers are unique.
-	if( mName == mNameMatching ) ERROR("Interface markers must be unique.");
+	if( mName == mNameMatching ) ERROR("Periodic markers must be unique.");
 }
 
 

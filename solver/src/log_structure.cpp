@@ -1,6 +1,7 @@
 #include "log_structure.hpp"
 
 
+
 //-----------------------------------------------------------------------------------
 // NLogger namespace functions.
 //-----------------------------------------------------------------------------------
@@ -108,8 +109,8 @@ void NLogger::DisplayBoundaryConditions
 		// Loop over each marker and deduce its type and information.
 		for( auto& m: marker )
 		{
-			// Distinguish between regular boundaries and interface/periodic BCs.
-			if( m->GetTypeBC() == ETypeBC::INTERFACE )
+			// Distinguish between regular boundaries and periodic BCs.
+			if( m->GetTypeBC() == ETypeBC::PERIODIC )
 			{
 				// Flag whether the marker is found or not.
 				bool found = false;
@@ -138,7 +139,7 @@ void NLogger::DisplayBoundaryConditions
 
 						// Report output concerning the interface markers.
 						std::cout << "     "    << izone    << "." 
-							        << n++                    << ") INTERFACE: "
+							        << n++                    << ") PERIODIC: "
 											<< " iZone: " << izone    << ", " 
 											<< " iName: " << inamepad << " ==> " 
 											<< " jZone: " << jzone    << ", "
@@ -166,7 +167,7 @@ void NLogger::DisplayBoundaryConditions
 
 						// Report output concerning the interface markers.
 						std::cout << "     "    << izone    << "." 
-							        << n++                    << ") INTERFACE: "
+							        << n++                    << ") PERIODIC: "
 											<< " iZone: " << izone    << ", " 
 											<< " iName: " << inamepad << " ==> " 
 											<< " jZone: " << jzone    << ", "
@@ -429,6 +430,366 @@ void NLogger::DisplayOpenMPInfo
 #else
 	std::cout << "This is a serial implementation." << std::endl;
 #endif
+}
+
+//-----------------------------------------------------------------------------------
+
+void NLogger::DisplayAS3BinaryMetadata
+(
+ const NImportFile::NAS3BinaryFile::CAS3BinaryMetadata &metadata,
+ std::ostream                                          &out
+)
+ /*
+	* Function that prints the meta data information in the imported binary grid file.
+	*/
+{
+  const auto savedFlags = out.flags();
+  const auto savedFill  = out.fill();
+
+  out << std::dec << std::setfill(' ')
+      << "\nAS3 mesh metadata\n"
+      << "File          : " << metadata.mFilename << '\n'
+      << "Dimensions    : " << metadata.mNDim << '\n'
+      << "Zones         : " << metadata.mZones.size() << '\n'
+      << "Byte swapping : "
+      << (metadata.mByteSwap ? "yes" : "no") << "\n\n";
+
+  out << std::right
+      << std::setw(12) << "Zone"
+      << std::setw(12) << "Order"
+      << std::setw(12) << "i elements"
+      << std::setw(12) << "j elements" << '\n'
+      << std::string(48, '-') << '\n';
+
+  for (const auto& zone : metadata.mZones)
+  {
+    out << std::right
+        << std::setw(12) << zone.mZoneID
+        << std::setw(12) << zone.mNPoly
+        << std::setw(12) << zone.mNiElem
+        << std::setw(12) << zone.mNjElem << '\n';
+  }
+
+  auto lPrintMapping = [&](const char* title, const auto& mapping, auto enumName)
+  {
+    out << '\n' << title << '\n'
+        << std::right << std::setw(10) << "File ID"
+        << "  " << std::left << std::setw(28) << "C++ value"
+        << '\n' << std::string(40, '-') << '\n';
+
+    for(const auto& entry : mapping)
+    {
+      out << std::right << std::setw(10) << entry.first
+          << "  " << std::left << std::setw(28)
+          << enumName(entry.second) << '\n';
+    }
+  };
+
+  const auto& mappings = metadata.mMappings;
+
+  lPrintMapping("Face mapping", mappings.mFaces, [](EFaceLocation value) -> const char*
+  {
+    switch (value)
+    {
+      case EFaceLocation::IMIN: return "EFaceLocation::IMIN";
+      case EFaceLocation::IMAX: return "EFaceLocation::IMAX";
+      case EFaceLocation::JMIN: return "EFaceLocation::JMIN";
+      case EFaceLocation::JMAX: return "EFaceLocation::JMAX";
+    }
+    return "UNKNOWN";
+  });
+
+  lPrintMapping("Boundary mapping", mappings.mBoundaries, [](ETypeZoneMarker value) -> const char*
+  {
+    switch (value)
+    {
+      case ETypeZoneMarker::INTERNAL: return "ETypeZoneMarker::INTERNAL";
+      case ETypeZoneMarker::EXTERNAL: return "ETypeZoneMarker::EXTERNAL";
+    }
+    return "UNKNOWN";
+  });
+
+  lPrintMapping("Nodal distribution mapping", mappings.mNodalDistributions, [](ETypeDOF value) -> const char*
+  {
+    switch (value)
+    {
+      case ETypeDOF::EQD: return "ETypeDOF::EQD";
+      case ETypeDOF::LGL: return "ETypeDOF::LGL";
+    }
+    return "UNKNOWN";
+  });
+
+  out.flags(savedFlags);
+  out.fill(savedFill);
+}
+
+//-----------------------------------------------------------------------------------
+
+void NLogger::DisplayInternalMarkers
+(
+ const as3vector1d<CInternalFamilyMarker> &families
+)
+ /*
+  * Display internal marker families and their zone-face connections.
+  */
+{
+  // Return a readable face location.
+  auto lFaceName = [](EFaceLocation face) -> const char*
+  {
+    switch( face )
+    {
+      case( EFaceLocation::IMIN ): return "imin";
+      case( EFaceLocation::IMAX ): return "imax";
+      case( EFaceLocation::JMIN ): return "jmin";
+      case( EFaceLocation::JMAX ): return "jmax";
+      default: return "unknown";
+    }
+  };
+
+  // Print a separator matching the table width.
+  auto lPrintSeparator = [](std::size_t width)
+  {
+    std::cout << std::string(width, '-') << '\n';
+  };
+
+  // Preserve the original stream formatting.
+  const auto flags = std::cout.flags();
+  const auto fill = std::cout.fill();
+
+  std::cout << std::dec << std::right << std::setfill(' ');
+
+  // Total width of the table columns.
+  const std::size_t tableWidth = 62;
+
+  std::cout << "\nInternal marker families: " << families.size() << '\n';
+
+  for(std::size_t iFamily=0; iFamily<families.size(); iFamily++)
+  {
+    const auto& family = families[iFamily];
+
+    std::cout << "\nFamily[" << iFamily << "]"
+              << ", markers: " << family.GetnMarkers() << '\n';
+
+    // Display the table headings.
+    lPrintSeparator(tableWidth);
+
+    std::cout << std::setw(10) << "Marker"
+              << std::setw(10) << "Zone I"
+              << std::setw(10) << "Face I"
+              << std::setw(10) << "Zone J"
+              << std::setw(10) << "Face J"
+              << std::setw(12) << "Reversed" << '\n';
+
+    lPrintSeparator(tableWidth);
+
+    // Display each marker in this family.
+    for(std::size_t iMarker=0; iMarker<family.GetnMarkers(); iMarker++)
+    {
+      const auto& marker = family.GetMarker(iMarker);
+
+      std::cout << std::setw(10) << iMarker
+                << std::setw(10) << marker.mIndexZoneI
+                << std::setw(10) << lFaceName(marker.mFaceLocationI)
+                << std::setw(10) << marker.mIndexZoneJ
+                << std::setw(10) << lFaceName(marker.mFaceLocationJ)
+                << std::setw(12) << (marker.mIsReversed ? "yes" : "no")
+                << '\n';
+    }
+
+    lPrintSeparator(tableWidth);
+  }
+
+  std::cout << std::endl;
+
+  // Restore the original stream formatting.
+  std::cout.flags(flags);
+  std::cout.fill(fill);
+}
+
+//-----------------------------------------------------------------------------------
+
+void NLogger::DisplayExternalMarkers
+(
+ const as3vector1d<CExternalFamilyMarker> &families
+)
+ /*
+  * Display external marker families, their names and zone-face locations.
+  */
+{
+  // Return a readable face location.
+  auto lFaceName = [](EFaceLocation face) -> const char*
+  {
+    switch( face )
+    {
+      case( EFaceLocation::IMIN ): return "imin";
+      case( EFaceLocation::IMAX ): return "imax";
+      case( EFaceLocation::JMIN ): return "jmin";
+      case( EFaceLocation::JMAX ): return "jmax";
+      default: return "unknown";
+    }
+  };
+
+  // Print a separator matching the table width.
+  auto lPrintSeparator = [](std::size_t width)
+  {
+    std::cout << std::string(width, '-') << '\n';
+  };
+
+  // Preserve the original stream formatting.
+  const auto flags = std::cout.flags();
+  const auto fill = std::cout.fill();
+
+  std::cout << std::dec << std::right << std::setfill(' ');
+
+  // Total width of the table columns.
+  const std::size_t tableWidth = 30;
+
+  std::cout << "\nExternal marker families: " << families.size() << '\n';
+
+  for(std::size_t iFamily=0; iFamily<families.size(); iFamily++)
+  {
+    const auto& family = families[iFamily];
+
+    std::cout << "\nFamily[" << iFamily << "]"
+              << ", name: \"" << family.GetName() << "\""
+              << ", markers: " << family.GetnMarkers() << '\n';
+
+    // Display the table headings.
+    lPrintSeparator(tableWidth);
+
+    std::cout << std::setw(10) << "Marker"
+              << std::setw(10) << "Zone"
+              << std::setw(10) << "Face" << '\n';
+
+    lPrintSeparator(tableWidth);
+
+    // Display each marker in this family.
+    for(std::size_t iMarker=0; iMarker<family.GetnMarkers(); iMarker++)
+    {
+      const auto& marker = family.GetMarker(iMarker);
+
+      std::cout << std::setw(10) << iMarker
+                << std::setw(10) << marker.mIndexZone
+                << std::setw(10) << lFaceName(marker.mFaceLocation)
+                << '\n';
+    }
+
+    lPrintSeparator(tableWidth);
+  }
+
+  std::cout << std::endl;
+
+  // Restore the original stream formatting.
+  std::cout.flags(flags);
+  std::cout.fill(fill);
+}
+
+//-----------------------------------------------------------------------------------
+
+void NLogger::DisplayPeriodicMarkers
+(
+ const as3vector1d<CPeriodicFamilyMarker> &families
+)
+ /*
+  * Display periodic marker families, their zone-face connections,
+  * indexing orientation and translation vectors from I to J.
+  */
+{
+  // Return a readable face location.
+  auto lFaceName = [](EFaceLocation face) -> const char*
+  {
+    switch( face )
+    {
+      case( EFaceLocation::IMIN ): return "imin";
+      case( EFaceLocation::IMAX ): return "imax";
+      case( EFaceLocation::JMIN ): return "jmin";
+      case( EFaceLocation::JMAX ): return "jmax";
+      default: return "unknown";
+    }
+  };
+
+  // Print a separator matching the table width.
+  auto lPrintSeparator = [](std::size_t width)
+  {
+    std::cout << std::string(width, '-') << '\n';
+  };
+
+  // Preserve the original stream formatting.
+  const auto flags = std::cout.flags();
+  const auto precision = std::cout.precision();
+  const auto fill = std::cout.fill();
+
+  std::cout << std::dec << std::scientific << std::setprecision(12)
+            << std::right << std::setfill(' ');
+
+  // Determine the column width needed for the boundary names.
+  std::size_t nameWidth = 8;
+  for( const auto& family : families )
+  {
+    for( const auto& marker : family.GetMarkers() )
+    {
+      nameWidth = std::max(nameWidth, marker.mNameI.size());
+      nameWidth = std::max(nameWidth, marker.mNameJ.size());
+    }
+  }
+
+  const int nameColumnWidth = static_cast<int>(nameWidth + 2);
+
+  // Total width of the fixed columns and the two boundary-name columns.
+  const std::size_t tableWidth = 110 + 2 * (nameWidth + 2);
+
+  std::cout << "\nPeriodic marker families: " << families.size() << '\n';
+
+  for(std::size_t iFamily=0; iFamily<families.size(); iFamily++)
+  {
+    const auto& family = families[iFamily];
+
+    std::cout << "\nFamily[" << iFamily << "]"
+              << ", markers: " << family.GetnMarkers() << '\n';
+
+    // Display the table headings.
+    lPrintSeparator(tableWidth);
+
+    std::cout << std::setw(10) << "Marker"
+              << std::setw(nameColumnWidth) << "Name I"
+              << std::setw(10) << "Zone I"
+              << std::setw(10) << "Face I"
+              << std::setw(nameColumnWidth) << "Name J"
+              << std::setw(10) << "Zone J"
+              << std::setw(10) << "Face J"
+              << std::setw(12) << "Reversed"
+              << std::setw(24) << "Translation X (I->J)"
+              << std::setw(24) << "Translation Y (I->J)" << '\n';
+
+    lPrintSeparator(tableWidth);
+
+    // Display each marker in this family.
+    for(std::size_t iMarker=0; iMarker<family.GetnMarkers(); iMarker++)
+    {
+      const auto& marker = family.GetMarker(iMarker);
+
+      std::cout << std::setw(10) << iMarker
+                << std::setw(nameColumnWidth) << marker.mNameI
+                << std::setw(10) << marker.mIndexZoneI
+                << std::setw(10) << lFaceName(marker.mFaceLocationI)
+                << std::setw(nameColumnWidth) << marker.mNameJ
+                << std::setw(10) << marker.mIndexZoneJ
+                << std::setw(10) << lFaceName(marker.mFaceLocationJ)
+                << std::setw(12) << (marker.mIsReversed ? "yes" : "no")
+                << std::setw(24) << marker.mTranslationVector[0]
+                << std::setw(24) << marker.mTranslationVector[1]
+                << '\n';
+    }
+
+    lPrintSeparator(tableWidth);
+  }
+
+  std::cout << std::endl;
+
+  // Restore the original stream formatting.
+  std::cout.flags(flags);
+  std::cout.precision(precision);
+  std::cout.fill(fill);
 }
 
 

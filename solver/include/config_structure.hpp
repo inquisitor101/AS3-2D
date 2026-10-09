@@ -169,13 +169,11 @@ class CConfig
 		size_t GetWriteVisFreq(void)                                const {return mWriteVisFreq;}
 
 		/*!
-		 * @brief Getter function which returns the value of mZoneGridFilename, per input zone.
+		 * @brief Getter function which returns the value of mGridDirectory.
 		 *
-		 * @param[in] iZone zone ID.
-		 *
-		 * @return mZoneGridFilename[iZone]
+		 * @return mGridDirectory 
 		 */
-		std::string GetZoneGridFilename(size_t iZone)               const {return mZoneGridFilename[iZone];}
+		std::string GetGridDirectory(void)                          const {return mGridDirectory;}
 
 		/*!
 		 * @brief Getter function which returns the vector of marker tags.
@@ -201,11 +199,11 @@ class CConfig
 		}
 
 		/*!
-		 * @brief Getter function which returns the vector of interface parameter markers.
+		 * @brief Getter function which returns the vector of periodic parameter markers.
 		 * 
-		 * @return mInterfaceParamMarker
+		 * @return mPeriodicParamMarker
 		 */
-		const as3vector1d<std::unique_ptr<CInterfaceParamMarker>> &GetInterfaceParamMarker(void) const {return mInterfaceParamMarker;}
+		const as3vector1d<std::unique_ptr<CPeriodicParamMarker>> &GetPeriodicParamMarker(void) const {return mPeriodicParamMarker;}
 
 		/*!
 		 * @brief Getter function which returns the vector of boundary parameter markers.
@@ -257,11 +255,11 @@ class CConfig
     as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;        ///< Type of buffer layer in each zone.
 		as3vector1d<ETypeDOF>           mTypeDOF;                ///< Type of DOFs in each zone.
 		as3vector1d<unsigned short>     mNPoly;                  ///< Polynomial order per zone based on solution/grid.
-		as3vector1d<std::string>        mZoneGridFilename;       ///< Grid filename per each zone.
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;      ///< Type of Riemann solver per each zone.
 
+    std::string mGridDirectory;
 		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.
-		as3vector1d<std::unique_ptr<CInterfaceParamMarker>> mInterfaceParamMarker; ///< Container of interface marker parameters.
+		as3vector1d<std::unique_ptr<CPeriodicParamMarker>>  mPeriodicParamMarker; ///< Container of periodic marker parameters.
 		as3vector1d<std::unique_ptr<IBoundaryParamMarker>>  mBoundaryParamMarker;  ///< Container of boundary marker parameters.
 
     /*!
@@ -308,13 +306,6 @@ class CConfig
 		 * @return bool whether the operation succeedeed.
 		 */
     bool ReadBoundaryConditionOptions(const char *filename);
-
-		/*!
-		 * @brief Function that extracts the grid zone filenames.
-		 *
-		 * @param[in] filename input configuration file.
-		 */
-    void ExtractZoneGridFiles(const char *filename);
 
 		/*!
 		 * @brief Function that extracts the parameters relevant to a Gaussian pressure initial condition.

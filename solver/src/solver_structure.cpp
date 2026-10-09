@@ -244,8 +244,8 @@ void CEESolver::InitBoundaryConditions
 	// is not exactly efficient. 
 	for( auto& marker: zone->GetMarker() )
 	{
-		// In case this marker is an interface, skip it.
-		if( marker->GetTypeBC() == ETypeBC::INTERFACE ) continue;
+		// In case this marker is periodic, skip it.
+		if( marker->GetTypeBC() == ETypeBC::PERIODIC ) continue;
 
 		// Loop over each element on this marker and instantiate its boundary.
 		for( auto& [index, face]: marker->GetElementFaces() )
@@ -302,8 +302,8 @@ void CEESolver::InitBoundaryConditions
 	// exactly as much boundary containers as we require.
 	for( auto& marker: zone->GetMarker() )
 	{
-		// In case this marker is an interface, skip it.
-		if( marker->GetTypeBC() == ETypeBC::INTERFACE ) continue;
+		// In case this marker is periodic, skip it.
+		if( marker->GetTypeBC() == ETypeBC::PERIODIC ) continue;
 
 		// Loop over each element on this marker and instantiate its boundary.
 		for( auto& [index, face]: marker->GetElementFaces() )

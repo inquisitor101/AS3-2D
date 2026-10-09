@@ -91,7 +91,7 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
     as3vector1d<size_t> interfaces_considered;
   
     // Extract all the interfaces specified by the user.
-    auto& param_interface_total = config_container->GetInterfaceParamMarker();
+    auto& param_interface_total = config_container->GetPeriodicParamMarker();
  
     // If there are no interfaces, we leave.
     if( param_interface_total.empty() ) return interfaces_considered;
@@ -119,7 +119,7 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
 
 
 	// Extract the interface boundaries, specified by the user.
-	auto& param_interface_total = config_container->GetInterfaceParamMarker();
+	auto& param_interface_total = config_container->GetPeriodicParamMarker();
 
   // Get the valid interfaces, based on the ith face and the direction in this class.
 	const as3vector1d<size_t> interfaces_considered = lGetRelevantIndexInterfaces(config_container, 
@@ -269,7 +269,7 @@ CInterfaceFacesFamily::CInterfaceFacesFamily
  const CMultizoneGeometry *multizone_geometry_container,
  const CMarker            *imarker_container,
  const CMarker            *jmarker_container,
- CInterfaceParamMarker    *param_interface
+ CPeriodicParamMarker     *param_interface
 )
  /*
   *
@@ -289,7 +289,7 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
  const CMultizoneGeometry *multizone_geometry_container,
  const CMarker            *imarker_container,
  const CMarker            *jmarker_container,
- CInterfaceParamMarker    *param_interface
+ CPeriodicParamMarker     *param_interface
 )
  /*
   *
@@ -356,7 +356,7 @@ void CInterfaceFacesFamily::CheckConformityMarkers
  const CMultizoneGeometry *multizone_geometry_container,
  const CMarker            *imarker_container,
  const CMarker            *jmarker_container,
- CInterfaceParamMarker    *param_interface
+ CPeriodicParamMarker     *param_interface
 )
  /*
 	* Function that processes each pair of markers, such that their common face coincides.
