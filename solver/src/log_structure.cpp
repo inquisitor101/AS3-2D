@@ -77,121 +77,123 @@ void NLogger::DisplayBoundaryConditions
 	* Function that displays the boundary condition information over all zones.
 	*/
 {
-	// Report output.
-	std::cout << "----------------------------------------------"
-							 "----------------------------------------------\n";
-	std::cout << "Reporting boundary conditions specified:" << std::endl;
+  // TODO: finish this.
+  WARNING("FINISH ME.");
+	//// Report output.
+	//std::cout << "----------------------------------------------"
+	//						 "----------------------------------------------\n";
+	//std::cout << "Reporting boundary conditions specified:" << std::endl;
 
-	// Max length of marker names, used for output format.
-	size_t maxlen = 0;
-	
-	// Determine the maximum length of the interface marker names.
-	for( auto& [name, bc]: config_container->GetMarkerTag() )
-	{
-		maxlen = std::max( maxlen, name.size() );
-	}
-
-
-	// Loop over each grid zone.
-	for( auto& zone: multizone_geometry_container->GetSinglezoneGeometry() )
-	{
-		// Extract the marker information in this zone.
-		auto& marker = zone->GetMarker();
-
-		// Display the zone ID and number of boundaries.
-		std::cout << "  zone: " << zone->GetZoneID() << ")\n";
-		std::cout << "   ... has " 
-			        << marker.size() << " markers with BCs:" << std::endl;
-
-		// Counter for the number of boundaries in this zone.
-		size_t n = 0;
-
-		// Loop over each marker and deduce its type and information.
-		for( auto& m: marker )
-		{
-			// Distinguish between regular boundaries and periodic BCs.
-			if( m->GetTypeBC() == ETypeBC::PERIODIC )
-			{
-				// Flag whether the marker is found or not.
-				bool found = false;
-
-        // Get the interfaces.
-        const auto& interface_container = multizone_solver_container->GetMultizoneInterface();
-
-				// Loop over each interface and search for our marker.
-				for( const auto& interface: interface_container )
-				{
-					// Check if this marker is an owner on this face.
-					if( interface->GetIName() == m->GetNameMarker() )
-					{
-						// Extract zone indices.
-						auto  izone = interface->GetIZone();
-						auto  jzone = interface->GetJZone();
-
-						// Extract marker names.
-						auto& iname = interface->GetIName();
-						auto& jname = interface->GetJName();
-
-						// Copy the name tags to a fixed-length string.
-						std::string tmp = iname;
-						std::string inamepad(maxlen, ' ');
-						for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
-
-						// Report output concerning the interface markers.
-						std::cout << "     "    << izone    << "." 
-							        << n++                    << ") PERIODIC: "
-											<< " iZone: " << izone    << ", " 
-											<< " iName: " << inamepad << " ==> " 
-											<< " jZone: " << jzone    << ", "
-											<< " jName: " << jname    << std::endl; 
-						
-						// Flag that we found our marker and break from the loop.
-						found = true; break;
-					}
-
-					// Check if this marker is a matching pair on this face.
-					if( interface->GetJName() == m->GetNameMarker() )
-					{
-						// Extract zone indices.
-						auto  izone = interface->GetJZone();
-						auto  jzone = interface->GetIZone();
-
-						// Extract marker names.
-						auto& iname = interface->GetJName();
-						auto& jname = interface->GetIName();
-
-						// Copy the name tags to a fixed-length string.
-						std::string tmp = iname;
-						std::string inamepad(maxlen, ' ');
-						for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
-
-						// Report output concerning the interface markers.
-						std::cout << "     "    << izone    << "." 
-							        << n++                    << ") PERIODIC: "
-											<< " iZone: " << izone    << ", " 
-											<< " iName: " << inamepad << " ==> " 
-											<< " jZone: " << jzone    << ", "
-											<< " jName: " << jname    << std::endl; 
-						
-						// Flag that we found our marker and break from the loop.
-						found = true; break;
-					}
-				}
-
-				// If we couldn't find the marker, issue an error.
-				if( !found ) ERROR("Interface marker could not be located.");
-			}
-			else
-			{
-				// This is a regular boundary condition.
-				ERROR("Not implemented yet.");
-			}
-		}
-	}
+	//// Max length of marker names, used for output format.
+	//size_t maxlen = 0;
+	//
+	//// Determine the maximum length of the interface marker names.
+	//for( auto& [name, bc]: config_container->GetMarkerTag() )
+	//{
+	//	maxlen = std::max( maxlen, name.size() );
+	//}
 
 
-	// Report output.
-	std::cout << "Done." << std::endl;
+	//// Loop over each grid zone.
+	//for( auto& zone: multizone_geometry_container->GetSinglezoneGeometry() )
+	//{
+	//	// Extract the marker information in this zone.
+	//	auto& marker = zone->GetMarker();
+
+	//	// Display the zone ID and number of boundaries.
+	//	std::cout << "  zone: " << zone->GetZoneID() << ")\n";
+	//	std::cout << "   ... has " 
+	//		        << marker.size() << " markers with BCs:" << std::endl;
+
+	//	// Counter for the number of boundaries in this zone.
+	//	size_t n = 0;
+
+	//	// Loop over each marker and deduce its type and information.
+	//	for( auto& m: marker )
+	//	{
+	//		// Distinguish between regular boundaries and periodic BCs.
+	//		if( m->GetTypeBC() == ETypeBC::PERIODIC )
+	//		{
+	//			// Flag whether the marker is found or not.
+	//			bool found = false;
+
+  //      // Get the interfaces.
+  //      const auto& interface_container = multizone_solver_container->GetMultizoneInterface();
+
+	//			// Loop over each interface and search for our marker.
+	//			for( const auto& interface: interface_container )
+	//			{
+	//				// Check if this marker is an owner on this face.
+	//				if( interface->GetIName() == m->GetNameMarker() )
+	//				{
+	//					// Extract zone indices.
+	//					auto  izone = interface->GetIZone();
+	//					auto  jzone = interface->GetJZone();
+
+	//					// Extract marker names.
+	//					auto& iname = interface->GetIName();
+	//					auto& jname = interface->GetJName();
+
+	//					// Copy the name tags to a fixed-length string.
+	//					std::string tmp = iname;
+	//					std::string inamepad(maxlen, ' ');
+	//					for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
+
+	//					// Report output concerning the interface markers.
+	//					std::cout << "     "    << izone    << "." 
+	//						        << n++                    << ") PERIODIC: "
+	//										<< " iZone: " << izone    << ", " 
+	//										<< " iName: " << inamepad << " ==> " 
+	//										<< " jZone: " << jzone    << ", "
+	//										<< " jName: " << jname    << std::endl; 
+	//					
+	//					// Flag that we found our marker and break from the loop.
+	//					found = true; break;
+	//				}
+
+	//				// Check if this marker is a matching pair on this face.
+	//				if( interface->GetJName() == m->GetNameMarker() )
+	//				{
+	//					// Extract zone indices.
+	//					auto  izone = interface->GetJZone();
+	//					auto  jzone = interface->GetIZone();
+
+	//					// Extract marker names.
+	//					auto& iname = interface->GetJName();
+	//					auto& jname = interface->GetIName();
+
+	//					// Copy the name tags to a fixed-length string.
+	//					std::string tmp = iname;
+	//					std::string inamepad(maxlen, ' ');
+	//					for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
+
+	//					// Report output concerning the interface markers.
+	//					std::cout << "     "    << izone    << "." 
+	//						        << n++                    << ") PERIODIC: "
+	//										<< " iZone: " << izone    << ", " 
+	//										<< " iName: " << inamepad << " ==> " 
+	//										<< " jZone: " << jzone    << ", "
+	//										<< " jName: " << jname    << std::endl; 
+	//					
+	//					// Flag that we found our marker and break from the loop.
+	//					found = true; break;
+	//				}
+	//			}
+
+	//			// If we couldn't find the marker, issue an error.
+	//			if( !found ) ERROR("Interface marker could not be located.");
+	//		}
+	//		else
+	//		{
+	//			// This is a regular boundary condition.
+	//			ERROR("Not implemented yet.");
+	//		}
+	//	}
+	//}
+
+
+	//// Report output.
+	//std::cout << "Done." << std::endl;
 }
 
 //-----------------------------------------------------------------------------------

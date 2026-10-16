@@ -41,23 +41,23 @@ using as3vector4d = std::vector<std::vector<std::vector<std::vector<T>>>>; ///< 
  * */
 
 // Abbreviation for specific AS3 convention values.
-const unsigned int AS3_MAGIC_NUMBER = 3735929054; ///< AS3 file magic number.
-const int          CGNS_STRING_SIZE = 33;         ///< CGNS string length.
+inline constexpr unsigned int AS3_MAGIC_NUMBER = 3735929054; ///< AS3 file magic number.
+inline constexpr int          CGNS_STRING_SIZE = 33;         ///< CGNS string length.
 
 // Abbreviation of common floating values used in the code.
-const as3double C_PI   = static_cast<as3double>( 3.14159265358979323846 ); ///< Value of pi. 
-const as3double C_ZERO = static_cast<as3double>( 0.0 );                    ///< Value of 0.
-const as3double C_HALF = static_cast<as3double>( 0.5 );                    ///< Value of 0.5.
-const as3double C_ONE  = static_cast<as3double>( 1.0 );                    ///< Value of 1.
-const as3double C_TWO  = static_cast<as3double>( 2.0 );                    ///< Value of 2.
-const as3double C_180  = static_cast<as3double>( 180.0 );                  ///< Value of 180.
+inline constexpr as3double C_PI   = static_cast<as3double>( 3.14159265358979323846 ); ///< Value of pi. 
+inline constexpr as3double C_ZERO = static_cast<as3double>( 0.0 );                    ///< Value of 0.
+inline constexpr as3double C_HALF = static_cast<as3double>( 0.5 );                    ///< Value of 0.5.
+inline constexpr as3double C_ONE  = static_cast<as3double>( 1.0 );                    ///< Value of 1.
+inline constexpr as3double C_TWO  = static_cast<as3double>( 2.0 );                    ///< Value of 2.
+inline constexpr as3double C_180  = static_cast<as3double>( 180.0 );                  ///< Value of 180.
 
 // Abbreviation for constant physical values.
-const as3double C_GMA  = static_cast<as3double>(1.4);     ///< Ratio of specific heats.
-const as3double C_GM1  = C_GMA - C_ONE;                   ///< Abbreviation for: gamma - 1.
-const as3double C_RGAS = static_cast<as3double>(287.058); ///< Gas constant: R.
-const as3double C_CV   = C_RGAS/C_GM1;                    ///< Specific heat at constant volume.
-const as3double C_CP   = C_GMA*C_CV;                      ///< Specific heat at constant pressure.
+inline constexpr as3double C_GMA  = static_cast<as3double>(1.4);     ///< Ratio of specific heats.
+inline constexpr as3double C_GM1  = C_GMA - C_ONE;                   ///< Abbreviation for: gamma - 1.
+inline constexpr as3double C_RGAS = static_cast<as3double>(287.058); ///< Gas constant: R.
+inline constexpr as3double C_CV   = C_RGAS/C_GM1;                    ///< Specific heat at constant volume.
+inline constexpr as3double C_CP   = C_GMA*C_CV;                      ///< Specific heat at constant pressure.
 
 
 
@@ -78,7 +78,7 @@ enum class EMeshFormat
 /*!
  * @brief Map for the mesh format.
  */
-const std::map<std::string, EMeshFormat>
+inline const std::map<std::string, EMeshFormat>
 MapMeshFormat = 
 {
 	{ "PLOT3D", EMeshFormat::PLOT3D },
@@ -99,7 +99,7 @@ enum class ETypeDOF
 /*!
  * @brief Map for the type of the DOFs.
  */
-const std::map<std::string, ETypeDOF>
+inline const std::map<std::string, ETypeDOF>
 MapTypeDOF = 
 {
 	{ "LGL", ETypeDOF::LGL },
@@ -119,7 +119,7 @@ enum class ETypeBC
 /*!
  * @brief Map for the type of boundary conditions.
  */
-const std::map<std::string, ETypeBC>
+inline const std::map<std::string, ETypeBC>
 MapTypeBCs = 
 {
 	{ "PERIODIC",  ETypeBC::PERIODIC }
@@ -139,7 +139,7 @@ enum class EFormatFile
 /*!
  * @brief Map for the file format.
  */
-const std::map<std::string, EFormatFile>
+inline const std::map<std::string, EFormatFile>
 MapFormatFile = 
 {
 	{ "ASCII",  EFormatFile::ASCII  },
@@ -162,7 +162,7 @@ enum class EFaceLocation
 /*!
  * @brief Map for the element face values.
  */
-const std::map<unsigned int, EFaceLocation>
+inline const std::map<unsigned int, EFaceLocation>
 MapFaceElement = 
 {
 	{ 0, EFaceLocation::IMIN },
@@ -184,7 +184,7 @@ enum class EVisualFormat
 /*!
  * @brief Map for the visualization format.
  */
-const std::map<std::string, EVisualFormat>
+inline const std::map<std::string, EVisualFormat>
 MapVisualFormat = 
 {
 	{ "VTK_LEGACY_BINARY", EVisualFormat::VTK_LEGACY_BINARY }
@@ -203,7 +203,7 @@ enum class ETemporalScheme
 /*!
  * @brief Map for the temporal discretization.
  */
-const std::map<std::string, ETemporalScheme>
+inline const std::map<std::string, ETemporalScheme>
 MapTemporalScheme = 
 {
 	{ "SSPRK3", ETemporalScheme::SSPRK3 }
@@ -222,7 +222,7 @@ enum class ETypeSolver
 /*!
  * @brief Map for the solvers.
  */
-const std::map<std::string, ETypeSolver>
+inline const std::map<std::string, ETypeSolver>
 MapTypeSolver = 
 {
 	{ "EE", ETypeSolver::EE }
@@ -242,7 +242,7 @@ enum class ETypeIC
 /*!
  * @brief Map for the initial conditions.
  */
-const std::map<std::string, ETypeIC>
+inline const std::map<std::string, ETypeIC>
 MapTypeIC = 
 {
 	{ "GAUSSIAN_PRESSURE", ETypeIC::GAUSSIAN_PRESSURE },
@@ -270,7 +270,7 @@ enum class EWriteVariable
 /*!
  * @brief Map for the variables to write.
  */
-const std::map<std::string, EWriteVariable>
+inline const std::map<std::string, EWriteVariable>
 MapWriteVariable = 
 {
 	{ "DENSITY",      EWriteVariable::DENSITY },
@@ -297,7 +297,7 @@ enum class ETypeBufferLayer
 /*!
  * @brief Map for the buffer layer.
  */
-const std::map<std::string, ETypeBufferLayer>
+inline const std::map<std::string, ETypeBufferLayer>
 MapTypeBufferLayer = 
 {
 	{ "NONE", ETypeBufferLayer::NONE }
@@ -316,7 +316,7 @@ enum class ETypeRiemannSolver
 /*!
  * @brief Map for the Riemann solvers.
  */
-const std::map<std::string, ETypeRiemannSolver>
+inline const std::map<std::string, ETypeRiemannSolver>
 MapTypeRiemannSolver = 
 {
 	{ "ROE", ETypeRiemannSolver::ROE }

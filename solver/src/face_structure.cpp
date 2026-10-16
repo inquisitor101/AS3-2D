@@ -18,6 +18,8 @@ void CMultizoneFaceGeometry::InitializeFaces
   // Initialize the family of faces.
   InitializeInternalFaces(multizone_geometry_container);
   InitializeInterfaceFaces(config_container, multizone_geometry_container);
+
+  // TODO: initialize the family of boundary faces.
 }
 
 //-----------------------------------------------------------------------------------
@@ -59,99 +61,74 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-	* Function that initializes interfaces across all zones with the assumption of
-  * only doing so for ith components who have faces in the i-direction.
-	*/
+  * Function that initializes interfaces across all zones with the assumption of
+  * only doing so for ith components whose face direction matches this class.
+  * Both internal and periodic markers define interfaces.
+  */
 {
   // TODO: make the group initialize this, since it owns them.
   // Temporary interface families, will be moved inside their group. 
   as3vector1d<CInterfaceFacesFamily> interface_families;
 
-  // Helper lambda to find the matching marker.
-  auto lGetMatchingMarker = [](const CMultizoneGeometry *multizone_geometry_container, 
-                               const std::string &marker_name) -> const CMarker*
+  // Extract the internal and periodic marker families.
+  const auto& internal_markers = multizone_geometry_container->GetInternalFamilyMarkers();
+  const auto& periodic_markers = multizone_geometry_container->GetPeriodicFamilyMarkers();
+
+   
+  // Helper lambda to count the interfaces relevant for this class.
+  auto lCountRelevantInterfaces = [&](const auto &families) -> std::size_t
   {
-    for(auto& zone : multizone_geometry_container->GetSinglezoneGeometry())
+    std::size_t nInterfaces = 0;
+
+    for( const auto& family : families )
     {
-      for(auto& marker : zone->GetMarker())
+      for( const auto& marker : family.GetMarkers() )
       {
-        if(marker->GetNameMarker() == marker_name) return marker.get();
+        if( marker.GetiTypeFace() == mTypeFace )
+        {
+          nInterfaces++;
+        }
       }
     }
-  
-    ERROR("Could not find the interface marker.");
+
+    return nInterfaces;
   };
 
+  // Get the number of valid interfaces for this direction.
+  const std::size_t nInterfacesConsidered = lCountRelevantInterfaces(internal_markers) 
+                                          + lCountRelevantInterfaces(periodic_markers);
 
-  // Helper lambda to determinwe which interface is relevant for this class.
-  auto lGetRelevantIndexInterfaces = [&](const CConfig *config_container, 
-                                         const CMultizoneGeometry *multizone_geometry_container) -> as3vector1d<size_t>
+  // Allocate memory for the family of interfaces.
+  interface_families.reserve( nInterfacesConsidered );
+
+  // Loop over each internal marker family.
+  for( const auto& family : internal_markers )
   {
-    // Variable for book-keeping indices of relevant interfaces.
-    as3vector1d<size_t> interfaces_considered;
-  
-    // Extract all the interfaces specified by the user.
-    auto& param_interface_total = config_container->GetPeriodicParamMarker();
- 
-    // If there are no interfaces, we leave.
-    if( param_interface_total.empty() ) return interfaces_considered;
- 
-    // Loop over all interfaces and check which to include (i.e. are relevant).
-    for(size_t i=0; i<param_interface_total.size(); i++)
+    for( const auto& marker : family.GetMarkers() )
     {
-      // Extract the current interface.
-      const auto& param_interface = param_interface_total[i];
-  
-      // Extract its marker container.
-      const CMarker* imarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mName);
-  
-      // If this face's ith face type matches the one assigned for this class, add it.
-      if( imarker_container->GetTypeFace() == mTypeFace )
-      {
-        interfaces_considered.emplace_back(i);
-      }
+      // Only consider interfaces whose ith face matches this class's direction.
+      if( marker.GetiTypeFace() != mTypeFace ) continue;
+
+      // Create a family of interface faces belonging to this zone pair.
+      interface_families.emplace_back( multizone_geometry_container, marker );
     }
-  
-    return interfaces_considered;
-  };
-
-
-
-
-	// Extract the interface boundaries, specified by the user.
-	auto& param_interface_total = config_container->GetPeriodicParamMarker();
-
-  // Get the valid interfaces, based on the ith face and the direction in this class.
-	const as3vector1d<size_t> interfaces_considered = lGetRelevantIndexInterfaces(config_container, 
-                                                                                multizone_geometry_container);
- 
-	// Get the number of valid interfaces for this direction.
-  const size_t nInterfacesConsidered = interfaces_considered.size();
-
-	// If there are no valid interfaces, return without any initialization.
-	if( nInterfacesConsidered == 0 ) return;
-
-	// Allocate memory for the family of interfaces.
-	interface_families.reserve( nInterfacesConsidered );
-
-  // Loop over each interface group.
-  for( const size_t i : interfaces_considered )
-  {
-    // Extract the relevant marker interface.
-    const auto& param_interface = param_interface_total[i];
-
-    // Get a pointer to the two markers forming this interface.
-    const CMarker *imarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mName);
-    const CMarker *jmarker_container = lGetMatchingMarker(multizone_geometry_container, param_interface->mNameMatching);
-
-    // Create a family of interface faces belonging to these markers.
-    interface_families.emplace_back( multizone_geometry_container, 
-                                     imarker_container, 
-                                     jmarker_container, 
-                                     param_interface.get() );
   }
-  
+
+  // Loop over each periodic marker family.
+  for( const auto& family : periodic_markers )
+  {
+    for( const auto& marker : family.GetMarkers() )
+    {
+      // Only consider interfaces whose ith face matches this class's direction.
+      if( marker.GetiTypeFace() != mTypeFace ) continue;
+
+      // Create a family of interface faces belonging to this periodic zone pair.
+      interface_families.emplace_back( multizone_geometry_container, marker );
+    }
+  }
+
   // Move the ownership to their respective group.
+  // Also initialize an empty group when no interfaces are relevant.
   mInterfaceFacesGroup.Initialize( std::move(interface_families) );
 }
 
@@ -266,185 +243,213 @@ void CInternalFacesFamily::InitializeInternalFaces
 
 CInterfaceFacesFamily::CInterfaceFacesFamily
 (
- const CMultizoneGeometry *multizone_geometry_container,
- const CMarker            *imarker_container,
- const CMarker            *jmarker_container,
- CPeriodicParamMarker     *param_interface
+ const CMultizoneGeometry                     *multizone_geometry_container,
+ const CInternalFamilyMarker::CInternalMarker &marker 
 )
+  : mIndexZoneI( marker.mIndexZoneI ),
+    mIndexZoneJ( marker.mIndexZoneJ ),
+    mTypeFaceI( marker.GetiTypeFace() ),
+    mTypeFaceJ( marker.GetjTypeFace() ),
+    mFaceLocationI( marker.mFaceLocationI ),
+    mFaceLocationJ( marker.mFaceLocationJ ),
+    mIsReversed( marker.mIsReversed ),
+    mIsPeriodic( false ),
+    mTranslationVector( {C_ZERO, C_ZERO} )
  /*
   *
   */
 {
+	// Deduce whether these faces are on a max (imax/jmax) or not.
+	mIsMaxFaceI 
+    = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceJ 
+    = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
+
+
   // Initiailize the interface faces belonging to these markers.
-  InitializeInterfaceFaces(multizone_geometry_container,
-                           imarker_container,
-                           jmarker_container,
-                           param_interface);
+  InitializeInterfaceFaces(multizone_geometry_container);
+}
+
+//-----------------------------------------------------------------------------------
+
+CInterfaceFacesFamily::CInterfaceFacesFamily
+(
+ const CMultizoneGeometry                     *multizone_geometry_container,
+ const CPeriodicFamilyMarker::CPeriodicMarker &marker 
+)
+  : mIndexZoneI( marker.mIndexZoneI ),
+    mIndexZoneJ( marker.mIndexZoneJ ),
+    mTypeFaceI( marker.GetiTypeFace() ),
+    mTypeFaceJ( marker.GetjTypeFace() ),
+    mFaceLocationI( marker.mFaceLocationI ),
+    mFaceLocationJ( marker.mFaceLocationJ ),
+    mIsReversed( marker.mIsReversed ),
+    mFaceNameI( marker.mNameI ),
+    mFaceNameJ( marker.mNameJ ),
+    mIsPeriodic( true ),
+    mTranslationVector( marker.mTranslationVector )
+ /*
+  *
+  */
+{
+	// Deduce whether these faces are on a max (imax/jmax) or not.
+	mIsMaxFaceI 
+    = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceJ 
+    = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
+
+
+  // Initiailize the interface faces belonging to these markers.
+  InitializeInterfaceFaces(multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
 void CInterfaceFacesFamily::InitializeInterfaceFaces
 (
- const CMultizoneGeometry *multizone_geometry_container,
- const CMarker            *imarker_container,
- const CMarker            *jmarker_container,
- CPeriodicParamMarker     *param_interface
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
   *
   */
 {
-  // Extract the zone ID of these markers.
-  mIndexZoneI = imarker_container->GetZoneID();
-  mIndexZoneJ = jmarker_container->GetZoneID();
+  // Extract the local singlezone grids.
+  const auto* igrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneI );
+  const auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneJ );
 
-  // Extract the face location of these markers.
-  mFaceLocationI = imarker_container->GetFaceLocation(); 
-  mFaceLocationJ = jmarker_container->GetFaceLocation(); 
- 
-  // Extract the face names of these markers.
-  mFaceNameI = imarker_container->GetNameMarker();
-  mFaceNameJ = jmarker_container->GetNameMarker();
+  // Ensure the number of elements match.
+  const std::size_t nei 
+    = ( mTypeFaceI == ETypeFace::IFACE ) ? igrid->GetnjElem() : igrid->GetniElem(); 
+  const std::size_t nej 
+    = ( mTypeFaceJ == ETypeFace::IFACE ) ? jgrid->GetnjElem() : jgrid->GetniElem();
 
-	// Deduce whether these faces are on a max (imax/jmax) or not.
-	mIsMaxFaceI = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
-	mIsMaxFaceJ = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
+  // Consistency check.
+  if( nei != nej )
+  {
+    ERROR("Number of elements on this interface do not match.");
+  }
 
-  // Deduce the number of elements on both markers.
-  const size_t nElem = imarker_container->GetnElem();
+  // Select one as the number of elements on this boundary.
+  const std::size_t nbElem = nei; 
   
   // Check that the number of elements is not zero.
-  if( nElem == 0 ) ERROR("Interface markers must not be empty.");
-  
-  // Ensure that both markers have the same number of elements. 
-  if( nElem != jmarker_container->GetnElem() )
+  if( nbElem == 0 ) ERROR("Interface markers must not be empty.");
+ 
+
+  // Get the element indices on this face.
+  const auto ivec_ielem = igrid->ComputeSurfaceElementIndices( mFaceLocationI );
+  const auto jvec_ielem = jgrid->ComputeSurfaceElementIndices( mFaceLocationJ );
+
+  // Consistency check.
+  if( ivec_ielem.size() != nei || jvec_ielem.size() != nej )
   {
-  	ERROR("Interface markers must share the same number of elements.");
+    ERROR("Number of surface elements do not match.");
   }
-  
+
+
   // Reserve memory for the elements on this interface.
-  mInterfaceFaces.reserve(nElem);
+  mInterfaceFaces.reserve(nbElem);
 
   // Loop over all the elements on this marker.
-  for(size_t i=0; i<nElem; i++)
+  for(std::size_t i=0; i<nbElem; i++)
   {
-  	// The assumption in AS3 is that the matching face is reversed. 
-  	// This is because all zones use a clockwise convention to tag 
-  	// their boundary markers. The the matching (j-)index is:
-  	const size_t j = nElem - i - 1;
+    // Obtain the neighbor element index, based on  whether it is reversed or not.
+  	const std::size_t j = ( mIsReversed ) ? nbElem - i - 1 : i;
   
   	// Deduce the actual element indices, not their marker index.
-  	const size_t iElem = imarker_container->GetElementFaces(i).mIndex;
-  	const size_t jElem = jmarker_container->GetElementFaces(j).mIndex;
+  	const std::size_t iElem = ivec_ielem[i];
+  	const std::size_t jElem = jvec_ielem[j];
   
     // Initialize the current element interface.
     mInterfaceFaces.emplace_back( iElem, jElem );
   }
    
   // Ensure conformity of the markers.
-  CheckConformityMarkers( multizone_geometry_container, 
-  											  imarker_container, 
-  											  jmarker_container,
-  											  param_interface ); 
+  CheckConformityMarkers( multizone_geometry_container ); 
 }
 
 //-----------------------------------------------------------------------------------
 
 void CInterfaceFacesFamily::CheckConformityMarkers
 (
- const CMultizoneGeometry *multizone_geometry_container,
- const CMarker            *imarker_container,
- const CMarker            *jmarker_container,
- CPeriodicParamMarker     *param_interface
+ const CMultizoneGeometry *multizone_geometry_container
 )
  /*
 	* Function that processes each pair of markers, such that their common face coincides.
 	*/
 {
-  // Extract the relevant information in this marker.
-  const unsigned short iZone = mIndexZoneI;
-  const unsigned short jZone = mIndexZoneJ;
-  const auto&  iName         = mFaceNameI;
-  const auto&  jName         = mFaceNameJ;
-  const size_t nFace         = GetnFace();
-	
+  // Abbreviations.
+  const std::size_t iZone = mIndexZoneI;
+  const std::size_t jZone = mIndexZoneJ;
+  
+  const as3double tx = mTranslationVector[0];
+  const as3double ty = mTranslationVector[1];
+
   // Extract the grid geometry in each of these zones.
-	auto* igrid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
-	auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry(jZone);
+	const auto* igrid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+	const auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry(jZone);
 
-	// Extract the properties of each marker region (element indices and faces).
-	auto& imarker = imarker_container->GetElementFaces(); 
-	auto& jmarker = jmarker_container->GetElementFaces();
+  // Get the node ndices on the ith and jth zone.
+  const auto ivec_inode = igrid->ComputeSurfaceNodeIndices( mFaceLocationI );
+  const auto jvec_inode = jgrid->ComputeSurfaceNodeIndices( mFaceLocationJ );
 
-	// Ensure the number of indices in each marker matches.
-	if( (imarker.size() != jmarker.size()) || (imarker.size() != nFace) ) 
-	{
-		ERROR("Interface markers have different number of elements.");
-	}
+  // Report an error, in case mismatch in number of nodes.
+  if( ivec_inode.size() != jvec_inode.size() )
+  {
+    ERROR("Polynomial order must be the same in the two zones of a periodic boundary.");
+  }
 
-	// Relative tolerance value.
-	const as3double tol = static_cast<as3double>( 1.0e-8 );
+  // We only check the endpoints on an element for conformity.
+  const std::size_t in0 = ivec_inode.front();
+  const std::size_t in1 = ivec_inode.back();
 
-	// Loop over each pair of elements on this face and check that their faces coincide.
-	for(size_t i=0; i<nFace; i++)
-	{
-		// The assumption in AS3 is that the matching face is reversed. 
-		// This is because all zones use a clockwise convention to tag 
-		// their boundary markers. The the matching (j-)index is:
-		const size_t j = nFace - i - 1;
+  // Swap the j endpoints when checking the reversed orientation.
+  const std::size_t jn0 = mIsReversed ? jvec_inode.back()  : jvec_inode.front();
+  const std::size_t jn1 = mIsReversed ? jvec_inode.front() : jvec_inode.back();
 
-		// Extract the nodal indices of the first element on this marker.
-		auto& icoor = igrid->GetElementGeometry( imarker[i].mIndex )->GetCoordSolDOFs(); 
-		auto& jcoor = jgrid->GetElementGeometry( jmarker[j].mIndex )->GetCoordSolDOFs(); 
-		
-		// Extract the nodal indices from the face type.
-		auto& inode = igrid->GetFaceNodalIndices( imarker[i].mFace );
-		auto& jnode = jgrid->GetFaceNodalIndices( jmarker[j].mFace ); 
+  // Relative tolerance value.
+  const as3double rtol = static_cast<as3double>( 1.0e-8 );
 
-		// NOTE 
-		// For now, force the polynomial orders to be the same. Otherwise, we 
-		// have to come up with an integration rule that is based on the higher
-		// order polynomial, to ensure local conservation.
-		if( inode.size() != jnode.size() )
-		{
-			ERROR("Polynomial order must be identical (for now) in zones: "
-					  + std::to_string(iZone) + ", " + std::to_string(jZone));
-		}
+  // Absolute tolerance value, in grid coordinate units.
+  const as3double atol = static_cast<as3double>( 1.0e-10 );
 
-		// Check if the periodic faces coincide, after translation.
-		for(size_t k=0; k<inode.size(); k++)
-		{
-			// Extract coordinates for the current  marker.
-			const as3double ix = icoor(0, inode[k]);
-			const as3double iy = icoor(1, inode[k]);
-			// Extract coordinates for the matching marker.
-			const as3double jx = jcoor(0, jnode[k]);
-			const as3double jy = jcoor(1, jnode[k]);
-			
-			// Compute the difference between them in absolute.
-			const as3double dx = std::abs( ix - jx + param_interface->mVectorTrans[0] );
-			const as3double dy = std::abs( iy - jy + param_interface->mVectorTrans[1] );
+  // Compare a translated i coordinate with its matching j coordinate.
+  auto lCoordinatesMatch = [rtol, atol](as3double xi, as3double xj)
+  {
+    const as3double difference = std::abs( xi - xj );
+    const as3double tolerance = atol + rtol * std::max( std::abs(xi), std::abs(xj) );
 
-			// Relative error, based on the values of the coordinates.
-			const as3double xtol = tol*std::max( std::abs(ix), std::abs(jx) );
-			const as3double ytol = tol*std::max( std::abs(iy), std::abs(jy) );
+    return difference <= tolerance;
+  };
 
-			// If the boundaries do not coincide, abort with an error.
-			if( (dx > xtol) || (dy > ytol) ) 
-			{
-				ERROR("Interface boundaries: " + iName + ", " + jName + " do not match.");
-			}
-		}
 
-    // Extract the current element index of the ith side.
-    const size_t iElem = mInterfaceFaces[i].mIndexElementI;
-    const size_t jElem = mInterfaceFaces[i].mIndexElementJ;
+  // Loop over every element on this interface.
+  for( const auto& interface : mInterfaceFaces )
+  {
+    // Abbreviations for the element indices.
+    const std::size_t ie = interface.mIndexElementI;
+    const std::size_t je = interface.mIndexElementJ;
 
-    // Additional consistency check.
-    if ( (iElem != imarker[i].mIndex) or (jElem != jmarker[j].mIndex) )
+    // Extract the entire element coordinates.
+    const auto& icoor = igrid->GetElementGeometry( ie )->GetCoordSolDOFs();
+    const auto& jcoor = jgrid->GetElementGeometry( je )->GetCoordSolDOFs();
+
+    // Extract the endpoint coordinates for the current element edge, apply the translation.
+    const as3double xi0 = icoor( 0, in0 ) + tx, xi1 = icoor( 0, in1 ) + tx;
+    const as3double yi0 = icoor( 1, in0 ) + ty, yi1 = icoor( 1, in1 ) + ty;
+
+    // Extract coordinates for the matching marker.
+    // For the reversed case, jn0 and jn1 already select the opposite endpoints.
+    const as3double xj0 = jcoor( 0, jn0 ), xj1 = jcoor( 0, jn1 );
+    const as3double yj0 = jcoor( 1, jn0 ), yj1 = jcoor( 1, jn1 );
+
+    // If either endpoint does not match, report error.
+    if( !lCoordinatesMatch(xi0, xj0) || !lCoordinatesMatch(yi0, yj0) ||
+        !lCoordinatesMatch(xi1, xj1) || !lCoordinatesMatch(yi1, yj1) )
     {
-      ERROR("Interface element indices do not coincide on a shared face.");
+      ERROR( "Interface does not match with "
+             " iZone: " + std::to_string(iZone) + ","
+             " jZone: " + std::to_string(jZone) ); 
     }
   }
 }

@@ -149,9 +149,11 @@ CGenericFactory::CreateStandardElement
 	*/
 {
 	// Deduce the polynomial order of the solution and type of DOFs. 
-	auto nPoly   = config_container->GetnPoly(iZone);
-	auto typeDOF = config_container->GetTypeDOF(iZone);
+	auto nPoly   = config_container->GetnPoly(iZone); // TODO: change this to use the one in geometry
+	auto typeDOF = config_container->GetTypeDOF(iZone); // TODO: use the one imported in geometry
 	
+  WARNING("See TODO comments above.");
+
 	// Get the number of (over-)integration points in 1D.
 	auto nInt1D  = NPolynomialUtility::IntegrationRule1D(nPoly); 
 
@@ -246,31 +248,31 @@ CGenericFactory::CreateBoundaryContainer
 (
  const CConfig            *config_container,
  const CMultizoneGeometry *multizone_geometry_container,
- CMarker                  *marker_container,
  unsigned int              index
 )
  /*
 	* Function that creates a specialized instance of a boundary container.
 	*/
 {
-	// Determine the boundary condition associated with this marker. 
-	auto* param = config_container->GetBoundaryParamMarker( marker_container->GetNameMarker() ); 
+  WARNING("FINISH ME.");
+	//// Determine the boundary condition associated with this marker. 
+	//auto* param = config_container->GetBoundaryParamMarker( marker_container->GetNameMarker() ); 
 
-	// Check if the parameter object is found, else issue an error.
-	if( !param ) 
-	{
-		ERROR("Could not find the boundary parameter for the marker: " 
-				  + marker_container->GetNameMarker() 
-			    + " with element index: " + std::to_string(index) );
-	}
+	//// Check if the parameter object is found, else issue an error.
+	//if( !param ) 
+	//{
+	//	ERROR("Could not find the boundary parameter for the marker: " 
+	//			  + marker_container->GetNameMarker() 
+	//		    + " with element index: " + std::to_string(index) );
+	//}
 
 
-	// Check what type of container is specified.
-	switch( param->GetTypeBC() )
-	{
-		
-		default: ERROR("Unknown type of boundary container.");
-	}
+	//// Check what type of container is specified.
+	//switch( param->GetTypeBC() )
+	//{
+	//	
+	//	default: ERROR("Unknown type of boundary container.");
+	//}
 
 	// To avoid a compiler warning.
 	return nullptr; 

@@ -121,6 +121,10 @@ class CMultizoneGeometry
       return mMultizoneJFaces.GetInterfaceFacesGroup().GetFamilies();
     } 
 
+    const auto& GetInternalFamilyMarkers(void) const { return mInternalFamilyMarkers; }
+    const auto& GetExternalFamilyMarkers(void) const { return mExternalFamilyMarkers; }
+    const auto& GetPeriodicFamilyMarkers(void) const { return mPeriodicFamilyMarkers; }
+
 	protected:
 
 	private:
@@ -128,6 +132,9 @@ class CMultizoneGeometry
 		size_t mNElemTotal = 0;
 		as3vector1d<std::unique_ptr<CSinglezoneGeometry>> mSinglezoneGeometry; 
 
+    as3vector1d<CInternalFamilyMarker> mInternalFamilyMarkers;
+    as3vector1d<CExternalFamilyMarker> mExternalFamilyMarkers;
+    as3vector1d<CPeriodicFamilyMarker> mPeriodicFamilyMarkers;
 
 		as3vector1d<CFlattenedElementIndex> mFlattenedIndexVolumeElement;
     as3vector1d<CFlattenedFaceIndex>    mFlattenedIndexIFace;
@@ -204,15 +211,6 @@ class CSinglezoneGeometry
 														unsigned int         niElem,
 														unsigned int         njElem);
 
-    // TODO: remove
-		/*!
-		 * @brief Function that defines all the interface markers in this zone.
-		 */
-		void InitializeMarkers(CConfig                   *config_container,
-				                   as3vector2d<unsigned int> &mark,
-				                   as3vector2d<EFaceLocation> &face,
-				                   as3vector1d<std::string>  &name);
-
 		/*!
 		 * @brief Getter function which returns the value of mZoneID.
 		 *
@@ -226,13 +224,6 @@ class CSinglezoneGeometry
 		 * @return mGridFile.
 		 */
 		const std::string &GetGridFile(void) const {return mGridFile;}
-
-		/*!
-		 * @brief Getter function which returns the mMarkerGeometry.
-		 *
-		 * @return mMarkerGeometry.
-		 */
-		as3vector1d<std::unique_ptr<CMarker>> &GetMarker(void) {return mMarkerGeometry;}
 
 		/*!
 		 * @brief Getter function which returns the element of the specified index.
@@ -317,7 +308,6 @@ class CSinglezoneGeometry
 
     ETypeDOF    mNodalDistribution;
 		as3vector2d<unsigned short> mFaceNodalIndices; // TODO: remove? 
-		as3vector1d<std::unique_ptr<CMarker>>          mMarkerGeometry; // TODO: remove?
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
 		

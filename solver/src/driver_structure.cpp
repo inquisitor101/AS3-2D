@@ -122,13 +122,6 @@ void CDriver::InitializeData
 	* Function that initializes the data for the simulation. 
 	*/
 {
-	// TODO: this should be moved from here and placed in the ctor of CMultizoneGeometry,
-	//       otherwise, we might have a serious bug.
-	// Import an AS3-type grid.
-	NImportFile::ImportAS3Grid(mConfigContainer.get(), 
-			                       mMultizoneGeometryContainer.get());
-
-
 	// Report output.
 	std::cout << "----------------------------------------------"
 							 "----------------------------------------------\n";

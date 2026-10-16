@@ -23,7 +23,6 @@ class IBoundary
 		 */
 		IBoundary(const CConfig            *config_container,
 				      const CMultizoneGeometry *multizone_geometry_container,
-						  CMarker                  *marker_container,
 							unsigned int              index);
 	
 		/*!

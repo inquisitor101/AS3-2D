@@ -10,7 +10,6 @@ IBoundary::IBoundary
 (
  const CConfig            *config_container,
  const CMultizoneGeometry *multizone_geometry_container,
- CMarker                  *marker_container,
  unsigned int              index
 )
 	:
@@ -19,8 +18,7 @@ IBoundary::IBoundary
 	* Constructor for the interface boundary class.
 	*/
 {
-	// Ensure that the input marker is not null.
-	if( !marker_container ) ERROR("Input marker_container cannot be nullptr.");
+
 }
 
 //-----------------------------------------------------------------------------------

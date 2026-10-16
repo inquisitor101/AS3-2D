@@ -2,11 +2,12 @@
 
 #include "option_structure.hpp"
 #include "config_structure.hpp"
+#include "marker_structure.hpp"
+
 
 // Forward declaration to avoid compiler problems.
 class CMultizoneGeometry;
 class CSinglezoneGeometry;
-class CMarker;
 
 
 
@@ -108,15 +109,13 @@ class CInterfaceFacesFamily
   using AInterfaceFaceVector = as3vector1d<CInterfaceElementFaceGeometry>;
   
   public:
-    CInterfaceFacesFamily(const CMultizoneGeometry *multizone_geometry_container,
-                          const CMarker            *imarker_container,
-                          const CMarker            *jmarker_container,
-                          CPeriodicParamMarker     *param_interface);
+    CInterfaceFacesFamily(const CMultizoneGeometry                     *multizone_geometry_container,
+                          const CInternalFamilyMarker::CInternalMarker  &marker);
 
-    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container,
-                                  const CMarker            *imarker_container,
-                                  const CMarker            *jmarker_container,
-                                  CPeriodicParamMarker     *param_interface);
+    CInterfaceFacesFamily(const CMultizoneGeometry                     *multizone_geometry_container,
+                          const CPeriodicFamilyMarker::CPeriodicMarker  &marker);
+
+    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container);
 
     const AInterfaceFaceVector& GetInterfaceFaces(void) const
     {
@@ -145,8 +144,11 @@ class CInterfaceFacesFamily
     ETypeFace GetjTypeFace(void) const { return mTypeFaceJ; }
 
   private:
-    ETypeFace   mTypeFaceI;
-    ETypeFace   mTypeFaceJ;
+    std::size_t mIndexZoneI;
+    std::size_t mIndexZoneJ;
+
+    ETypeFace mTypeFaceI;
+    ETypeFace mTypeFaceJ;
 
     EFaceLocation mFaceLocationI;
     EFaceLocation mFaceLocationJ;
@@ -154,18 +156,18 @@ class CInterfaceFacesFamily
     std::string mFaceNameI;
     std::string mFaceNameJ;
 
-    unsigned short mIndexZoneI;
-    unsigned short mIndexZoneJ;
-
 		bool mIsMaxFaceI;
 		bool mIsMaxFaceJ;
 
+    bool mIsReversed; // should the j-edge be reversed?
+
+    bool mIsPeriodic;
+
+    std::array<as3double, 2> mTranslationVector;
+
     AInterfaceFaceVector mInterfaceFaces;
 
-		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container,
-																const CMarker            *imarker_container,
-																const CMarker            *jmarker_container,
-																CPeriodicParamMarker     *param_interface);
+		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container);
 };
 
 //-----------------------------------------------------------------------------------

@@ -15,6 +15,9 @@ int main(int argc, char **argv)
     ERROR(message.str());
   }
 
+  // TODO: read message in warning below.
+  WARNING("change convention of all private functions to start with _");
+
 	// Instantiate a driver class and provide it with the configuration file.
 	std::unique_ptr<CDriver> driver_container = std::make_unique<CDriver>( argv[1] );
 

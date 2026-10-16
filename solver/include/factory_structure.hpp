@@ -132,7 +132,6 @@ class CGenericFactory
 		 */
 		static std::unique_ptr<IBoundary> CreateBoundaryContainer(const CConfig            *config_container,
 				                                                      const CMultizoneGeometry *multizone_geometry_container,
-																													    CMarker                  *marker_container,
 																															unsigned int              index);
 
 

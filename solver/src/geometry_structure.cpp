@@ -52,6 +52,17 @@ void CMultizoneGeometry::ImportGrid
   *
   */
 {
+	if( config_container->GetMeshFormat() != EMeshFormat::AS3 )
+	{
+		ERROR("Grid must use an AS3 format.");
+	}
+
+  if( config_container->GetInputGridFormat() != EFormatFile::BINARY )
+  {
+    ERROR("Currently, only binary AS3 grids can be imported.");
+  }
+
+
   // For convenience, bring the import namespace in this scope.
   using namespace NImportFile::NAS3BinaryFile;
 
@@ -82,10 +93,10 @@ void CMultizoneGeometry::ImportGrid
  
 
   // Import the internal markers.
-  const auto internal_markers = ReadAS3InternalMarkers(dir + "interface_boundaries.bin", metadata);
+  mInternalFamilyMarkers = ReadAS3InternalMarkers(dir + "interface_boundaries.bin", metadata);
 
   // Import the external markers.
-  auto external_markers = ReadAS3ExternalMarkers(dir + "external_boundaries.bin", metadata);
+  mExternalFamilyMarkers = ReadAS3ExternalMarkers(dir + "external_boundaries.bin", metadata);
 
 
   // TODO: The below should be in a function here. 
@@ -95,16 +106,14 @@ void CMultizoneGeometry::ImportGrid
 
   const std::size_t nPeriodic = periodic_param.size();
 
-  as3vector1d<CPeriodicFamilyMarker> periodic_markers;
-  periodic_markers.reserve( nPeriodic );
-
+  mPeriodicFamilyMarkers.reserve( nPeriodic );
 
   // Search for an external family by name.
-  auto FindExternalFamily = [&external_markers](const std::string &name)
+  auto FindExternalFamily = [&](const std::string &name)
   {
     return std::find_if(
-      external_markers.begin(),
-      external_markers.end(),
+      mExternalFamilyMarkers.begin(),
+      mExternalFamilyMarkers.end(),
       [&name](const CExternalFamilyMarker &family)
       {
         return family.GetName() == name;
@@ -125,39 +134,39 @@ void CMultizoneGeometry::ImportGrid
   
     // Find the I family.
     const auto itI = FindExternalFamily(iname);
-    if( itI == external_markers.end() )
+    if( itI == mExternalFamilyMarkers.end() )
     {
       ERROR("Cannot find periodic boundary family: " + iname);
     }
   
     // Find the matching J family.
     const auto itJ = FindExternalFamily(jname);
-    if( itJ == external_markers.end() )
+    if( itJ == mExternalFamilyMarkers.end() )
     {
       ERROR("Cannot find periodic boundary family: " + jname);
     }
   
     // Construct the periodic family before invalidating either iterator.
-    periodic_markers.emplace_back(this, *itI, *itJ, marker->mVectorTrans);
+    mPeriodicFamilyMarkers.emplace_back(this, *itI, *itJ, marker->mVectorTrans);
   
     // Erase the later element first, preserving the earlier iterator.
     if( itI < itJ )
     {
-      external_markers.erase(itJ);
-      external_markers.erase(itI);
+      mExternalFamilyMarkers.erase(itJ);
+      mExternalFamilyMarkers.erase(itI);
     }
     else
     {
-      external_markers.erase(itI);
-      external_markers.erase(itJ);
+      mExternalFamilyMarkers.erase(itI);
+      mExternalFamilyMarkers.erase(itJ);
     }
   }
 
 
   // Display information.
-  NLogger::DisplayInternalMarkers(internal_markers);
-  NLogger::DisplayExternalMarkers(external_markers);
-  NLogger::DisplayPeriodicMarkers(periodic_markers);
+  NLogger::DisplayInternalMarkers(mInternalFamilyMarkers);
+  NLogger::DisplayExternalMarkers(mExternalFamilyMarkers);
+  NLogger::DisplayPeriodicMarkers(mPeriodicFamilyMarkers);
 
 
 
@@ -203,6 +212,8 @@ void CMultizoneGeometry::CheckExistanceGridFiles
 		// Report output.
 		std::cout << "     zone: " << i << "): " << filename << "\n";
 	}
+
+  // TODO: also report the internal and external boundaries and metadata.
 
 	// Report output.
 	std::cout << "Done." << std::endl;
@@ -466,54 +477,6 @@ void CSinglezoneGeometry::InitializeElements
 
 		// Instantiate the current element.
 		mElementGeometry[i] = std::make_unique<CElementGeometry>( xcoor[i], ycoor[i] );
-	}
-}
-
-//-----------------------------------------------------------------------------------
-
-void CSinglezoneGeometry::InitializeMarkers
-(
- CConfig                   *config_container,
- as3vector2d<unsigned int>  &mark,
- as3vector2d<EFaceLocation> &face,
- as3vector1d<std::string>   &name
-)
- /*
-	* Function that defines all the interface markers in this zone..
-	*/
-{
-	// Get the user-specified markers.
-	auto& tags = config_container->GetMarkerTag();
-
-	// Allocate the correct number of markers in this zone.
-	mMarkerGeometry.resize( mark.size() );
-
-	// Loop over the markers and initialize them.
-	for(size_t i=0; i<mMarkerGeometry.size(); i++)
-	{
-		// Initialize a flag that detects the marker.
-		bool found = false;
-
-		// Check if the marker is defined in the config file, otherwise issue an error.
-		for(auto& v: tags)
-		{
-			// Make sure that the marker tags are written in the correct order.
-			static_assert( std::is_same_v<std::string, decltype(v.first )>);
-			static_assert( std::is_same_v<ETypeBC,     decltype(v.second)>);
-
-			// If the marker is found, initialize its boundary container.
-			if( v.first == name[i] )
-			{
-				// Initialize the marker.
-				mMarkerGeometry[i] = std::make_unique<CMarker>(mZoneID, v.second, name[i], face[i], mark[i]); 
-
-				// Flag that the marker is found and move to the next iteration.
-				found = true; break;
-			}
-		}
-
-		// Marker is not defined in the config file, issue an error.
-		if( !found ) ERROR("Imported marker is not defined by the user.");
 	}
 }
 
