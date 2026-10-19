@@ -21,6 +21,7 @@ class ISolver;
 class IFileVTK;
 class ITemporal;
 class IInterface;
+class IBoundary;
 class IInitialCondition;
 
 /*!
@@ -122,17 +123,12 @@ class CGenericFactory
 
 		/*!
 		 * @brief Function that creates a specialized instance of a boundary container.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] multizone_geometry_container input geometry container.
-		 * @param[in] marker_container input marker container.
-		 * @param[in] index index of the owner element.
-		 *
 		 * @return unique pointer to the specific boundary class.
 		 */
-		static std::unique_ptr<IBoundary> CreateBoundaryContainer(const CConfig            *config_container,
-				                                                      const CMultizoneGeometry *multizone_geometry_container,
-																															unsigned int              index);
+		static std::unique_ptr<IBoundary> CreateBoundaryContainer(const CConfig              *config_container,
+				                                                      const CSinglezoneGeometry  *zone_geometry,
+                                                              const ISolver              *zone_solver,
+																															const CBoundaryFacesFamily &boundary_family);
 
 
 		static std::unique_ptr<IInterface> CreateInterfaceContainer(const CConfig               *config_container,

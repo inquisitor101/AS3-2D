@@ -128,17 +128,16 @@ class IInterface
 class CEEInterface : public IInterface
 {
   private:
-    
-    using AComputeResidualFace = std::function<void(const as3double*,
-                                                          as3double*,
-                                                          as3double*,
-                                                          as3double*)>;
-    
+
     using AInterpolateSurface = std::function<void(const as3double*,
                                                          as3double*,
                                                          as3double*,
                                                          as3double*)>;
 	
+    using AComputeResidualFace = std::function<void(const as3double*,
+                                                          as3double*,
+                                                          as3double*,
+                                                          as3double*)>;
   public:
 
     CEEInterface(const CConfig               *config_container,
@@ -160,11 +159,11 @@ class CEEInterface : public IInterface
 	private:
     unsigned short mNVar;
 
-    AComputeResidualFace mlComputeResidualFaceI;
-    AComputeResidualFace mlComputeResidualFaceJ;
+    AComputeResidualFace mFComputeResidualFaceI;
+    AComputeResidualFace mFComputeResidualFaceJ;
 
-    AInterpolateSurface  mlInterpolateSurfaceI;
-    AInterpolateSurface  mlInterpolateSurfaceJ;
+    AInterpolateSurface  mFInterpolateSurfaceI;
+    AInterpolateSurface  mFInterpolateSurfaceJ;
 
     void InitializeComputeKernels(void);
 };

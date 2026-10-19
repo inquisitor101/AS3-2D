@@ -24,9 +24,10 @@ CMultizoneGeometry::CMultizoneGeometry
 	// Check and report output for the existance of the specified grid files.
 	CheckExistanceGridFiles(config_container);
 
-
-  // TODO: import the grid.
+  // Import the grid.
   ImportGrid(config_container);
+
+  // TODO: use the external and internal marker information to initialize the faces.
 }
 
 //-----------------------------------------------------------------------------------
@@ -166,12 +167,7 @@ void CMultizoneGeometry::ImportGrid
   // Display information.
   NLogger::DisplayInternalMarkers(mInternalFamilyMarkers);
   NLogger::DisplayExternalMarkers(mExternalFamilyMarkers);
-  NLogger::DisplayPeriodicMarkers(mPeriodicFamilyMarkers);
-
-
-
-
-  // TODO: use the external and internal marker information to initialize the faces.
+  NLogger::DisplayPeriodicMarkers(mPeriodicFamilyMarkers); 
 }
 
 //-----------------------------------------------------------------------------------
@@ -260,28 +256,35 @@ void CMultizoneGeometry::InitializeGridTopology
 
       switch (face_type)
       {
-        case ETypeFaceGeometry::INTERNAL:
+        case( ETypeFaceGeometry::INTERNAL ):
+        {
           iFaceLocal = multizone_faces.GetIndexInternalFace(i);
           face_info  = multizone_faces.FindInternalElementFaceIndex(iFaceLocal);
           break;
+        }
   
-        case ETypeFaceGeometry::BOUNDARY:
+        case( ETypeFaceGeometry::BOUNDARY ):
+        {
           iFaceLocal = multizone_faces.GetIndexBoundaryFace(i);
-          //face_info  = multizone_faces.FindBoundaryElementFaceIndex(iFaceLocal);
-          ERROR("Not yet completed, must be finished!");
+          face_info  = multizone_faces.FindBoundaryElementFaceIndex(iFaceLocal);
           break;
+        }
   
-        case ETypeFaceGeometry::INTERFACE:
+        case( ETypeFaceGeometry::INTERFACE ):
+        {
           iFaceLocal = multizone_faces.GetIndexInterfaceFace(i);
           face_info  = multizone_faces.FindInterfaceElementFaceIndex(iFaceLocal);
           break;
+        }
   
         default:
           ERROR("Unknown face type.");
       }
   
       // Store the flattened face index.
-      flattened_indices.emplace_back( CFlattenedFaceIndex{face_info.mIndexFamily, face_info.mIndexFace, face_type} );
+      flattened_indices.emplace_back( 
+          CFlattenedFaceIndex{face_info.mIndexFamily, face_info.mIndexFace, face_type} 
+          );
     }
   };
 

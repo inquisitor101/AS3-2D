@@ -18,8 +18,7 @@ void CMultizoneFaceGeometry::InitializeFaces
   // Initialize the family of faces.
   InitializeInternalFaces(multizone_geometry_container);
   InitializeInterfaceFaces(config_container, multizone_geometry_container);
-
-  // TODO: initialize the family of boundary faces.
+  InitializeBoundaryFaces(config_container, multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
@@ -130,6 +129,72 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
   // Move the ownership to their respective group.
   // Also initialize an empty group when no interfaces are relevant.
   mInterfaceFacesGroup.Initialize( std::move(interface_families) );
+}
+
+//-----------------------------------------------------------------------------------
+
+void CMultizoneFaceGeometry::InitializeBoundaryFaces
+(
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
+)
+ /*
+  *
+  */
+{
+  // TODO: make the group initialize this, since it owns them.
+  // Temporary boundary families, will be moved inside their group. 
+  as3vector1d<CBoundaryFacesFamily> boundary_families;
+
+  // Extract the boundary marker families.
+  const auto& boundary_markers = multizone_geometry_container->GetExternalFamilyMarkers();
+
+   // Helper lambda to count the bounadries relevant for this class.
+  auto lCountRelevantBoundaries = [&](const auto &families) -> std::size_t
+  {
+    std::size_t nBoundaries = 0;
+
+    for( const auto& family : families )
+    {
+      for( const auto& marker : family.GetMarkers() )
+      {
+        if( marker.GetTypeFace() == mTypeFace )
+        {
+          nBoundaries++;
+        }
+      }
+    }
+
+    return nBoundaries;
+  };
+
+  // Get the number of valid boundaries for this direction.
+  const std::size_t nBoundariesConsidered = lCountRelevantBoundaries(boundary_markers);
+
+  // Allocate memory for the family of boundaries.
+  boundary_families.reserve( nBoundariesConsidered );
+
+  // Loop over each boundary marker family.
+  for( const auto& family : boundary_markers )
+  {
+    for( const auto& marker : family.GetMarkers() )
+    {
+      // Only consider boundaries whose face matches this class's direction.
+      if( marker.GetTypeFace() != mTypeFace ) continue;
+
+      // Extract the relevant zone index.
+      const std::size_t iZone = marker.mIndexZone;
+
+      // Obtain the relevant single zone geometry.
+      const auto* zone_geometry = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+
+      // Create a family of boundary faces belonging to this face.
+      boundary_families.emplace_back( zone_geometry, marker, family.GetName() );
+    }
+  }
+
+   // Move the ownership to their respective group.
+  mBoundaryFacesGroup.Initialize( std::move(boundary_families) );
 }
 
 
@@ -264,7 +329,6 @@ CInterfaceFacesFamily::CInterfaceFacesFamily
     = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
 	mIsMaxFaceJ 
     = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
-
 
   // Initiailize the interface faces belonging to these markers.
   InitializeInterfaceFaces(multizone_geometry_container);
@@ -453,6 +517,116 @@ void CInterfaceFacesFamily::CheckConformityMarkers
     }
   }
 }
+
+
+//-----------------------------------------------------------------------------------
+// CBoundaryFacesFamily member functions.
+//-----------------------------------------------------------------------------------
+
+CBoundaryFacesFamily::CBoundaryFacesFamily
+(
+ const CSinglezoneGeometry                    *singlezone_geometry_container,
+ const CExternalFamilyMarker::CExternalMarker &marker,
+ const std::string                            &name
+)
+  : mTypeFace( marker.GetTypeFace() ),
+    mFaceLocation( marker.mFaceLocation ), 
+    mIndexZone( marker.mIndexZone ),
+    mName( name )
+ /*
+  *
+  */
+{
+  // Consistency check.
+  if( mIndexZone != singlezone_geometry_container->GetZoneID() )
+  {
+    ERROR("Boundary has different zones!");
+  }
+
+  // Deduce whether these faces are on a max (imax/jmax) or not.
+	mIsMaxFace 
+    = ( mFaceLocation == EFaceLocation::IMAX || mFaceLocation == EFaceLocation::JMAX ) ? true : false;
+
+  // Initialize the boundary faces.
+  InitializeBoundaryFaces(singlezone_geometry_container);
+}
+
+//-----------------------------------------------------------------------------------
+
+void CBoundaryFacesFamily::InitializeBoundaryFaces
+(
+ const CSinglezoneGeometry *singlezone_geometry_container
+)
+ /*
+  *
+  */
+{
+  // Extract the relevant information for an external face.
+  const size_t niElem = singlezone_geometry_container->GetniElem();
+  const size_t njElem = singlezone_geometry_container->GetnjElem();
+
+  // Initialize the faces, based on the respective class direction.
+  switch( mTypeFace )
+  {
+    case(ETypeFace::IFACE):
+    {
+			// Reserve the needed amount of memory for the boundary i-faces.
+			mBoundaryFaces.reserve(njElem);
+
+      // Deduce the iElem index.
+      const std::size_t i = ( mFaceLocation == EFaceLocation::IMIN ) ? 0 : niElem-1;
+
+      // Safety check.
+      if( mFaceLocation != EFaceLocation::IMIN && mFaceLocation != EFaceLocation::IMAX )
+      {
+        ERROR("Face location is inconsistent.");
+      } 
+
+      // Loop over the i-faces in this zone.
+      for(size_t j=0; j<njElem; j++)
+      {
+        // Deduce the owner flattened element index of this face.
+        const size_t ijElem = j * niElem + i;
+
+        // Construct the current boundary i-face.
+        mBoundaryFaces.emplace_back( ijElem ); 
+      }
+
+      break;
+    }
+
+    case(ETypeFace::JFACE):
+    {
+			// Reserve the needed amount of memory for the boundary j-faces.
+			mBoundaryFaces.reserve(niElem);
+
+      // Deduce the jElem index.
+      const std::size_t j = ( mFaceLocation == EFaceLocation::JMIN ) ? 0 : njElem-1;
+
+      // Safety check.
+      if( mFaceLocation != EFaceLocation::JMIN && mFaceLocation != EFaceLocation::JMAX )
+      {
+        ERROR("Face location is inconsistent.");
+      } 
+
+      // Loop over the j-faces in this zone.
+  		for(size_t i=0; i<niElem; i++)
+  		{
+  		  // Deduce the owner flattened element index of this face.
+  		  const size_t ijElem = j * niElem + i;
+  		
+        // construct the current boundary j-face.
+				mBoundaryFaces.emplace_back( ijElem ); 
+  		}
+
+      break;
+    }
+
+    default: ERROR("Unknown face type encountered.");
+  }
+}
+
+
 
 
 

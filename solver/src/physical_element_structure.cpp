@@ -239,7 +239,7 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 		// Inverse of the Jacobian.
 		const as3double Jinv = C_ONE/J;
 
-		// Compute the normal in the negative r-direction. Note, IMIN surface normal points inward.
+		// Compute the normal in the negative r-direction.
 		const as3double nx = -dyds;
 		const as3double ny =  dxds;
 	
@@ -371,7 +371,7 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 		// Inverse of the Jacobian.
 		const as3double Jinv = C_ONE/J;
 
-		// Compute the normal in the negative s-direction. Note, JMIN surface normal points inward.
+		// Compute the normal in the negative s-direction.
 		const as3double nx =  dydr;
 		const as3double ny = -dxdr;
 	

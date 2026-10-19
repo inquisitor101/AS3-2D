@@ -121,6 +121,15 @@ class CMultizoneGeometry
       return mMultizoneJFaces.GetInterfaceFacesGroup().GetFamilies();
     } 
 
+    const auto& GetBoundaryFamiliesIFace(void) const
+    {
+      return mMultizoneIFaces.GetBoundaryFacesGroup().GetFamilies();
+    }
+    const auto& GetBoundaryFamiliesJFace(void) const
+    {
+      return mMultizoneJFaces.GetBoundaryFacesGroup().GetFamilies();
+    }
+
     const auto& GetInternalFamilyMarkers(void) const { return mInternalFamilyMarkers; }
     const auto& GetExternalFamilyMarkers(void) const { return mExternalFamilyMarkers; }
     const auto& GetPeriodicFamilyMarkers(void) const { return mPeriodicFamilyMarkers; }

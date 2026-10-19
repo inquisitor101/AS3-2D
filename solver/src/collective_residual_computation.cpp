@@ -97,6 +97,31 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 				break;
 			}
 
+      case( ETypeFaceGeometry::BOUNDARY ):
+      {
+        // Extract the relevant family index.
+        const auto iFamily = face_info.mIndexFamily;
+        // Extract the associated boundary index.
+        const auto iBoundary = multizone_solver_container->GetIndexBoundaryIFace(iFamily);
+
+        // Extract the associated boundary object.
+        const auto* boundary = multizone_solver_container->GetBoundary(iBoundary);
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetBoundaryFacesFamily( iFamily );
+
+        // Extract the relevant zone index.
+        const auto iZone = family_face.GetiZone();
+        
+        // Extract the relevant grid and solver.
+        const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+        auto* solver     = multizone_solver_container->GetSinglezoneSolver(iZone);
+
+        // Compute the boundary face residual.
+        boundary->ComputeBoundaryResidual(grid, solver, family_face, face_info, workarray, localtime);       
+
+        break;
+      }
+
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the relevant family index, which is the same as the interface container's index.
@@ -105,7 +130,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
         const auto iInterface = multizone_solver_container->GetIndexInterfaceIFace(iFamily); 
         
         // Extract the associated interface object.
-        const auto* interface = multizone_solver_container->GetSinglezoneInterface(iInterface); 
+        const auto* interface = multizone_solver_container->GetInterface(iInterface); 
         // Extract the family owning the current face.
         const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( iFamily );
        
@@ -175,6 +200,30 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 				break;
 			}
 
+      case( ETypeFaceGeometry::BOUNDARY ):
+      {
+        // Extract the relevant family index.
+        const auto iFamily = face_info.mIndexFamily;
+        // Extract the associated boundary index.
+        const auto iBoundary = multizone_solver_container->GetIndexBoundaryJFace(iFamily);
+
+        // Extract the associated boundary object.
+        const auto* boundary = multizone_solver_container->GetBoundary(iBoundary);
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetBoundaryFacesFamily( iFamily );
+        // Extract the relevant zone index.
+        const auto iZone = family_face.GetiZone();
+        
+        // Extract the relevant grid and solver.
+        const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+        auto* solver     = multizone_solver_container->GetSinglezoneSolver(iZone);
+
+        // Compute the boundary face residual.
+        boundary->ComputeBoundaryResidual(grid, solver, family_face, face_info, workarray, localtime);       
+
+        break;
+      }
+
       case( ETypeFaceGeometry::INTERFACE ):
       {
         // Extract the relevant family index, which is the same as the interface container's index.
@@ -183,7 +232,7 @@ void NResidualComputation::ComputeJFaceResidualsCollective
         const auto iInterface = multizone_solver_container->GetIndexInterfaceJFace(iFamily); 
         
         // Extract the associated interface object.
-        const auto* interface = multizone_solver_container->GetSinglezoneInterface(iInterface); 
+        const auto* interface = multizone_solver_container->GetInterface(iInterface); 
         // Extract the family owning the current face.
         const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( iFamily );
 
@@ -251,6 +300,30 @@ void NResidualComputation::AccumulateIFaceResidualsCollective
 
 				break;
 			}
+
+      case( ETypeFaceGeometry::BOUNDARY ):
+      {
+        // Extract the family owning the current face.
+        const auto& family_face = idir_faces_multizone.GetBoundaryFacesFamily( face_info.mIndexFamily );
+
+        // Extract the actual face.
+        const auto& boundary_face = family_face.GetBoundaryFace( face_info.mIndexFace ); 
+
+        const auto iZone = family_face.GetiZone();
+        const auto iElem = boundary_face.mIndexElement;
+
+        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElem);
+
+        auto& tmp = physical_element->mResMinus;
+        auto& res = physical_element->mRes2D;
+
+        if( family_face.GetisMaxFace() )
+        {
+          for(size_t l=0; l<res.size(); l++) res[l] += tmp[l];
+        }
+
+        break;
+      }
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
@@ -347,6 +420,30 @@ void NResidualComputation::AccumulateJFaceResidualsCollective
 
 				break;
 			}
+
+      case( ETypeFaceGeometry::BOUNDARY ):
+      {
+        // Extract the family owning the current face.
+        const auto& family_face = jdir_faces_multizone.GetBoundaryFacesFamily( face_info.mIndexFamily );
+
+        // Extract the actual face.
+        const auto& boundary_face = family_face.GetBoundaryFace( face_info.mIndexFace ); 
+
+        const auto iZone = family_face.GetiZone();
+        const auto iElem = boundary_face.mIndexElement;
+
+        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElem);
+
+        auto& tmp = physical_element->mResMinus;
+        auto& res = physical_element->mRes2D;
+
+        if( family_face.GetisMaxFace() )
+        {
+          for(size_t l=0; l<res.size(); l++) res[l] += tmp[l];
+        }
+
+        break;
+      }
 
       case( ETypeFaceGeometry::INTERFACE ):
       {

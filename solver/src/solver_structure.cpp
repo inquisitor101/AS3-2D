@@ -48,14 +48,10 @@ void CMultizoneSolver::InitializeInterfaces
   *
   */
 {
-  // Initialize the interfaces.
+  // Extract the interfaces.
   const auto& idir_interfaces = multizone_geometry_container->GetInterfaceFamiliesIFace();
   const auto& jdir_interfaces = multizone_geometry_container->GetInterfaceFamiliesJFace();
 
-  const auto nInterfaceFamiliesIFace = idir_interfaces.size();
-  const auto nInterfaceFamiliesJFace = jdir_interfaces.size();
-  const auto nInterfaceFamilies      = nInterfaceFamiliesIFace + nInterfaceFamiliesJFace;
- 
   // Reserve the required memory for the indicial mapping of the interfaces.
   mIndexInterfaceIFace.reserve( idir_interfaces.size() );
   mIndexInterfaceJFace.reserve( jdir_interfaces.size() );
@@ -64,10 +60,10 @@ void CMultizoneSolver::InitializeInterfaces
   mMultizoneInterfaceContainer.reserve( idir_interfaces.size() + jdir_interfaces.size() );
 
 
-  // Loop over each interface which contains the ith face as a IFace.. 
+  // Loop over each interface which contains the ith face as a IFace.
   for(const auto& family : idir_interfaces )
   {
-    // Glocal-book-keeping index.
+    // Global-book-keeping index.
     const size_t iInterface = mMultizoneInterfaceContainer.size();
 
     // Initialize each interface object.
@@ -82,10 +78,10 @@ void CMultizoneSolver::InitializeInterfaces
   }
 
 
-  // Loop over each interface which contains the ith face as a IFace.. 
+  // Loop over each interface which contains the ith face as a IFace.
   for(const auto& family : jdir_interfaces )
   {
-    // Glocal-book-keeping index.
+    // Global-book-keeping index.
     const size_t iInterface = mMultizoneInterfaceContainer.size();
 
     // Initialize each interface object.
@@ -100,6 +96,81 @@ void CMultizoneSolver::InitializeInterfaces
   }
 }
 
+//-----------------------------------------------------------------------------------
+
+void CMultizoneSolver::InitializeBoundaries
+(
+ const CConfig            *config_container,
+ const CMultizoneGeometry *multizone_geometry_container
+)
+ /*
+  *
+  */
+{
+  // Extract the boundaries.
+  const auto& idir_boundaries = multizone_geometry_container->GetBoundaryFamiliesIFace();
+  const auto& jdir_boundaries = multizone_geometry_container->GetBoundaryFamiliesJFace();
+
+  // Reserve the required memory for the indicial mapping of the boundaries.
+  mIndexBoundaryIFace.reserve( idir_boundaries.size() );
+  mIndexBoundaryJFace.reserve( jdir_boundaries.size() );
+  
+  // Reserve the required number of boundary containers.
+  mMultizoneBoundaryContainer.reserve( idir_boundaries.size() + jdir_boundaries.size() );
+
+  // Loop over each boundary which contains with an IFace.
+  for(const auto& family : idir_boundaries )
+  {
+    // Global-book-keeping index.
+    const std::size_t iBoundary = mMultizoneBoundaryContainer.size();
+
+    // Extract the current zone index.
+    const std::size_t iZone = family.GetiZone();
+
+    // Extract the current zone solver and geometry.
+    const auto* zone_solver   = GetSinglezoneSolver(iZone);
+    const auto* zone_geometry = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+
+    // Initialize each boundary object.
+    mMultizoneBoundaryContainer.emplace_back
+    (
+     CGenericFactory::CreateBoundaryContainer(config_container,
+                                              zone_geometry,
+                                              zone_solver, 
+                                              family)
+    );
+
+    // Book-keep the index map.
+    mIndexBoundaryIFace.push_back( iBoundary );
+  }
+
+
+  // Loop over each boundary which contains with an JFace.
+  for(const auto& family : jdir_boundaries )
+  {
+    // Global-book-keeping index.
+    const std::size_t iBoundary = mMultizoneBoundaryContainer.size();
+
+    // Extract the current zone index.
+    const std::size_t iZone = family.GetiZone();
+
+    // Extract the current zone solver and geometry.
+    const auto* zone_solver   = GetSinglezoneSolver(iZone);
+    const auto* zone_geometry = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+
+    // Initialize each boundary object.
+    mMultizoneBoundaryContainer.emplace_back
+    (
+     CGenericFactory::CreateBoundaryContainer(config_container,
+                                              zone_geometry,
+                                              zone_solver, 
+                                              family)
+    );
+
+    // Book-keep the index map.
+    mIndexBoundaryJFace.push_back( iBoundary );
+  }
+}
 
 
 
@@ -213,170 +284,6 @@ void CEESolver::InitPhysicalElements
 
 	// Report output.
 	std::cout << "Done." << std::endl;
-}
-
-//-----------------------------------------------------------------------------------
-
-// TODO: probably need to rework this, as its outdated.
-void CEESolver::InitBoundaryConditions
-(
- const CConfig            *config_container,
- const CMultizoneGeometry *multizone_geometry_container
-)
- /*
-	* Function that initializes the boundary conditions. 
-	*/
-{
-  WARNING("FINISH ME.");
-	//// Report output.
-	//std::cout << "    boundary conditions.. ";
-
-	//// Get a reference to the current zone.
-	//auto* zone = multizone_geometry_container->GetSinglezoneGeometry(mZoneID);
-
-	//// Index counters, used for determining the number of boundaries needed.
-	//size_t nimin = 0; size_t njmin = 0;
-	//size_t nimax = 0; size_t njmax = 0;
-
-	//// Initialize the boundary conditions, per each element face.
-	//
-	//// First, loop over the markers in this zone to determine how much memory we need
-	//// per boundary face container. Otherwise, we end up with capacity > size, which 
-	//// is not exactly efficient. 
-	//for( auto& marker: zone->GetMarker() )
-	//{
-	//	// In case this marker is periodic, skip it.
-	//	if( marker->GetTypeBC() == ETypeBC::PERIODIC ) continue;
-
-	//	// Loop over each element on this marker and instantiate its boundary.
-	//	for( auto& [index, face]: marker->GetElementFaces() )
-	//	{
-	//		// Make sure that the marker data is written in the correct order.
-	//		static_assert( std::is_same_v<const unsigned int, decltype(index)> );
-	//		static_assert( std::is_same_v<const EFaceLocation, decltype(face )> );
-
-	//		// Based on the face type, initialzie the boundary surface.
-	//		switch( face )
-	//		{
-
-	//			// Check the IMIN boundary.
-	//			case(EFaceLocation::IMIN): 
-	//			{
-	//				// If the number of faces exceeds the expected, issue an error.
-	//				if( nimin++ > zone->GetnjElem() ) {ERROR("Incorrect number of IMIN faces.");} break;
-	//			}
-
-	//			// Check the IMAX boundary.
-	//			case(EFaceLocation::IMAX): 
-	//			{
-	//				// If the number of faces exceeds the expected, issue an error.
-	//				if( nimax++ > zone->GetnjElem() ) {ERROR("Incorrect number of IMAX faces.");} break;
-	//			}
-
-	//			// Check the JMIN boundary.
-	//			case(EFaceLocation::JMIN): 
-	//			{
-	//				// If the number of faces exceeds the expected, issue an error.
-	//				if( njmin++ > zone->GetniElem() ) {ERROR("Incorrect number of JMIN faces.");} break;
-	//			}
-
-	//			// Check the JMAX boundary.
-	//			case(EFaceLocation::JMAX): 
-	//			{
-	//				// If the number of faces exceeds the expected, issue an error.
-	//				if( njmax++ > zone->GetniElem() ) {ERROR("Incorrect number of JMAX faces.");} break;
-	//			}
-
-	//			// Something went wrong, issue an error.
-	//			default: ERROR("Unknown face detected.");
-	//		}
-	//	}
-	//}
-
-	//// Reserve memory for the boundary faces, based on the findings above.
-	//if( nimin ) mBoundaryIMINContainer.reserve( nimin );
-	//if( nimax ) mBoundaryIMAXContainer.reserve( nimax );
-	//if( njmin ) mBoundaryJMINContainer.reserve( njmin );
-	//if( njmax ) mBoundaryJMAXContainer.reserve( njmax );
-
-	//// Next, loop over the markers in this zone (again) to initialize 
-	//// exactly as much boundary containers as we require.
-	//for( auto& marker: zone->GetMarker() )
-	//{
-	//	// In case this marker is periodic, skip it.
-	//	if( marker->GetTypeBC() == ETypeBC::PERIODIC ) continue;
-
-	//	// Loop over each element on this marker and instantiate its boundary.
-	//	for( auto& [index, face]: marker->GetElementFaces() )
-	//	{
-	//		// Based on the face type, initialzie the boundary surface.
-	//		switch( face )
-	//		{
-	//			// Check the IMIN boundary.
-	//			case(EFaceLocation::IMIN): 
-	//			{
-	//				// Otherwise, allocate the proper boundary for this face.
-	//				mBoundaryIMINContainer.emplace_back
-	//				(
-	//				 CGenericFactory::CreateBoundaryContainer( config_container, 
-  //                                                   multizone_geometry_container, 
-  //                                                   marker.get(), index )
-	//				);
- 
-	//				break;
-	//			}
-
-	//			// Check the IMAX boundary.
-	//			case(EFaceLocation::IMAX): 
-	//			{
-	//				// Otherwise, allocate the proper boundary for this face.
-	//				mBoundaryIMAXContainer.emplace_back
-	//				(
-	//				 CGenericFactory::CreateBoundaryContainer( config_container, 
-  //                                                   multizone_geometry_container, 
-  //                                                   marker.get(), index )
-	//				);
- 
-	//				break;
-	//			}
-
-	//			// Check the JMIN boundary.
-	//			case(EFaceLocation::JMIN): 
-	//			{
-	//				// Otherwise, allocate the proper boundary for this face.
-	//				mBoundaryJMINContainer.emplace_back
-	//				(
-	//				 CGenericFactory::CreateBoundaryContainer( config_container, 
-  //                                                   multizone_geometry_container, 
-  //                                                   marker.get(), index )
-	//				);
- 
-	//				break;
-	//			}
-
-	//			// Check the JMAX boundary.
-	//			case(EFaceLocation::JMAX): 
-	//			{
-	//				// Otherwise, allocate the proper boundary for this face.
-	//				mBoundaryJMAXContainer.emplace_back
-	//				(
-	//				 CGenericFactory::CreateBoundaryContainer( config_container, 
-  //                                                   multizone_geometry_container, 
-  //                                                   marker.get(), index )
-	//				);
- 
-	//				break;
-	//			}
-
-	//			// Something went wrong, issue an error.
-	//			default: ERROR("Unknown face detected.");
-	//		}
-	//	}
-	//}
-
-
-	//// Report output.
-	//std::cout << "Done." << std::endl;
 }
 
 //-----------------------------------------------------------------------------------

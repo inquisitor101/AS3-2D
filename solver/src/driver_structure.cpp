@@ -141,10 +141,6 @@ void CDriver::InitializeData
 		solver->InitPhysicalElements(mConfigContainer.get(),
 				                         mMultizoneGeometryContainer.get());
 	
-		// Initialize the boundary conditions.
-		solver->InitBoundaryConditions(mConfigContainer.get(),
-				                           mMultizoneGeometryContainer.get());
-
 		// Initialize the solution.
 		mInitialContainer->InitializeSolution(mConfigContainer.get(), zone, solver);
 	}
@@ -154,7 +150,12 @@ void CDriver::InitializeData
 	mMultizoneGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
 
   // Initialize the interfaces, after determining the grid topology first!
-  mMultizoneSolverContainer->InitializeInterfaces(mConfigContainer.get(), mMultizoneGeometryContainer.get());
+  mMultizoneSolverContainer->InitializeInterfaces( mConfigContainer.get(), 
+                                                   mMultizoneGeometryContainer.get() );
+
+  // Initialize the external boundary, after determining the grid topology first!
+  mMultizoneSolverContainer->InitializeBoundaries( mConfigContainer.get(),
+                                                   mMultizoneGeometryContainer.get() );
 
 
 	// Report output.

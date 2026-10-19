@@ -14,8 +14,8 @@ class CSinglezoneGeometry;
 
 struct CElementFaceIndex
 {
-  size_t mIndexFamily;
-  size_t mIndexFace;
+  std::size_t mIndexFamily;
+  std::size_t mIndexFace;
 };
 
 
@@ -26,7 +26,7 @@ struct CElementFaceIndex
 
 struct CInternalElementFaceGeometry
 {
-  size_t mIndexElementM;
+  std::size_t mIndexElementM;
 };
 
 //-----------------------------------------------------------------------------------
@@ -43,17 +43,17 @@ class CInternalFacesFamily
     {
       return mInternalFaces;
     }
-    const CInternalElementFaceGeometry& GetInternalFace(size_t i) const
+    const CInternalElementFaceGeometry& GetInternalFace(std::size_t i) const
     {
       return mInternalFaces[i];
     }
-    size_t GetnFace(void) const {return mInternalFaces.size();}
-    unsigned short GetiZone(void) const {return mIndexZone;}
+    std::size_t GetnFace(void) const {return mInternalFaces.size();}
+    std::size_t GetiZone(void) const {return mIndexZone;}
 
   private:
     ETypeFace           mTypeFace;
-    unsigned short      mIndexZone;
-    size_t              mOffsetElementPlus;
+    std::size_t         mIndexZone;
+    std::size_t         mOffsetElementPlus;
     AInternalFaceVector mInternalFaces;
 
     void InitializeInternalFaces(const CSinglezoneGeometry *singlezone_geometry_container);
@@ -63,7 +63,7 @@ class CInternalFacesFamily
 
 struct CBoundaryElementFaceGeometry
 {
-  size_t mIndexElement;
+  std::size_t mIndexElement;
 };
 
 //-----------------------------------------------------------------------------------
@@ -73,33 +73,41 @@ class CBoundaryFacesFamily
   using ABoundaryFaceVector = as3vector1d<CBoundaryElementFaceGeometry>;
   
   public:
-    CBoundaryFacesFamily(ETypeFace                  face_type,
-                         EFaceLocation              face_location,
-                         const CSinglezoneGeometry *singlezone_geometry_container);
+    CBoundaryFacesFamily(const CSinglezoneGeometry                    *singlezone_geometry_container,
+                         const CExternalFamilyMarker::CExternalMarker &marker,
+                         const std::string                            &name);
 
     const ABoundaryFaceVector& GetBoundaryFaces(void) const
     {
       return mBoundaryFaces;
     }
-    const CBoundaryElementFaceGeometry& GetBoundaryFace(size_t i) const
+    const CBoundaryElementFaceGeometry& GetBoundaryFace(std::size_t i) const
     {
       return mBoundaryFaces[i];
     }
-    size_t GetnFace(void) const {return mBoundaryFaces.size();}
-  
+    std::size_t GetnFace(void) const {return mBoundaryFaces.size();}
+    std::size_t GetiZone(void) const {return mIndexZone;}
+    std::string GetName(void) const {return mName;}
+    EFaceLocation GetFaceLocation(void) const {return mFaceLocation;}
+    bool GetisMaxFace(void) const {return mIsMaxFace;}
+
   private:
     ETypeFace           mTypeFace;
     EFaceLocation       mFaceLocation;
-    unsigned short      mIndexZone;
+    std::size_t         mIndexZone;
+    std::string         mName;
+    bool                mIsMaxFace;
     ABoundaryFaceVector mBoundaryFaces;
+
+    void InitializeBoundaryFaces(const CSinglezoneGeometry *singlezone_geometry_container);
 };
 
 //-----------------------------------------------------------------------------------
 
 struct CInterfaceElementFaceGeometry
 {
-  size_t mIndexElementI;
-  size_t mIndexElementJ;
+  std::size_t mIndexElementI;
+  std::size_t mIndexElementJ;
 };
 
 //-----------------------------------------------------------------------------------
@@ -115,21 +123,19 @@ class CInterfaceFacesFamily
     CInterfaceFacesFamily(const CMultizoneGeometry                     *multizone_geometry_container,
                           const CPeriodicFamilyMarker::CPeriodicMarker  &marker);
 
-    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container);
-
     const AInterfaceFaceVector& GetInterfaceFaces(void) const
     {
       return mInterfaceFaces;
     }
-    const CInterfaceElementFaceGeometry& GetInterfaceFace(size_t i) const
+    const CInterfaceElementFaceGeometry& GetInterfaceFace(std::size_t i) const
     {
       return mInterfaceFaces[i];
     }
     EFaceLocation GetFaceLocationFaceI(void) const {return mFaceLocationI;}
-    size_t GetnFace(void) const {return mInterfaceFaces.size();}
+    std::size_t GetnFace(void) const {return mInterfaceFaces.size();}
 
-    unsigned short GetiZone(void) const {return mIndexZoneI;}
-    unsigned short GetjZone(void) const {return mIndexZoneJ;}
+    std::size_t GetiZone(void) const {return mIndexZoneI;}
+    std::size_t GetjZone(void) const {return mIndexZoneJ;}
 
     EFaceLocation GetiFaceLocation(void) const {return mFaceLocationI;}
     EFaceLocation GetjFaceLocation(void) const {return mFaceLocationJ;}
@@ -167,6 +173,7 @@ class CInterfaceFacesFamily
 
     AInterfaceFaceVector mInterfaceFaces;
 
+    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container);
 		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container);
 };
 
@@ -181,11 +188,11 @@ class CGroupFaces
   
     struct CFaceRange
     {
-      size_t GetnFace(void)   const { return mEnd - mBegin; }
-      bool Contains(size_t i) const { return i >= mBegin && i < mEnd; }
+      std::size_t GetnFace(void)   const { return mEnd - mBegin; }
+      bool Contains(std::size_t i) const { return i >= mBegin && i < mEnd; }
       
-      size_t mBegin;
-      size_t mEnd;
+      std::size_t mBegin;
+      std::size_t mEnd;
     };
   
   public:
@@ -199,10 +206,10 @@ class CGroupFaces
       mFamilyRanges.clear();
       mFamilyRanges.reserve( mFamilies.size() );
 
-      size_t iGlobal = 0;    
+      std::size_t iGlobal = 0;    
       for(const auto& family : mFamilies)
       {
-        const size_t nFace = family.GetnFace();
+        const std::size_t nFace = family.GetnFace();
         mFamilyRanges.emplace_back( CFaceRange{iGlobal, iGlobal+nFace} );
         iGlobal += nFace;
       }
@@ -211,18 +218,18 @@ class CGroupFaces
       mEnd   = iGlobal;
     }
 
-    CElementFaceIndex FindElementFaceIndex(size_t iGlobal) const
+    CElementFaceIndex FindElementFaceIndex(std::size_t iGlobal) const
     {
 #if DEBUG
       if( iGlobal < mBegin || iGlobal >= mEnd ) ERROR("Invalid global face index.");
 #endif
-      const size_t iFamily    = FindIndexFamily(iGlobal);
+      const std::size_t iFamily    = FindIndexFamily(iGlobal);
       const CFaceRange& range = mFamilyRanges[iFamily];
   
       return CElementFaceIndex{ iFamily, iGlobal - range.mBegin };
     }
   
-    size_t GetnFace(void) const
+    std::size_t GetnFace(void) const
     {
 #if DEBUG
       if( mBegin > mEnd ) ERROR("Invalid number of faces detected.");
@@ -230,7 +237,7 @@ class CGroupFaces
       return mEnd - mBegin;
     }
 
-    size_t GetnFamily(void) const
+    std::size_t GetnFamily(void) const
     {
       return mFamilies.size();
     }
@@ -244,14 +251,14 @@ class CGroupFaces
       return mFamilies;
     }
 
-    const TFamily& GetFamily(size_t iFamily) const
+    const TFamily& GetFamily(std::size_t iFamily) const
     {
 #if DEBUG
       if( iFamily >= mFamilies.size() ) ERROR("Invalid family index.");
 #endif
       return mFamilies[iFamily];
     }
-    TFamily& GetFamily(size_t iFamily)
+    TFamily& GetFamily(std::size_t iFamily)
     {
 #if DEBUG
       if( iFamily >= mFamilies.size() ) ERROR("Invalid family index.");
@@ -260,15 +267,15 @@ class CGroupFaces
     }
   
   private:
-    size_t mBegin = 0;
-    size_t mEnd   = 0;
+    std::size_t mBegin = 0;
+    std::size_t mEnd   = 0;
  
     as3vector1d<TFamily>    mFamilies;
     as3vector1d<CFaceRange> mFamilyRanges;
   
-    size_t FindIndexFamily(size_t iGlobal) const
+    std::size_t FindIndexFamily(std::size_t iGlobal) const
     {
-      for(size_t iFamily=0; iFamily<mFamilyRanges.size(); iFamily++)
+      for(std::size_t iFamily=0; iFamily<mFamilyRanges.size(); iFamily++)
       {
         if( mFamilyRanges[iFamily].Contains(iGlobal)) return iFamily;
       }
@@ -291,7 +298,7 @@ class CMultizoneFaceGeometry
 				                 const CMultizoneGeometry *multizone_geometry_container);
 
 
-		ETypeFaceGeometry DeduceFaceTypeFromIndex(size_t i) const
+		ETypeFaceGeometry DeduceFaceTypeFromIndex(std::size_t i) const
 		{
 			if( i < GetnInternalFaces() )                       return ETypeFaceGeometry::INTERNAL;
 			if( i < GetnInternalFaces() + GetnBoundaryFaces() ) return ETypeFaceGeometry::BOUNDARY;
@@ -299,15 +306,15 @@ class CMultizoneFaceGeometry
 			ERROR("Invalid face index specified.");
 		}
 
-    size_t GetIndexInternalFace(size_t iGlobal) const
+    std::size_t GetIndexInternalFace(std::size_t iGlobal) const
     {
       return iGlobal;
     }
-    size_t GetIndexBoundaryFace(size_t iGlobal) const
+    std::size_t GetIndexBoundaryFace(std::size_t iGlobal) const
     {
       return iGlobal - GetnInternalFaces();
     }
-    size_t GetIndexInterfaceFace(size_t iGlobal) const
+    std::size_t GetIndexInterfaceFace(std::size_t iGlobal) const
     {
       return iGlobal - GetnInternalFaces() - GetnBoundaryFaces();
     }
@@ -316,22 +323,22 @@ class CMultizoneFaceGeometry
     const auto& GetBoundaryFacesGroup(void)  const {return mBoundaryFacesGroup;}
     const auto& GetInterfaceFacesGroup(void) const {return mInterfaceFacesGroup;}
 
-		size_t GetnInternalFaces(void)  const { return mInternalFacesGroup.GetnFace();  }
-		size_t GetnBoundaryFaces(void)  const { return mBoundaryFacesGroup.GetnFace();  }
-		size_t GetnInterfaceFaces(void) const { return mInterfaceFacesGroup.GetnFace(); }
+		std::size_t GetnInternalFaces(void)  const { return mInternalFacesGroup.GetnFace();  }
+		std::size_t GetnBoundaryFaces(void)  const { return mBoundaryFacesGroup.GetnFace();  }
+		std::size_t GetnInterfaceFaces(void) const { return mInterfaceFacesGroup.GetnFace(); }
 
-		size_t GetnFacesTotal(void) const
+		std::size_t GetnFacesTotal(void) const
 		{
 			return GetnInternalFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
 		}
 
     ETypeFace GetTypeFace(void) const { return mTypeFace; }
 
-    size_t GetnInterfaceFamilies(void) const { return mInterfaceFacesGroup.GetnFamily(); }
+    std::size_t GetnInterfaceFamilies(void) const { return mInterfaceFacesGroup.GetnFamily(); }
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex FindInternalElementFaceIndex(size_t i) const
+    CElementFaceIndex FindInternalElementFaceIndex(std::size_t i) const
     {
 #if DEBUG
 			if( i >= GetnInternalFaces() ) ERROR("Index exceeds maximum data size."); 
@@ -339,7 +346,7 @@ class CMultizoneFaceGeometry
       return mInternalFacesGroup.FindElementFaceIndex(i);
     } 
 
-    const CInternalFacesFamily& GetInternalFacesFamily(size_t i) const
+    const CInternalFacesFamily& GetInternalFacesFamily(std::size_t i) const
     {
 #if DEBUG
 			if( i >= mInternalFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size."); 
@@ -349,7 +356,7 @@ class CMultizoneFaceGeometry
 
     // NOTE, we return by value because its only 2 size_t variables, besides, the 
     // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex FindInterfaceElementFaceIndex(size_t i) const
+    CElementFaceIndex FindInterfaceElementFaceIndex(std::size_t i) const
     {
 #if DEBUG
 			if( i >= GetnInterfaceFaces() ) ERROR("Index exceeds maximum data size."); 
@@ -357,12 +364,30 @@ class CMultizoneFaceGeometry
       return mInterfaceFacesGroup.FindElementFaceIndex(i);
     } 
     
-    const CInterfaceFacesFamily& GetInterfaceFacesFamily(size_t i) const
+    const CInterfaceFacesFamily& GetInterfaceFacesFamily(std::size_t i) const
     {
 #if DEBUG
 			if( i >= mInterfaceFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size."); 
 #endif
       return mInterfaceFacesGroup.GetFamily(i);
+    }
+
+    // Note, we return by value because its only 2 size_t variables, besides, the 
+    // construction in CGroupFaces returns it by value!
+    CElementFaceIndex FindBoundaryElementFaceIndex(std::size_t i) const
+    {
+#if DEBUG
+      if( i >= GetnBoundaryFaces() ) ERROR("Index exceeds maximum data size.");
+#endif
+      return mBoundaryFacesGroup.FindElementFaceIndex(i);
+    }
+
+    const CBoundaryFacesFamily& GetBoundaryFacesFamily(std::size_t i) const
+    {
+#if DEBUG
+      if( i >= mBoundaryFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size.");
+#endif
+      return mBoundaryFacesGroup.GetFamily(i);
     }
 
 	private:
@@ -375,7 +400,8 @@ class CMultizoneFaceGeometry
 
 
 		void InitializeInternalFaces(const CMultizoneGeometry *multizone_geometry_container);
-
+		void InitializeBoundaryFaces(const CConfig            *config_container,
+                                 const CMultizoneGeometry *multizone_geometry_container);
 		void InitializeInterfaceFaces(const CConfig            *config_container,
 				                          const CMultizoneGeometry *multizone_geometry_container);
 };

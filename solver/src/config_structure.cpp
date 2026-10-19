@@ -318,6 +318,10 @@ bool CConfig::ReadBoundaryConditionOptions
 	// Check for and extract interface/periodic boundary condition information, if present.
 	ExtractInfoInterfaceBC(filename);
 
+	// Check for and extract interface/periodic boundary condition information, if present.
+	ExtractInfoBoundaryCondition(filename);
+
+
 	// Check that all the boundary + interface markers are indeed unique. 
 	if( mMarkerTag.size() )
 	{
@@ -350,6 +354,59 @@ bool CConfig::ReadBoundaryConditionOptions
 
   // Return happily.
 	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::ExtractInfoBoundaryCondition
+(
+ const char *filename
+)
+ /*
+	* Function that reads the BC information, if present.
+	*/
+{
+  // Open input file.
+  std::ifstream paramfile(filename);
+  
+  // Share the scan and registration logic; each factory validates its own fields.
+  const auto readMarkers = [&](const char *keyword, auto makeMarker)
+  {
+    // The preceding scan reaches EOF. Restart for every boundary type.
+    paramfile.clear();
+    paramfile.seekg(0, std::ios::beg);
+
+    as3vector1d<std::string> buffervec;
+    while( true )
+    {
+      NInputUtility::AddVectorOption(paramfile, keyword,
+                                     buffervec, as3vector1d<std::string>{}, false);
+      if( buffervec.empty() ) break;
+
+      mBoundaryParamMarker.push_back( makeMarker(buffervec) );
+      mMarkerTag.push_back(
+          {mBoundaryParamMarker.back()->mName, mBoundaryParamMarker.back()->GetTypeBC()} );
+    }
+  };
+
+  readMarkers("MARKER_BC_SYMMETRY", [](const auto &buffer)
+  {
+    if( buffer.size() != 1 ) ERROR("Symmetry markers must only contain one boundary name.");
+    return std::make_unique<CSymmetryParamMarker>(buffer[0]);
+  });
+
+  readMarkers("MARKER_BC_STATIC_MASS_FLOW_INLET_RIEMANN", [](const auto &buffer)
+  {
+    return std::make_unique<CStaticMassFlowInletRiemannParamMarker>(buffer);
+  });
+
+  readMarkers("MARKER_BC_PRESSURE_OUTLET_RIEMANN", [](const auto &buffer)
+  {
+    return std::make_unique<CPressureOutletRiemannParamMarker>(buffer);
+  });
+  
+  // Close file.
+  paramfile.close();
 }
 
 //-----------------------------------------------------------------------------------

@@ -14,6 +14,7 @@
 
 // Forward declaration to avoid compiler problems.
 class ISolver;
+class IBoundary;
 class IInterface;
 
 
@@ -25,6 +26,9 @@ class CMultizoneSolver
                      const CMultizoneGeometry *multizone_geometry_container);
 
     void InitializeInterfaces(const CConfig            *config_container,
+                              const CMultizoneGeometry *multizone_geometry_container);
+
+    void InitializeBoundaries(const CConfig            *config_container,
                               const CMultizoneGeometry *multizone_geometry_container);
 
     
@@ -43,9 +47,14 @@ class CMultizoneSolver
       return mMultizoneInterfaceContainer;
     }
     
-    const auto* GetSinglezoneInterface(size_t iInterface) const 
+    const auto* GetInterface(size_t iInterface) const 
     {
       return mMultizoneInterfaceContainer[iInterface].get();
+    }
+    
+    const auto* GetBoundary(size_t iBoundary) const 
+    {
+      return mMultizoneBoundaryContainer[iBoundary].get();
     }
 
     size_t GetnZone(void) const { return mNZone; }
@@ -66,15 +75,37 @@ class CMultizoneSolver
       return mIndexInterfaceJFace[iFamily];
     } 
 
+    size_t GetIndexBoundaryIFace(size_t iFamily) const
+    {
+#if DEBUG
+      if(iFamily >= mIndexBoundaryIFace.size()) ERROR("I-Family index is out of range.");
+#endif
+      return mIndexBoundaryIFace[iFamily];
+    }
+    
+    size_t GetIndexBoundaryJFace(size_t iFamily) const
+    {
+#if DEBUG
+      if(iFamily >= mIndexBoundaryJFace.size()) ERROR("J-Family index is out of range.");
+#endif
+      return mIndexBoundaryJFace[iFamily];
+    } 
+
   protected:
 
   private:
     size_t mNZone;
     as3vector1d<std::unique_ptr<ISolver>>    mMultizoneSolverContainer;
     as3vector1d<std::unique_ptr<IInterface>> mMultizoneInterfaceContainer;
+    as3vector1d<std::unique_ptr<IBoundary>>  mMultizoneBoundaryContainer;
 
-    as3vector1d<size_t> mIndexInterfaceIFace; // index for interfaces whose i-face is is of type: IFace..
+    as3vector1d<size_t> mIndexInterfaceIFace; // index for interfaces whose i-face is of type: IFace.
     as3vector1d<size_t> mIndexInterfaceJFace; // index for interfaces whose i-face is of type: JFace.
+
+    as3vector1d<size_t> mIndexBoundaryIFace; // index for boundaries whose face is of type: IFace.
+    as3vector1d<size_t> mIndexBoundaryJFace; // index for boundaries whose face is of type: JFace.
+
+
 };
 
 
@@ -111,15 +142,6 @@ class ISolver
 		 */
 		virtual void InitPhysicalElements(const CConfig            *config_container,
 				                              const CMultizoneGeometry *multizone_geometry_container) = 0;
-
-		/*!
-		 * @brief Pure virtual function that initializes the boundary conditions. Must be implemented in a derived class.
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 */
-		virtual void InitBoundaryConditions(const CConfig            *config_container,
-				                                const CMultizoneGeometry *multizone_geometry_container) = 0;
 
 		/*!
 		 * @brief Pure virtual function that computes the volume terms for a given element.
@@ -201,12 +223,7 @@ class ISolver
 		std::unique_ptr<IRiemannSolver>                mRiemannSolverContainer;    ///< Riemann solver container.
 		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	
 		as3vector1d<std::unique_ptr<CPhysicalElement>> mPhysicalElementContainer;  ///< Physical element container.
-		
-		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryIMINContainer;     ///< IMIN boundary container.
-		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryIMAXContainer;     ///< IMAX boundary container.
-		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryJMINContainer;     ///< JMIN boundary container.
-		as3vector1d<std::unique_ptr<IBoundary>>        mBoundaryJMAXContainer;     ///< JMAX boundary container.
-
+	
 	private:
 		// Disable default constructor.
 		ISolver(void) = delete;
@@ -247,16 +264,7 @@ class CEESolver : public ISolver
 		void InitPhysicalElements(const CConfig            *config_container,
 				                      const CMultizoneGeometry *multizone_geometry_container) override;
 
-		/*!
-		 * @brief Function that initializes the boundary conditions. 
-		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] geometry_container input geometry container.
-		 */
-		void InitBoundaryConditions(const CConfig            *config_container,
-		                            const CMultizoneGeometry *multizone_geometry_container) override;
-
-		/*!
+    /*!
 		 * @brief Function that computes the volume terms for a given element, based on the EE.
 		 * 
 		 * @param[in] singlezone_geometry_container geometry of the current grid zone. 

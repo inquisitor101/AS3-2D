@@ -192,12 +192,12 @@ void CEEInterface::InitializeComputeKernels
   };
 
   // Assign the relevant interpolation functions.
-  mlInterpolateSurfaceI = lGetFuncPointerInterpFace( mITensorProductContainer.get(), mIFace );
-  mlInterpolateSurfaceJ = lGetFuncPointerInterpFace( mJTensorProductContainer.get(), mJFace );
+  mFInterpolateSurfaceI = lGetFuncPointerInterpFace( mITensorProductContainer.get(), mIFace );
+  mFInterpolateSurfaceJ = lGetFuncPointerInterpFace( mJTensorProductContainer.get(), mJFace );
 
   // Assign the relevant residual functions.
-  mlComputeResidualFaceI = lGetSurfaceResidualFace( mITensorProductContainer.get(), mIFace );
-  mlComputeResidualFaceJ = lGetSurfaceResidualFace( mJTensorProductContainer.get(), mJFace );
+  mFComputeResidualFaceI = lGetSurfaceResidualFace( mITensorProductContainer.get(), mIFace );
+  mFComputeResidualFaceJ = lGetSurfaceResidualFace( mJTensorProductContainer.get(), mJFace );
 }
 
 //-----------------------------------------------------------------------------------
@@ -295,24 +295,24 @@ void CEEInterface::ComputeInterfaceResidual
   }
 	
   // Compute the solution on the integration nodes of the owner element.
-	mlInterpolateSurfaceI(sol_m.data(), var_m.data(), nullptr, nullptr); 
+	mFInterpolateSurfaceI(sol_m.data(), var_m.data(), nullptr, nullptr); 
 
 	// Compute the solution on the integration nodes of the matching element.
-	mlInterpolateSurfaceJ(sol_p.data(), var_p.data(), nullptr, nullptr); 
+	mFInterpolateSurfaceJ(sol_p.data(), var_p.data(), nullptr, nullptr); 
 
 
   // Compute the flux state, weighted by the integration nodes and metrics. 
   mRiemannSolverContainer->ComputeFlux(wInt1D, met_m, var_m, var_p, flux);
 
   // Compute the residual on the owned element, which is on the iface boundary.
-  mlComputeResidualFaceI(flux.data(), nullptr, nullptr, res_m->data());
+  mFComputeResidualFaceI(flux.data(), nullptr, nullptr, res_m->data());
 
 	// For local conservation, negate the flux, since it leaves the owner element 
 	// to enter the matching element.
 	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the matching element, which is on the jface boundary.
-	mlComputeResidualFaceJ(flux.data(), nullptr, nullptr, res_p->data());
+	mFComputeResidualFaceJ(flux.data(), nullptr, nullptr, res_p->data());
 }
 
 

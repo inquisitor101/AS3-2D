@@ -258,9 +258,9 @@ class CConfig
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;      ///< Type of Riemann solver per each zone.
 
     std::string mGridDirectory;
-		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.
+		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;           ///< Vector of marker names and boundary conditions.
 		as3vector1d<std::unique_ptr<CPeriodicParamMarker>>  mPeriodicParamMarker; ///< Container of periodic marker parameters.
-		as3vector1d<std::unique_ptr<IBoundaryParamMarker>>  mBoundaryParamMarker;  ///< Container of boundary marker parameters.
+		as3vector1d<std::unique_ptr<IBoundaryParamMarker>>  mBoundaryParamMarker; ///< Container of boundary marker parameters.
 
     /*!
 		 * @brief Function that reads the zone configuration options.
@@ -327,6 +327,8 @@ class CConfig
 		 * @param[in] filename input configuration file.
 		 */
 		void ExtractInfoInterfaceBC(const char *filename);
+
+    void ExtractInfoBoundaryCondition(const char *filename);
 
 		/*!
 		 * @brief Function that maps a single string to an enum.

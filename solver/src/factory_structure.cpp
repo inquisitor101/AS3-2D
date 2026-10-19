@@ -246,33 +246,61 @@ CGenericFactory::CreateTensorContainer
 std::unique_ptr<IBoundary> 
 CGenericFactory::CreateBoundaryContainer
 (
- const CConfig            *config_container,
- const CMultizoneGeometry *multizone_geometry_container,
- unsigned int              index
+ const CConfig              *config_container,
+ const CSinglezoneGeometry  *zone_geometry,
+ const ISolver              *zone_solver,
+ const CBoundaryFacesFamily &boundary_family
 )
  /*
 	* Function that creates a specialized instance of a boundary container.
 	*/
 {
-  WARNING("FINISH ME.");
-	//// Determine the boundary condition associated with this marker. 
-	//auto* param = config_container->GetBoundaryParamMarker( marker_container->GetNameMarker() ); 
+	// Determine the boundary condition parameters associated with this marker. 
+	const auto* param_bc = config_container->GetBoundaryParamMarker( boundary_family.GetName() ); 
 
-	//// Check if the parameter object is found, else issue an error.
-	//if( !param ) 
-	//{
-	//	ERROR("Could not find the boundary parameter for the marker: " 
-	//			  + marker_container->GetNameMarker() 
-	//		    + " with element index: " + std::to_string(index) );
-	//}
+	// Check if the parameter object is found, else issue an error.
+	if( !param_bc ) 
+	{
+		ERROR("Could not find the boundary parameter for the marker: " 
+				  + boundary_family.GetName());
+	}
 
 
-	//// Check what type of container is specified.
-	//switch( param->GetTypeBC() )
-	//{
-	//	
-	//	default: ERROR("Unknown type of boundary container.");
-	//}
+	// Check what type of container is specified.
+	switch( param_bc->GetTypeBC() )
+	{
+    case( ETypeBC::SYMMETRY ):
+    {
+      return std::make_unique<CSymmetryBoundary>(config_container,
+                                                 zone_geometry,
+                                                 zone_solver,
+                                                 boundary_family,
+                                                 param_bc);
+      break;
+    }
+
+    case( ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN ):
+    {
+      return std::make_unique<CRiemannStaticMassInletBoundary>(config_container,
+                                                               zone_geometry,
+                                                               zone_solver,
+                                                               boundary_family,
+                                                               param_bc);
+      break;
+    }
+    
+    case( ETypeBC::PRESSURE_OUTLET_RIEMANN ):
+    {
+      return std::make_unique<CRiemannPressureOutletBoundary>(config_container,
+                                                              zone_geometry,
+                                                              zone_solver,
+                                                              boundary_family,
+                                                              param_bc);
+      break;
+    }
+
+    default: ERROR("Unknown type of boundary container.");
+	}
 
 	// To avoid a compiler warning.
 	return nullptr; 
