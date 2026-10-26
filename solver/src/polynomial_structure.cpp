@@ -1,24 +1,27 @@
 #include "polynomial_structure.hpp"
 
+#include <cmath>
+#include <cstddef>
+
 
 //-----------------------------------------------------------------------------------
 // NPolynomialUtility namespace functions.
 //-----------------------------------------------------------------------------------
 
 
-unsigned short NPolynomialUtility::IntegrationRule1D
+std::size_t NPolynomialUtility::IntegrationRule1D
 (
- unsigned short npoly
+ std::size_t npoly
 )
  /*
-	* Function that estimates the number of integration points in 1D.
+	* Function that selects the one-dimensional over-integration point count.
 	*/
 {
 	// The (over-)integration rule specified.
-	const unsigned short nd = 3; 	
+	const std::size_t nd = 3; 	
 	
-	// Cast the value of the number of integration points, then return it.
-	return static_cast<unsigned short>(nd*npoly/2 + 1);
+	// Return the number of integration points without narrowing it.
+	return nd*npoly/2 + 1;
 }
 
 //-----------------------------------------------------------------------------------
@@ -30,13 +33,12 @@ void NPolynomialUtility::LagrangeBasis1D
  CMatrixAS3<as3double> &L1D
 )
  /*
-	* Function that computes the the Lagrange basis functions in 1D via 2 Vandermonde 
-	* matrices: L = V1*inv(V2).
+	* Function that forms the Lagrange interpolation matrix as V1*inv(V2).
 	*/
 {
 	// Determine the number of rows and columns in the Lagrange polynomial.
-	const size_t nRow = V1.row();
-	const size_t nCol = V1.col();
+	const std::size_t nRow = V1.row();
+	const std::size_t nCol = V1.col();
 
 	// Consistency check for matrix dimensions. Note, V2 must be a square matrix.
 	if( (nCol != V2.row()) || (nCol != V2.col()) ) ERROR("Matrix dimensions are incorrect.");
@@ -55,10 +57,10 @@ void NPolynomialUtility::LagrangeBasis1D
 
 	// Check that the Lagrange basis functions are correct, by ensuring the sum of each row is unity.
 	as3double one = 1.0;	
-	for(size_t i=0; i<nRow; i++)
+	for(std::size_t i=0; i<nRow; i++)
 	{
 		as3double tmp = 0.0;
-		for(size_t j=0; j<nCol; j++)  tmp += L1D(i,j);
+		for(std::size_t j=0; j<nCol; j++)  tmp += L1D(i,j);
 		if( fabs(tmp-one) > 1.0e-10 ) ERROR("Results of the Lagrange interpolation function are incorrect.");
 	}
 }
@@ -72,13 +74,12 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
  CMatrixAS3<as3double> &dL1D
 )
  /*
-	* Function that computes the Lagrange differentiation matrix in 1D via 2 Vandermonde 
-	* matrices: dL = dV1*inv(V2).
+	* Function that forms the Lagrange differentiation matrix as dV1*inv(V2).
 	*/
 {
 	// Determine the number of rows and columns in the derivative of the Lagrange polynomial.
-	const size_t nRow = dV1.row();
-	const size_t nCol = dV1.col();
+	const std::size_t nRow = dV1.row();
+	const std::size_t nCol = dV1.col();
 
 	// Consistency check for matrix dimensions. Note, V2 must be a square matrix.
 	if( (nCol != V2.row()) || (nCol != V2.col()) ) ERROR("Matrix dimensions are incorrect.");
@@ -96,10 +97,10 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
 	if( (dL1D.row() != nRow) || (dL1D.col() != nCol) ) ERROR("Result of differentiation matrix is incorrect.");
 
 	// Check that the differentiation matrix is correct, by ensuring the sum of each row is zero.
-	for(size_t i=0; i<nRow; i++)
+	for(std::size_t i=0; i<nRow; i++)
 	{
 		as3double tmp = 0.0;
-		for(size_t j=0; j<nCol; j++) tmp += dL1D(i,j);
+		for(std::size_t j=0; j<nCol; j++) tmp += dL1D(i,j);
 		if( fabs(tmp) > 1.0e-10 )    ERROR("Results of the Lagrange differentiation matrix are incorrect.");
 	}
 }
@@ -113,22 +114,21 @@ void NPolynomialUtility::DerivativeLagrangeBasisFace1D
  CMatrixAS3<as3double>       &dLmax
 )
  /*
-	* Function that computes the derivative of the Lagrange basis function 
-	* at the min (r = -1) and max (r = +1) faces in 1D.
+	* Function that extracts basis derivatives at the minimum and maximum reference endpoints.
 	*/
 {
 	// Ensure the input matrix is indeed square.
 	if( dLSol1D.row() != dLSol1D.col() ) ERROR("Input differentiation matrix must be square.");
 
 	// Explicitly deduce the dimension of the solution points.
-	const size_t n = dLSol1D.row();
+	const std::size_t n = dLSol1D.row();
 
 	// Allocate memory for both faces.
 	dLmin.resize( n );
 	dLmax.resize( n );
 
 	// Compute the derivative coefficients at the faces.
-	for(size_t i=0; i<n; i++)
+	for(std::size_t i=0; i<n; i++)
 	{
 		dLmin[i] = dLSol1D(0,  i);
 		dLmax[i] = dLSol1D(n-1,i); 
@@ -136,7 +136,7 @@ void NPolynomialUtility::DerivativeLagrangeBasisFace1D
 
 	// Check that the differentiation coefficients are correct, by ensuring the sum of each is zero.
 	as3double min = 0.0, max = 0.0;
-	for(size_t i=0; i<n; i++)
+	for(std::size_t i=0; i<n; i++)
 	{
 		min += dLmin[i];
 		max += dLmax[i];
@@ -152,59 +152,59 @@ void NPolynomialUtility::DerivativeLagrangeBasisFace1D
 
 void NPolynomialUtility::OrthonormalLegendreBasis1D
 (
- const unsigned int           nCol,
+ const std::size_t           nCol,
  const CMatrixAS3<as3double> &rDOFs1D,
  CMatrixAS3<as3double>       &rBasis1D
 )
  /*
-	* Function that computes the Legendre basis functions in 1D.
+	* Function that evaluates orthonormal Legendre basis functions at the supplied nodes.
 	*/
 {
 	// Determine the number of rows.
-	const size_t nRow = rDOFs1D.size();
+	const std::size_t nRow = rDOFs1D.size();
 
 	// Allocate memory for the output basis.
 	rBasis1D.resize(nRow, nCol);
 
-	for(unsigned int iRow=0; iRow<nRow; iRow++)
-		for(unsigned int iCol=0; iCol<nCol; iCol++)
+	for(std::size_t iRow=0; iRow<nRow; iRow++)
+		for(std::size_t iCol=0; iCol<nCol; iCol++)
 			rBasis1D(iRow,iCol) = 
-				NormalizedLegendrePolynomial(static_cast<int>(iCol), rDOFs1D[iRow]);
+				NormalizedLegendrePolynomial(iCol, rDOFs1D[iRow]);
 }
 
 //-----------------------------------------------------------------------------------
 
 void NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D
 (
- const unsigned int           nCol,
+ const std::size_t           nCol,
  const CMatrixAS3<as3double> &rDOFs1D,
  CMatrixAS3<as3double>       &rDerBasis1D
 )
  /*
-	* Function that computes the derivative of the Legendre basis functions in 1D.
+	* Function that evaluates derivatives of the orthonormal Legendre basis at the supplied nodes.
 	*/
 {
 	// Determine the number of rows.
-	const size_t nRow = rDOFs1D.size();
+	const std::size_t nRow = rDOFs1D.size();
 
 	// Allocate memory for the output basis.
 	rDerBasis1D.resize(nRow, nCol);
 
-	for(unsigned int iRow=0; iRow<nRow; iRow++)
-		for(unsigned int iCol=0; iCol<nCol; iCol++)
+	for(std::size_t iRow=0; iRow<nRow; iRow++)
+		for(std::size_t iCol=0; iCol<nCol; iCol++)
 			rDerBasis1D(iRow,iCol) = 
-				DerivativeNormalizedLegendrePolynomial(static_cast<int>(iCol), rDOFs1D[iRow]);
+				DerivativeNormalizedLegendrePolynomial(iCol, rDOFs1D[iRow]);
 }
 
 //-----------------------------------------------------------------------------------
 
 as3double NPolynomialUtility::NormalizedLegendrePolynomial
 (
- const int       n,
+ const std::size_t       n,
  const as3double r
 )
  /*
-	* Function that computes the coefficient of the normalized Legendre polynomial at a point.
+	* Function that evaluates the normalized Legendre polynomial of the requested order.
 	*/
 {
 	// Ensure the evaluation range is between: [-1,+1].
@@ -221,12 +221,11 @@ as3double NPolynomialUtility::NormalizedLegendrePolynomial
 
 as3double NPolynomialUtility::DerivativeNormalizedLegendrePolynomial
 (
- const int       n,
+ const std::size_t       n,
  const as3double r
 )
  /*
-	* Function that computes the coefficient of the derivative of the normalized 
-	* Legendre polynomial at a point.
+	* Function that evaluates the derivative of a normalized Legendre polynomial.
 	*/
 {
 	// Ensure the evaluation range is between: [-1,+1].
@@ -243,16 +242,15 @@ as3double NPolynomialUtility::DerivativeNormalizedLegendrePolynomial
 
 as3double NPolynomialUtility::DerivativeNormalizedJacobiPolynomial
 (
- const int       n, 
+ const std::size_t       n, 
  const int       alpha,
  const int       beta,
  const as3double r
 )
  /*
-	* Function that computes the value of the derivative of the normalized Jacobi 
-	* polynomial with coefficients alpha and beta of order n for the given value of r.
+	* Function that evaluates the derivative of a normalized Jacobi polynomial.
 	*
-	* NOTE, this function is taken from Edwin van der Weide's implementatoin in VCP3D.
+	* NOTE, adapted from Edwin van der Weide's implementation in VCP3D.
 	*/
 {
   // Make a distinction for n == 0 and n > 0. For n == 0 the derivative is
@@ -261,7 +259,8 @@ as3double NPolynomialUtility::DerivativeNormalizedJacobiPolynomial
   if(n == 0) grad = 0.0;
   else
   {
-    const as3double tmp = n*(n+alpha+beta+1.0);
+    const as3double degree = static_cast<as3double>(n);
+    const as3double tmp = degree*(degree+alpha+beta+1.0);
     grad = std::sqrt(tmp)*NormalizedJacobiPolynomial(n-1, alpha+1, beta+1, r);
   }
 
@@ -273,16 +272,15 @@ as3double NPolynomialUtility::DerivativeNormalizedJacobiPolynomial
 
 as3double NPolynomialUtility::NormalizedJacobiPolynomial
 (
- const int       n, 
+ const std::size_t       n, 
  const int       alpha,
  const int       beta,
  const as3double r
 )
  /*
-	* Function that computes the value of the normalized Jacobi polynomial with 
-	* coefficients alpha and beta of order n for the given value of r.
+	* Function that evaluates a normalized Jacobi polynomial at the supplied point.
 	*
-	* NOTE, this function is taken from Edwin van der Weide's implementatoin in VCP3D.
+	* NOTE, adapted from Edwin van der Weide's implementation in VCP3D.
 	*/
 {
 	// Ensure the evaluation range is between: [-1,+1].
@@ -317,17 +315,18 @@ as3double NPolynomialUtility::NormalizedJacobiPolynomial
   {
     // The value of the normalized Jacobi polynomial must be obtained
     // via recursion.
-    for(int i=2; i<=n; ++i)
+    for(std::size_t i=2; i<=n; ++i)
     {
       // Compute the coefficients a for i and i-1 and the coefficient bi.
-      int j = i-1;
+      const as3double j = static_cast<as3double>(i-1);
+      const as3double degree = static_cast<as3double>(i);
       as3double tmp  = 2*j + apb;
       as3double aim1 = 2.0*std::sqrt(j*(j+apb)*(j+alpha)*(j+beta)/((tmp-1.0)*(tmp+1.0)))/tmp;
 
       as3double bi = b2ma2/(tmp*(tmp+2.0));
 
-      tmp = 2*i + apb;
-      as3double ai = 2.0*std::sqrt(i*(i+apb)*(i+alpha)*(i+beta)/((tmp-1.0)*(tmp+1.0)))/tmp;
+      tmp = 2*degree + apb;
+      as3double ai = 2.0*std::sqrt(degree*(degree+apb)*(degree+alpha)*(degree+beta)/((tmp-1.0)*(tmp+1.0)))/tmp;
 
       // Compute the new value of Pn and make sure to store Pnm1 correctly.
       tmp  = Pnm1;

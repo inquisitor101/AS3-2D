@@ -1,5 +1,15 @@
 #pragma once 
 
+/*!
+ * @file
+ * @brief Physical boundary states and their surface residual contributions.
+ */
+
+
+#include <array>
+#include <functional>
+#include <memory>
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
@@ -20,37 +30,65 @@ class IBoundary
 {
   private:
 
+    /*!
+     * @brief Callable accepting a solution and optional value, r-derivative and s-derivative outputs.
+     */
     using AInterpolateSurface = std::function<void(const as3double*,
                                                          as3double*,
                                                          as3double*,
                                                          as3double*)>;
 
+    /*!
+     * @brief Callable that lifts weighted value and derivative inputs into a face residual.
+     */
     using AComputeResidualFace = std::function<void(const as3double*,
                                                           as3double*,
                                                           as3double*,
                                                           as3double*)>;
 	public:
 	
+
+    /*!
+     * @brief Constructor that initializes IBoundary from the specified data.
+     *
+     * @param[in] config_container configuration/dictionary container.
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     * @param[in] singlezone_solver_container solver and element storage for the current zone.
+     * @param[in] boundary_batch physical boundary face batch.
+     * @param[in] param_bc parameters associated with this physical boundary marker.
+     */
     IBoundary(const CConfig              *config_container,
 				      const CSinglezoneGeometry  *singlezone_geometry_container,
               const ISolver              *singlezone_solver_container,
-              const CBoundaryFacesFamily &boundary_family,
+              const CBoundaryFaceBatch   &boundary_batch,
               const IBoundaryParamMarker *param_bc);
 
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Virtual destructor for destruction through the component interface.
 		 */
 		virtual ~IBoundary(void);
 
 
 		/*!
-		 * @brief Pure virtual function that returns the type of BC. Must be overridden.
+		 * @brief Getter function which returns the boundary-condition type implemented by this object.
+		 *
+		 * @return boundary-condition type implemented by this object.
 		 */
 		virtual ETypeBC GetTypeBC(void) const = 0;
 
+    /*!
+     * @brief Function that computes one boundary flux and writes the adjacent element face residual buffer.
+     *
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     * @param[in,out] singlezone_solver_container solver and element storage for the current zone.
+     * @param[in] face_batch connectivity and orientation of the current face batch.
+     * @param[in] face_info face category and category-local batch and face indices.
+     * @param[in,out] workarray workspace pool owned by the calling thread.
+     * @param[in] localtime physical time at which the residual is evaluated.
+     */
     void ComputeBoundaryResidual(const CSinglezoneGeometry  *singlezone_geometry_container,
                                  ISolver                    *singlezone_solver_container,
-                                 const CBoundaryFacesFamily &family_face,
+                                 const CBoundaryFaceBatch   &face_batch,
                                  CFlattenedFaceIndex         face_info,
                                  CPoolMatrixAS3<as3double>  &workarray,
                                  as3double                   localtime) const;
@@ -59,9 +97,16 @@ class IBoundary
 		
     std::unique_ptr<IRiemannSolver> mRiemannSolverContainer;  ///< Riemann solver container.
 
-    AInterpolateSurface  mFInterpolateSurface;
-    AComputeResidualFace mFComputeResidualFace;
+    AInterpolateSurface  mFInterpolateSurface;   ///< Selected interpolation kernel for the local boundary edge.
+    AComputeResidualFace mFComputeResidualFace;  ///< Selected kernel for lifting this face flux into an element residual.
 
+    /*!
+     * @brief Function that constructs the exterior conservative state used by the boundary Riemann solver.
+     *
+     * @param[in] met surface metric rows: length factor, outward normal x, outward normal y.
+     * @param[in] var_e interior conservative state at the boundary integration points.
+     * @param[out] var_b exterior conservative state passed to the Riemann solver.
+     */
     virtual void ComputeBoundaryState(const CMatrixAS3<as3double>     &met,
                                       const CWorkMatrixAS3<as3double> &var_e,
                                       CWorkMatrixAS3<as3double>       &var_b) const = 0;
@@ -77,89 +122,179 @@ class IBoundary
 		IBoundary& operator=(IBoundary&) = delete;
 
 
+    /*!
+     * @brief Function that selects face interpolation and residual lifting kernels for the local edges.
+     *
+     * @param[in,out] singlezone_solver_container solver and element storage for the current zone.
+     * @param[in] face_location local edge: IMIN, IMAX, JMIN or JMAX.
+     */
     void InitializeComputeKernels(const ISolver *singlezone_solver_container,
                                   EFaceLocation  face_location);
 };
 
 //-----------------------------------------------------------------------------------
 
-class CSymmetryBoundary : public IBoundary
+/*!
+ * @brief An inviscid symmetry boundary with reflected normal velocity.
+ */
+class CSymmetryBoundary final : public IBoundary
 {
 	public:
 	
+
+		/*!
+		 * @brief Constructor that initializes CSymmetryBoundary from the specified data.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] singlezone_geometry_container geometry of the current zone.
+		 * @param[in] singlezone_solver_container solver and element storage for the current zone.
+		 * @param[in] boundary_batch physical boundary face batch.
+		 * @param[in] param_bc parameters associated with this physical boundary marker.
+		 */
 		CSymmetryBoundary(const CConfig              *config_container,
 				              const CSinglezoneGeometry  *singlezone_geometry_container,
                       const ISolver              *singlezone_solver_container,
-                      const CBoundaryFacesFamily &boundary_family,
+                      const CBoundaryFaceBatch   &boundary_batch,
                       const IBoundaryParamMarker *param_bc);
 
-    ~CSymmetryBoundary(void) final;
+    /*!
+     * @brief Destructor that releases the resources owned by this object.
+     */
+    ~CSymmetryBoundary(void) override;
 
-    ETypeBC GetTypeBC(void) const final { return ETypeBC::SYMMETRY; }
+    /*!
+     * @brief Getter function which returns the boundary-condition type implemented by this marker or boundary.
+     *
+     * @return boundary-condition type implemented by this object.
+     */
+    ETypeBC GetTypeBC(void) const override { return ETypeBC::SYMMETRY; }
 
   protected:
 
   private:
 
+    /*!
+     * @brief Function that constructs the exterior conservative state used by the boundary Riemann solver.
+     *
+     * @param[in] met surface metric rows: length factor, outward normal x, outward normal y.
+     * @param[in] var_e interior conservative state at the boundary integration points.
+     * @param[out] var_b exterior conservative state passed to the Riemann solver.
+     */
     void ComputeBoundaryState(const CMatrixAS3<as3double>     &met,
                               const CWorkMatrixAS3<as3double> &var_e,
-                              CWorkMatrixAS3<as3double>       &var_b) const;
+                              CWorkMatrixAS3<as3double>       &var_b) const override;
 
 };
 
 
 //-----------------------------------------------------------------------------------
 
-class CRiemannStaticMassInletBoundary : public IBoundary
+/*!
+ * @brief An inlet that supplies prescribed density and velocity to the Riemann solver.
+ */
+class CRiemannStaticMassInletBoundary final : public IBoundary
 {
 	public:
 	
+
+		/*!
+		 * @brief Constructor that initializes CRiemannStaticMassInletBoundary from the specified data.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] singlezone_geometry_container geometry of the current zone.
+		 * @param[in] singlezone_solver_container solver and element storage for the current zone.
+		 * @param[in] boundary_batch physical boundary face batch.
+		 * @param[in] param_bc parameters associated with this physical boundary marker.
+		 */
 		CRiemannStaticMassInletBoundary(const CConfig              *config_container,
 				                            const CSinglezoneGeometry  *singlezone_geometry_container,
                                     const ISolver              *singlezone_solver_container,
-                                    const CBoundaryFacesFamily &boundary_family,
+                                    const CBoundaryFaceBatch   &boundary_batch,
                                     const IBoundaryParamMarker *param_bc);
 
-    ~CRiemannStaticMassInletBoundary(void) final;
+    /*!
+     * @brief Destructor that releases the resources owned by this object.
+     */
+    ~CRiemannStaticMassInletBoundary(void) override;
 
-    ETypeBC GetTypeBC(void) const final { return ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN; }
+    /*!
+     * @brief Getter function which returns the boundary-condition type implemented by this marker or boundary.
+     *
+     * @return boundary-condition type implemented by this object.
+     */
+    ETypeBC GetTypeBC(void) const override { return ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN; }
 
   protected:
 
   private:
-    as3double                mPrescribedDensity;
-    std::array<as3double, 2> mPrescribedVelocity;
+    as3double                mPrescribedDensity;   ///< Prescribed inlet static density.
+    std::array<as3double, 2> mPrescribedVelocity;  ///< Prescribed inlet Cartesian velocity components.
 
+    /*!
+     * @brief Function that constructs the exterior conservative state used by the boundary Riemann solver.
+     *
+     * @param[in] met surface metric rows: length factor, outward normal x, outward normal y.
+     * @param[in] var_e interior conservative state at the boundary integration points.
+     * @param[out] var_b exterior conservative state passed to the Riemann solver.
+     */
     void ComputeBoundaryState(const CMatrixAS3<as3double>     &met,
                               const CWorkMatrixAS3<as3double> &var_e,
-                              CWorkMatrixAS3<as3double>       &var_b) const;
+                              CWorkMatrixAS3<as3double>       &var_b) const override;
 };
 
 
 //-----------------------------------------------------------------------------------
 
-class CRiemannPressureOutletBoundary : public IBoundary
+/*!
+ * @brief An outlet that supplies prescribed static pressure to the Riemann solver.
+ */
+class CRiemannPressureOutletBoundary final : public IBoundary
 {
 	public:
 	
+
+		/*!
+		 * @brief Constructor that initializes CRiemannPressureOutletBoundary from the specified data.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] singlezone_geometry_container geometry of the current zone.
+		 * @param[in] singlezone_solver_container solver and element storage for the current zone.
+		 * @param[in] boundary_batch physical boundary face batch.
+		 * @param[in] param_bc parameters associated with this physical boundary marker.
+		 */
 		CRiemannPressureOutletBoundary(const CConfig              *config_container,
 				                           const CSinglezoneGeometry  *singlezone_geometry_container,
                                    const ISolver              *singlezone_solver_container,
-                                   const CBoundaryFacesFamily &boundary_family,
+                                   const CBoundaryFaceBatch   &boundary_batch,
                                    const IBoundaryParamMarker *param_bc);
 
-    ~CRiemannPressureOutletBoundary(void) final;
+    /*!
+     * @brief Destructor that releases the resources owned by this object.
+     */
+    ~CRiemannPressureOutletBoundary(void) override;
 
-    ETypeBC GetTypeBC(void) const final { return ETypeBC::PRESSURE_OUTLET_RIEMANN; }
+    /*!
+     * @brief Getter function which returns the boundary-condition type implemented by this marker or boundary.
+     *
+     * @return boundary-condition type implemented by this object.
+     */
+    ETypeBC GetTypeBC(void) const override { return ETypeBC::PRESSURE_OUTLET_RIEMANN; }
 
   protected:
 
   private:
-    as3double mPrescribedPressure;
+    as3double mPrescribedPressure; ///< Prescribed outlet static pressure.
 
+    /*!
+     * @brief Function that constructs the exterior conservative state used by the boundary Riemann solver.
+     *
+     * @param[in] met surface metric rows: length factor, outward normal x, outward normal y.
+     * @param[in] var_e interior conservative state at the boundary integration points.
+     * @param[out] var_b exterior conservative state passed to the Riemann solver.
+     */
     void ComputeBoundaryState(const CMatrixAS3<as3double>     &met,
                               const CWorkMatrixAS3<as3double> &var_e,
-                              CWorkMatrixAS3<as3double>       &var_b) const;
+                              CWorkMatrixAS3<as3double>       &var_b) const override;
 
 };  
 

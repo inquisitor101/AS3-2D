@@ -1,5 +1,8 @@
 #include "linear_algebra.hpp"
 
+#include <cstddef>
+#include <limits>
+
 
 
 /*!
@@ -14,11 +17,24 @@ extern "C"
   void dgetri_(int*, double*, int*, int*, double*, int*, int*);
 
 	// Compute a generalized matrix-matrix multiplication (double-precision).
-	int dgemm_(char*, char*, int*, int*, int*, double*, double*, 
+	void dgemm_(char*, char*, int*, int*, int*, double*, double*, 
 			       int*, double*, int*, double*, double*, int*);
 }
 
 
+
+namespace
+{
+  int LapackDimension(std::size_t value)
+   /*
+    * Function that checks and converts a matrix dimension to the LAPACK integer type.
+    */
+  {
+    if(value > static_cast<std::size_t>(std::numeric_limits<int>::max()))
+      ERROR("Matrix dimension exceeds the LAPACK LP64 integer range.");
+    return static_cast<int>(value);
+  }
+}
 
 //-----------------------------------------------------------------------------------
 // NLinearAlgebra namespace functions.
@@ -30,18 +46,18 @@ void NLinearAlgebra::InverseMatrix
  CMatrixAS3<as3double> &A
 )
  /*
-	* Function that computes the inverse of the given matrix (double-precision).
+	* Function that replaces a dense matrix by its double-precision LAPACK inverse.
 	*/
 {
 	// Check the matrix is indeed a square matrix.
 	if( A.row() != A.col() ) ERROR("Cannot invert a non-square matrix.");
 
-	// Cast to integer safely.
-	int n = static_cast<int>( A.row() );
+	// Check the dimension before converting to LAPACK LP64.
+	int n = LapackDimension(A.row());
   
 	// Allocate the memory for the work arrays.
-  as3vector1d<int>       ipivVec(n);
-  as3vector1d<as3double> workVec(n);
+  as3vector1d<int>       ipivVec(A.row());
+  as3vector1d<as3double> workVec(A.row());
 
   // Determine the pointers for the data in the vectors.
   int *ipiv = ipivVec.data();
@@ -68,7 +84,7 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
  CMatrixAS3<as3double> &matB
 )
  /*
-	* Function that computes a generalized matrix-matrix multiplication via BLAS (double-precision).
+	* Function that computes a double-precision matrix product through BLAS.
 	*/
 {
 	// Note, the GEMM BLAS routine assumes column-major, since the implementation is in Fortran.
@@ -99,12 +115,12 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
 	double one  = 1.0;
 	double zero = 0.0;
 
-	int m = static_cast<int>(matB.col()); // rows of  left-matrix, i.e.: B^T.
-	int n = static_cast<int>(matA.row()); // cols of right-matrix, i.e.: A^T.
-	int c = static_cast<int>(matB.row()); // common size.
+	int m = LapackDimension(matB.col()); // rows of  left-matrix, i.e.: B^T.
+	int n = LapackDimension(matA.row()); // cols of right-matrix, i.e.: A^T.
+	int c = LapackDimension(matB.row()); // common size.
 
 	// Allocate the matrix to the correct size in row-major form, i.e. rows(A)*col(B).
-	CMatrixAS3<as3double> matC(n, m);
+	CMatrixAS3<as3double> matC(matA.row(), matB.col());
 
 	as3double *A = matB.data(); // switched to B.
 	as3double *B = matA.data(); // switched to A.
@@ -125,27 +141,27 @@ CMatrixAS3<as3double> NLinearAlgebra::MatrixMatrixMult
  CMatrixAS3<as3double> &matB
 )
  /*
-	* Function that computes a matrix-matrix multiplication manually.
+	* Function that computes a dense matrix product.
 	*/
 {
 	// Ensure the common dimension of the matrices is correct.
 	if( matA.col() != matB.row() ) ERROR("Matrix dimensions are incorrect.");
 
 	// Extract the numbner of rows and columns of C and the common dimension.
-	const size_t nRow = matA.row();
-	const size_t nCol = matB.col();
-	const size_t nDim = matA.col(); // Common dimension.
+	const std::size_t nRow = matA.row();
+	const std::size_t nCol = matB.col();
+	const std::size_t nDim = matA.col(); // Common dimension.
 
 	// Allocate the matrix to the correct size in row-major form, i.e. rows(A)*col(B).
 	CMatrixAS3<as3double> matC(nRow, nCol);
 
 	// Perform actual matrix-matrix multiplication.
-	for(size_t i=0; i<nRow; i++)
+	for(std::size_t i=0; i<nRow; i++)
 	{
-		for(size_t j=0; j<nCol; j++)
+		for(std::size_t j=0; j<nCol; j++)
 		{
 			matC(i,j) = C_ZERO; 
-			for(size_t k=0; k<nDim; k++)
+			for(std::size_t k=0; k<nDim; k++)
 			{
 				matC(i,j) += matA(i,k)*matB(k,j);
 			}
@@ -164,29 +180,29 @@ CMatrixAS3<as3double> NLinearAlgebra::MatrixVectorMult
  CMatrixAS3<as3double> &vecB
 )
  /*
-	* Function that computes a matrix-vector multiplication manually.
+	* Function that multiplies a matrix by one or more column vectors.
 	*/
 {
 	// Ensure the common dimension of the dot product per vector is correct.
 	if( matA.col() != vecB.col() ) ERROR("Incompatible dot product dimension.");
 
 	// Extract the numbner of rows and columns of A.
-	const size_t nRow = matA.row();
-	const size_t nCol = matA.col();
+	const std::size_t nRow = matA.row();
+	const std::size_t nCol = matA.col();
 
 	// Extract the number of vectors that are matrix-vector multiplied with matA.
-	const size_t nVec = vecB.row();
+	const std::size_t nVec = vecB.row();
 
 	// Allocate the matrix of vectors to the correct size.
 	CMatrixAS3<as3double> vecC(nVec, nRow);
 
 	// Perform actual matrix-vector multiplication on each vector: i.
-	for(size_t i=0; i<nVec; i++)
+	for(std::size_t i=0; i<nVec; i++)
 	{
-		for(size_t j=0; j<nRow; j++)
+		for(std::size_t j=0; j<nRow; j++)
 		{
 			vecC(i,j) = C_ZERO; 
-			for(size_t k=0; k<nCol; k++)
+			for(std::size_t k=0; k<nCol; k++)
 			{
 				vecC(i,j) += matA(j,k)*vecB(i,k);
 			}
@@ -207,14 +223,14 @@ void NLinearAlgebra::MatrixVectorTransMult
  CMatrixAS3<as3double> &tmpV
 )
  /*
-	* Function that computes a matrix-vector multiplication manually, with the vector transposed.
+	* Function that multiplies a matrix by vectors stored row-wise.
 	*/
 {	
   // Extract the numbner of rows and columns of A.
-	const size_t nRow = matA.row();
-	const size_t nCol = matA.col();
+	const std::size_t nRow = matA.row();
+	const std::size_t nCol = matA.col();
 	// Extract the number of vectors that are matrix-vector multiplied with matA.
-	const size_t nVec = vecB.row();
+	const std::size_t nVec = vecB.row();
 
   // Consistency check.
 #if DEBUG
@@ -229,24 +245,24 @@ void NLinearAlgebra::MatrixVectorTransMult
     ERROR("Incompatible matrix-vector dimensions.");
   }
 
-  if(tmp.size() < nRow) ERROR("Insufficient temporary storage.");
+  if(tmpV.size() < nRow) ERROR("Insufficient temporary storage.");
 #endif
 
 	// Obtain a temporary vector for storing the results.
 	as3double *tmp = tmpV.data();
 
 	// Perform actual matrix-vector multiplication on each vector: i.
-	for(size_t i=0; i<nVec; i++)
+	for(std::size_t i=0; i<nVec; i++)
 	{
-		for(size_t j=0; j<nRow; j++)
+		for(std::size_t j=0; j<nRow; j++)
 		{
 			tmp[j] = C_ZERO;
-			for(size_t k=0; k<nCol; k++)
+			for(std::size_t k=0; k<nCol; k++)
 			{
 				tmp[j] += matA(j,k)*vecB(i,k);
 			}
 		}
-		for(size_t j=0; j<nRow; j++) vecC(i,j) = tmp[j];
+		for(std::size_t j=0; j<nRow; j++) vecC(i,j) = tmp[j];
 	}
 }
 
@@ -258,21 +274,20 @@ void NLinearAlgebra::TransposeAS3Matrix
  CMatrixAS3<as3double> &At
 )
  /*
-	* Function that computes the transpose of an AS3-type matrix.
-	* Note, this routine allocates the memory for At.
+	* Function that allocates and fills the transpose of a matrix.
 	*/
 {
 	// Extract the dimensions.
-	const size_t m = A.row();
-	const size_t n = A.col();
+	const std::size_t m = A.row();
+	const std::size_t n = A.col();
 
 	// Allocate memory for the transposed matrix.
 	At.resize( n, m );
 
 	// Transpose the matrix.
-	for(size_t i=0; i<m; i++)
+	for(std::size_t i=0; i<m; i++)
 	{
-		for(size_t j=0; j<n; j++)
+		for(std::size_t j=0; j<n; j++)
 		{
 			At(j,i) = A(i,j);
 		}

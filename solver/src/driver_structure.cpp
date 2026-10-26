@@ -1,5 +1,17 @@
 #include "driver_structure.hpp"
 
+#include <algorithm>
+#include <chrono>
+#include <cmath>
+#include <cstddef>
+#include <ctime>
+#include <iomanip>
+#include <ios>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <string>
+
 
 //-----------------------------------------------------------------------------------
 // CDriver member functions.
@@ -11,7 +23,7 @@ CDriver::CDriver
  const char *filename
 )
  /*
-	* Constructor for the driver, which initiates the solver.
+	* Constructor that creates the simulation components.
 	*/
 {
 	// Initialize a config container.
@@ -52,7 +64,7 @@ CDriver::~CDriver
  void
 )
  /*
-	* Destructor, which cleans up after the driver class.
+	* Destructor for CDriver.
 	*/
 {
 
@@ -65,7 +77,7 @@ void CDriver::StartSolver
  void
 )
  /*
-	* Function that runs the entire simulation. 
+	* Function that initializes and runs the simulation and reports its elapsed time.
 	*/
 {
 	// Record start time, based on processor time (not physical time).
@@ -105,7 +117,7 @@ void CDriver::PreProcess
  void
 )
  /*
-	* Function that preprocesses the data, prior to starting the simulation.
+	* Function that initializes the simulation data before time advancement.
 	*/
 {
 	// First, initialize the solution and physical elements.
@@ -119,7 +131,7 @@ void CDriver::InitializeData
  void
 )
  /*
-	* Function that initializes the data for the simulation. 
+	* Function that initializes element states, topology, interfaces and physical boundaries.
 	*/
 {
 	// Report output.
@@ -128,7 +140,7 @@ void CDriver::InitializeData
 	std::cout << "Initializing multizone components in: " << std::endl;
 
 	// Loop over each zone and instantiate the necessary objects.
-	for(size_t iZone=0; iZone<mMultizoneSolverContainer->GetnZone(); iZone++)
+	for(std::size_t iZone=0; iZone<mMultizoneSolverContainer->GetnZone(); iZone++)
 	{
 		// Report output.
 		std::cout << "  zone: " << iZone << ")" << std::endl;
@@ -147,7 +159,7 @@ void CDriver::InitializeData
 
 
   // Initializes the grid topology (element and faces).
-	mMultizoneGeometryContainer->InitializeGridTopology(mConfigContainer.get(), mOpenMPContainer.get());
+	mMultizoneGeometryContainer->InitializeGridTopology(mOpenMPContainer.get());
 
   // Initialize the interfaces, after determining the grid topology first!
   mMultizoneSolverContainer->InitializeInterfaces( mConfigContainer.get(), 
@@ -176,18 +188,18 @@ void CDriver::InitializeData
 
 void CDriver::WriteOutput
 (
- size_t    i,
+ std::size_t    i,
  as3double t,
  as3double dt
 )
  /*
-	* Function that writes the output information. 
+	* Function that writes scheduled visualization files and prints monitoring values.
 	*/
 {
 	// For convenience, extract the properties of the simulation end time.
-	const size_t nIter = mConfigContainer->GetMaxIterTime();
+	const std::size_t nIter = mConfigContainer->GetMaxIterTime();
 	// Extract the visualization output frequency.
-	const size_t fvis  = mConfigContainer->GetWriteVisFreq();
+	const std::size_t fvis  = mConfigContainer->GetWriteVisFreq();
 
 	// Flag whether the the visualization file is written.
 	bool isvis = false;
@@ -238,7 +250,7 @@ void CDriver::Run
  void
 )
  /*
-	* Function that runs the simulation in time. 
+	* Function that advances the simulation through its configured synchronization intervals.
 	*/
 {
 	// Report solver specification as output.
@@ -251,10 +263,10 @@ void CDriver::Run
 	const as3double ts = mConfigContainer->GetTimeStep();
 
 	// Extract the total number of time synchronization iterations.
-	const size_t nSyncStep = mConfigContainer->GetMaxIterTime();
+	const std::size_t nSyncStep = mConfigContainer->GetMaxIterTime();
 
 	// Initialize the current time and iteration step.
-	as3double cTime = t0; size_t iSyncStep = 0;
+	as3double cTime = t0; std::size_t iSyncStep = 0;
 
 	// Write the initial output.
 	WriteOutput(iSyncStep, cTime, ts);
@@ -281,7 +293,7 @@ as3double CDriver::ComputeTimeStep
  void
 )
  /*
-	* Function that computes the time step, based on stability constraints. 
+	* Function that computes the global stable time step from the CFL constraint.
 	*/
 {
 	// Extract the specified CFL number.
@@ -294,13 +306,13 @@ as3double CDriver::ComputeTimeStep
 	as3double maxM2 = C_ZERO;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = mMultizoneGeometryContainer->GetnElemTotal();
+	const std::size_t nElemTotal = mMultizoneGeometryContainer->GetnElemTotal();
 
 	// Loop over all the elements in all the solvers.
 #ifdef HAVE_OPENMP
 #pragma omp parallel for schedule(static), reduction(max:dtinv), reduction(max:maxM2)
 #endif
-	for(size_t i=0; i<nElemTotal; i++)
+	for(std::size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
 		const auto elem_info = mMultizoneGeometryContainer->GetFlattenedIndexVolumeElement(i);
@@ -315,7 +327,7 @@ as3double CDriver::ComputeTimeStep
 		auto* element = solver->GetPhysicalElement(iElem);
 
 		// Extract the number of DOFs on each element in this zone. 
-		const size_t   nSol2D = solver->GetStandardElement()->GetnSol2D();
+		const std::size_t   nSol2D = solver->GetStandardElement()->GetnSol2D();
 		// Extract the polynomial order in this zone.
 		const as3double npoly = static_cast<as3double>( solver->GetStandardElement()->GetnPolySol() );
 		// Deduce the maximum inviscid polynomial coefficient.
@@ -338,7 +350,7 @@ as3double CDriver::ComputeTimeStep
 		as3double maxm2    = C_ZERO;
 
 		// Loop over each DOF and compute the stability time limit.
-		for(size_t l=0; l<nSol2D; l++)
+		for(std::size_t l=0; l<nSol2D; l++)
 		{
   		// Compute the primitive variables.
   		const as3double rho   = sol(0,l);
@@ -397,14 +409,14 @@ void CDriver::ExecuteTimeSyncStep
  as3double t0
 )
  /*
-	* Function that computes the solution based on a synchronized time step.
+	* Function that advances one synchronization interval using stable temporal substeps.
 	*/
 {
 	// Flag that specified whether the time is sync'd or not.
 	bool issync = false;
 
 	// Counter for the number of sub-steps in this function.
-	size_t nSubStep = 0;
+	std::size_t nSubStep = 0;
 
 	// Minimum and maximum time steps.
 	as3double dtmin = static_cast<as3double>( 99999.0 );

@@ -1,8 +1,20 @@
 #pragma once 
 
+/*!
+ * @file
+ * @brief Interior, boundary and interface face connectivity and batch-local indexing.
+ */
+
+
+#include <array>
+#include <cstddef>
+#include <string>
+#include <utility>
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "marker_structure.hpp"
+#include "flattened_index_structure.hpp"
 
 
 // Forward declaration to avoid compiler problems.
@@ -12,10 +24,13 @@ class CSinglezoneGeometry;
 
 
 
-struct CElementFaceIndex
+/*!
+ * @brief The batch index and batch-local face index within one face collection.
+ */
+struct CFaceAddress
 {
-  std::size_t mIndexFamily;
-  std::size_t mIndexFace;
+  std::size_t mIndexBatch;  ///< Batch index local to the selected face category.
+  std::size_t mIndexFace;   ///< Face index local to its batch.
 };
 
 
@@ -24,386 +39,655 @@ struct CElementFaceIndex
 //-----------------------------------------------------------------------------------
 
 
-struct CInternalElementFaceGeometry
+/*!
+ * @brief The minus-side element of an interior face within a zone.
+ */
+struct CInteriorFace
 {
-  std::size_t mIndexElementM;
+  std::size_t mIndexElementMinus; ///< Zone-local minus-side element; add the batch offset to obtain the plus-side element.
 };
 
 //-----------------------------------------------------------------------------------
 
-class CInternalFacesFamily
+/*!
+ * @brief Interior faces sharing one zone, logical direction and neighbor offset.
+ */
+class CInteriorFaceBatch
 {
-  using AInternalFaceVector = as3vector1d<CInternalElementFaceGeometry>;
+
+  /*!
+   * @brief Vector storing batch-local face records.
+   */
+  using AInteriorFaceVector = as3vector1d<CInteriorFace>;
   
   public:
-    CInternalFacesFamily(ETypeFace                  face_type, 
-                         const CSinglezoneGeometry *singlezone_geometry_container);
 
-    const AInternalFaceVector& GetInternalFaces(void) const
+    /*!
+     * @brief Constructor that initializes CInteriorFaceBatch from the specified data.
+     *
+     * @param[in] face_direction logical I- or J-face direction.
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     */
+    CInteriorFaceBatch(ETypeFace                  face_direction, 
+                       const CSinglezoneGeometry *singlezone_geometry_container);
+
+    /*!
+     * @brief Getter function which returns the face records in this batch.
+     *
+     * @return face records in this batch.
+     */
+    const AInteriorFaceVector& GetFaces(void) const
     {
-      return mInternalFaces;
+      return mFaces;
     }
-    const CInternalElementFaceGeometry& GetInternalFace(std::size_t i) const
+
+    /*!
+     * @brief Getter function which returns one batch-local face record.
+     *
+     * @param[in] i zero-based face index local to this batch.
+     *
+     * @return one batch-local face record.
+     */
+    const CInteriorFace& GetFace(std::size_t i) const
     {
-      return mInternalFaces[i];
+      return mFaces[i];
     }
-    std::size_t GetnFace(void) const {return mInternalFaces.size();}
-    std::size_t GetiZone(void) const {return mIndexZone;}
+
+    /*!
+     * @brief Getter function which returns the number of faces.
+     *
+     * @return number of faces.
+     */
+    std::size_t GetnFace(void) const {return mFaces.size();}
+
+    /*!
+     * @brief Getter function which returns the zone index owning this batch.
+     *
+     * @return zone index owning this batch.
+     */
+    std::size_t GetZoneIndex(void) const {return mIndexZone;}
+
+    /*!
+     * @brief Getter function which returns the logical I- or J-face direction.
+     *
+     * @return logical I- or J-face direction.
+     */
+    ETypeFace GetFaceDirection(void) const {return mFaceDirection;}
+
+    /*!
+     * @brief Getter function which returns the offset from the minus-side element to its plus-side neighbor.
+     *
+     * @return offset from the minus-side element to its plus-side neighbor.
+     */
+    std::size_t GetNeighborElementOffset(void) const {return mOffsetElementPlus;}
 
   private:
-    ETypeFace           mTypeFace;
-    std::size_t         mIndexZone;
-    std::size_t         mOffsetElementPlus;
-    AInternalFaceVector mInternalFaces;
+    ETypeFace           mFaceDirection;      ///< Logical I- or J-face direction.
+    std::size_t         mIndexZone;          ///< Index of the containing zone.
+    std::size_t         mOffsetElementPlus;  ///< Offset from the minus-side element to its plus-side neighbor.
+    AInteriorFaceVector mFaces;              ///< Face records local to this batch.
 
-    void InitializeInternalFaces(const CSinglezoneGeometry *singlezone_geometry_container);
+    /*!
+     * @brief Function that constructs face records from zone-edge connectivity.
+     *
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     */
+    void InitializeFaces(const CSinglezoneGeometry *singlezone_geometry_container);
 };
 
 //-----------------------------------------------------------------------------------
 
-struct CBoundaryElementFaceGeometry
+/*!
+ * @brief The adjacent zone-local element of a physical boundary face.
+ */
+struct CBoundaryFace
 {
-  std::size_t mIndexElement;
+  std::size_t mIndexElement; ///< Zone-local element adjacent to this boundary face.
 };
 
 //-----------------------------------------------------------------------------------
 
-class CBoundaryFacesFamily
+/*!
+ * @brief Physical boundary faces sharing one zone edge and marker name.
+ */
+class CBoundaryFaceBatch
 {
-  using ABoundaryFaceVector = as3vector1d<CBoundaryElementFaceGeometry>;
+
+  /*!
+   * @brief Vector storing batch-local face records.
+   */
+  using ABoundaryFaceVector = as3vector1d<CBoundaryFace>;
   
   public:
-    CBoundaryFacesFamily(const CSinglezoneGeometry                    *singlezone_geometry_container,
-                         const CExternalFamilyMarker::CExternalMarker &marker,
-                         const std::string                            &name);
 
-    const ABoundaryFaceVector& GetBoundaryFaces(void) const
+    /*!
+     * @brief Constructor that initializes CBoundaryFaceBatch from the specified data.
+     *
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     * @param[in] marker zone-edge marker defining this batch.
+     * @param[in] name name identifying the boundary marker.
+     */
+    CBoundaryFaceBatch(const CSinglezoneGeometry                    *singlezone_geometry_container,
+                       const CExternalFamilyMarker::CExternalMarker &marker,
+                       const std::string                            &name);
+
+    /*!
+     * @brief Getter function which returns the face records in this batch.
+     *
+     * @return face records in this batch.
+     */
+    const ABoundaryFaceVector& GetFaces(void) const
     {
-      return mBoundaryFaces;
+      return mFaces;
     }
-    const CBoundaryElementFaceGeometry& GetBoundaryFace(std::size_t i) const
+
+    /*!
+     * @brief Getter function which returns one batch-local face record.
+     *
+     * @param[in] i zero-based face index local to this batch.
+     *
+     * @return one batch-local face record.
+     */
+    const CBoundaryFace& GetFace(std::size_t i) const
     {
-      return mBoundaryFaces[i];
+      return mFaces[i];
     }
-    std::size_t GetnFace(void) const {return mBoundaryFaces.size();}
-    std::size_t GetiZone(void) const {return mIndexZone;}
+
+    /*!
+     * @brief Getter function which returns the number of faces.
+     *
+     * @return number of faces.
+     */
+    std::size_t GetnFace(void) const {return mFaces.size();}
+
+    /*!
+     * @brief Getter function which returns the zone index owning this batch.
+     *
+     * @return zone index owning this batch.
+     */
+    std::size_t GetZoneIndex(void) const {return mIndexZone;}
+
+    /*!
+     * @brief Getter function which returns the logical I- or J-face direction.
+     *
+     * @return logical I- or J-face direction.
+     */
+    ETypeFace GetFaceDirection(void) const {return mFaceDirection;}
+
+    /*!
+     * @brief Getter function which returns the boundary marker name.
+     *
+     * @return boundary marker name.
+     */
     std::string GetName(void) const {return mName;}
+
+    /*!
+     * @brief Getter function which returns the local zone-edge location.
+     *
+     * @return local zone-edge location.
+     */
     EFaceLocation GetFaceLocation(void) const {return mFaceLocation;}
-    bool GetisMaxFace(void) const {return mIsMaxFace;}
+
+    /*!
+     * @brief Getter function which returns the whether this edge is IMAX or JMAX.
+     *
+     * @return whether this edge is IMAX or JMAX.
+     */
+    bool IsMaxFace(void) const {return mIsMaxFace;}
 
   private:
-    ETypeFace           mTypeFace;
-    EFaceLocation       mFaceLocation;
-    std::size_t         mIndexZone;
-    std::string         mName;
-    bool                mIsMaxFace;
-    ABoundaryFaceVector mBoundaryFaces;
+    ETypeFace           mFaceDirection;  ///< Logical I- or J-face direction.
+    EFaceLocation       mFaceLocation;   ///< Local zone edge: IMIN, IMAX, JMIN or JMAX.
+    std::size_t         mIndexZone;      ///< Index of the containing zone.
+    std::string         mName;           ///< Name identifying this boundary marker.
+    bool                mIsMaxFace;      ///< Whether this edge is IMAX or JMAX.
+    ABoundaryFaceVector mFaces;          ///< Face records local to this batch.
 
-    void InitializeBoundaryFaces(const CSinglezoneGeometry *singlezone_geometry_container);
+    /*!
+     * @brief Function that constructs face records from zone-edge connectivity.
+     *
+     * @param[in] singlezone_geometry_container geometry of the current zone.
+     */
+    void InitializeFaces(const CSinglezoneGeometry *singlezone_geometry_container);
 };
 
 //-----------------------------------------------------------------------------------
 
-struct CInterfaceElementFaceGeometry
+/*!
+ * @brief A pair of zone-local elements connected by an interface face.
+ */
+struct CInterfaceFace
 {
-  std::size_t mIndexElementI;
-  std::size_t mIndexElementJ;
+  std::size_t mIndexElementOwner;     ///< Element index local to the owner zone.
+  std::size_t mIndexElementNeighbor;  ///< Element index local to the neighbor zone.
 };
 
 //-----------------------------------------------------------------------------------
 
-class CInterfaceFacesFamily
+/*!
+ * @brief Paired zone-edge faces with owner, neighbor and orientation metadata.
+ */
+class CInterfaceFaceBatch
 {
-  using AInterfaceFaceVector = as3vector1d<CInterfaceElementFaceGeometry>;
+
+  /*!
+   * @brief Vector storing batch-local face records.
+   */
+  using AInterfaceFaceVector = as3vector1d<CInterfaceFace>;
   
   public:
-    CInterfaceFacesFamily(const CMultizoneGeometry                     *multizone_geometry_container,
-                          const CInternalFamilyMarker::CInternalMarker  &marker);
 
-    CInterfaceFacesFamily(const CMultizoneGeometry                     *multizone_geometry_container,
-                          const CPeriodicFamilyMarker::CPeriodicMarker  &marker);
+    /*!
+     * @brief Constructor that initializes CInterfaceFaceBatch from the specified data.
+     *
+     * @param[in] multizone_geometry_container geometry of all grid zones.
+     * @param[in] marker zone-edge marker defining this batch.
+     */
+    CInterfaceFaceBatch(const CMultizoneGeometry                     *multizone_geometry_container,
+                        const CInternalFamilyMarker::CInternalMarker  &marker);
 
-    const AInterfaceFaceVector& GetInterfaceFaces(void) const
+    /*!
+     * @brief Constructor that initializes CInterfaceFaceBatch from the specified data.
+     *
+     * @param[in] multizone_geometry_container geometry of all grid zones.
+     * @param[in] marker zone-edge marker defining this batch.
+     */
+    CInterfaceFaceBatch(const CMultizoneGeometry                     *multizone_geometry_container,
+                        const CPeriodicFamilyMarker::CPeriodicMarker  &marker);
+
+    /*!
+     * @brief Getter function which returns the face records in this batch.
+     *
+     * @return face records in this batch.
+     */
+    const AInterfaceFaceVector& GetFaces(void) const
     {
-      return mInterfaceFaces;
+      return mFaces;
     }
-    const CInterfaceElementFaceGeometry& GetInterfaceFace(std::size_t i) const
+
+    /*!
+     * @brief Getter function which returns one batch-local face record.
+     *
+     * @param[in] i zero-based face index local to this batch.
+     *
+     * @return one batch-local face record.
+     */
+    const CInterfaceFace& GetFace(std::size_t i) const
     {
-      return mInterfaceFaces[i];
+      return mFaces[i];
     }
-    EFaceLocation GetFaceLocationFaceI(void) const {return mFaceLocationI;}
-    std::size_t GetnFace(void) const {return mInterfaceFaces.size();}
 
-    std::size_t GetiZone(void) const {return mIndexZoneI;}
-    std::size_t GetjZone(void) const {return mIndexZoneJ;}
+    /*!
+     * @brief Getter function which returns the number of faces.
+     *
+     * @return number of faces.
+     */
+    std::size_t GetnFace(void) const {return mFaces.size();}
 
-    EFaceLocation GetiFaceLocation(void) const {return mFaceLocationI;}
-    EFaceLocation GetjFaceLocation(void) const {return mFaceLocationJ;}
+    /*!
+     * @brief Getter function which returns the owner-zone index.
+     *
+     * @return owner-zone index.
+     */
+    std::size_t GetOwnerZoneIndex(void) const {return mIndexZoneOwner;}
 
-		bool GetisMaxFaceI(void) const {return mIsMaxFaceI;}
-		bool GetisMaxFaceJ(void) const {return mIsMaxFaceJ;}
+    /*!
+     * @brief Getter function which returns the neighbor-zone index.
+     *
+     * @return neighbor-zone index.
+     */
+    std::size_t GetNeighborZoneIndex(void) const {return mIndexZoneNeighbor;}
 
-    const std::string& GetiFaceName() const { return mFaceNameI; }
-    const std::string& GetjFaceName() const { return mFaceNameJ; }
+    /*!
+     * @brief Getter function which returns the whether the neighbor traversal is reversed relative to the
+     *   owner.
+     *
+     * @return whether the neighbor traversal is reversed relative to the owner.
+     */
+    bool IsNeighborReversed(void) const {return mIsReversed;}
 
-    ETypeFace GetiTypeFace(void) const { return mTypeFaceI; }
-    ETypeFace GetjTypeFace(void) const { return mTypeFaceJ; }
+    /*!
+     * @brief Getter function which returns the owner-side local edge.
+     *
+     * @return owner-side local edge.
+     */
+    EFaceLocation GetOwnerFaceLocation(void) const {return mFaceLocationOwner;}
+
+    /*!
+     * @brief Getter function which returns the neighbor-side local edge.
+     *
+     * @return neighbor-side local edge.
+     */
+    EFaceLocation GetNeighborFaceLocation(void) const {return mFaceLocationNeighbor;}
+
+		/*!
+		 * @brief Getter function which returns the whether the owner edge is IMAX or JMAX.
+		 *
+		 * @return whether the owner edge is IMAX or JMAX.
+		 */
+		bool IsOwnerMaxFace(void) const {return mIsMaxFaceOwner;}
+
+		/*!
+		 * @brief Getter function which returns the whether the neighbor edge is IMAX or JMAX.
+		 *
+		 * @return whether the neighbor edge is IMAX or JMAX.
+		 */
+		bool IsNeighborMaxFace(void) const {return mIsMaxFaceNeighbor;}
+
+    /*!
+     * @brief Getter function which returns the owner-side marker name.
+     *
+     * @return owner-side marker name.
+     */
+    const std::string& GetOwnerFaceName() const { return mFaceNameOwner; }
+
+    /*!
+     * @brief Getter function which returns the neighbor-side marker name.
+     *
+     * @return neighbor-side marker name.
+     */
+    const std::string& GetNeighborFaceName() const { return mFaceNameNeighbor; }
+
+    /*!
+     * @brief Getter function which returns the owner-side logical face direction.
+     *
+     * @return owner-side logical face direction.
+     */
+    ETypeFace GetOwnerFaceDirection(void) const { return mFaceDirectionOwner; }
+
+    /*!
+     * @brief Getter function which returns the neighbor-side logical face direction.
+     *
+     * @return neighbor-side logical face direction.
+     */
+    ETypeFace GetNeighborFaceDirection(void) const { return mFaceDirectionNeighbor; }
 
   private:
-    std::size_t mIndexZoneI;
-    std::size_t mIndexZoneJ;
+    std::size_t mIndexZoneOwner;     ///< Owner-zone index.
+    std::size_t mIndexZoneNeighbor;  ///< Neighbor-zone index.
 
-    ETypeFace mTypeFaceI;
-    ETypeFace mTypeFaceJ;
+    ETypeFace mFaceDirectionOwner;     ///< Logical face direction in the owner zone.
+    ETypeFace mFaceDirectionNeighbor;  ///< Logical face direction in the neighbor zone.
 
-    EFaceLocation mFaceLocationI;
-    EFaceLocation mFaceLocationJ;
+    EFaceLocation mFaceLocationOwner;     ///< Local edge in the owner zone.
+    EFaceLocation mFaceLocationNeighbor;  ///< Local edge in the neighbor zone.
 
-    std::string mFaceNameI;
-    std::string mFaceNameJ;
+    std::string mFaceNameOwner;     ///< Name of the owner-side marker.
+    std::string mFaceNameNeighbor;  ///< Name of the neighbor-side marker.
 
-		bool mIsMaxFaceI;
-		bool mIsMaxFaceJ;
+		bool mIsMaxFaceOwner;     ///< Whether the owner edge is IMAX or JMAX.
+		bool mIsMaxFaceNeighbor;  ///< Whether the neighbor edge is IMAX or JMAX.
 
-    bool mIsReversed; // should the j-edge be reversed?
+    bool mIsReversed; ///< Whether neighbor traversal is reversed relative to owner traversal.
 
-    bool mIsPeriodic;
+    std::array<as3double, 2> mTranslationVector; ///< Translation from the owner/first side to the neighbor/second side.
 
-    std::array<as3double, 2> mTranslationVector;
+    AInterfaceFaceVector mFaces; ///< Face records local to this batch.
 
-    AInterfaceFaceVector mInterfaceFaces;
+    /*!
+     * @brief Function that constructs face records from zone-edge connectivity.
+     *
+     * @param[in] multizone_geometry_container geometry of all grid zones.
+     */
+    void InitializeFaces(const CMultizoneGeometry *multizone_geometry_container);
 
-    void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container);
-		void CheckConformityMarkers(const CMultizoneGeometry *multizone_geometry_container);
+		/*!
+		 * @brief Function that checks paired face coordinates, orientation and periodic translation.
+		 *
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 */
+		void CheckConformity(const CMultizoneGeometry *multizone_geometry_container) const;
 };
 
 //-----------------------------------------------------------------------------------
 
 
-// TODO: change this to CGroupFamilyFaces ?
-template<typename TFamily>
-class CGroupFaces
+/*!
+ * @brief A collection of batches with a collection-local flattened face index.
+ *
+ * @tparam TBatch face batch type stored by the collection.
+ */
+template<typename TBatch>
+class CFaceCollection
 {
   private:
-  
+
+    /*!
+     * @brief A half-open range of flattened face indices assigned to one batch.
+     */
     struct CFaceRange
     {
-      std::size_t GetnFace(void)   const { return mEnd - mBegin; }
+
+      /*!
+       * @brief Function that tests membership in this half-open flattened face range.
+       *
+       * @param[in] i flattened index tested against this half-open range.
+       *
+       * @return true if the index lies in [mBegin,mEnd); false otherwise.
+       */
       bool Contains(std::size_t i) const { return i >= mBegin && i < mEnd; }
-      
-      std::size_t mBegin;
-      std::size_t mEnd;
+
+      std::size_t mBegin;  ///< First flattened face index in the range.
+      std::size_t mEnd;    ///< One-past-last flattened face index in the range.
     };
-  
+
   public:
-  
-    CGroupFaces(void) = default;
-  
-    void Initialize(as3vector1d<TFamily>&& families)
+
+    /*!
+     * @brief Default constructor that initializes an empty CFaceCollection.
+     */
+    CFaceCollection(void) = default;
+
+    /*!
+     * @brief Function that takes ownership of face batches and rebuilds their flattened ranges.
+     *
+     * @param[in,out] batches face batches whose ownership is transferred to this collection.
+     *
+     * @note Initialization replaces the batches and their ranges; complete it before parallel traversal.
+     */
+    void Initialize(as3vector1d<TBatch>&& batches)
     {
-      mFamilies = std::move(families);
+      mBatches = std::move(batches);
 
-      mFamilyRanges.clear();
-      mFamilyRanges.reserve( mFamilies.size() );
+      mBatchRanges.clear();
+      mBatchRanges.reserve( mBatches.size() );
 
-      std::size_t iGlobal = 0;    
-      for(const auto& family : mFamilies)
+      mNFace = 0;
+      for(const auto& batch : mBatches)
       {
-        const std::size_t nFace = family.GetnFace();
-        mFamilyRanges.emplace_back( CFaceRange{iGlobal, iGlobal+nFace} );
-        iGlobal += nFace;
+        const std::size_t nFace = batch.GetnFace();
+        mBatchRanges.emplace_back( CFaceRange{mNFace, mNFace+nFace} );
+        mNFace += nFace;
       }
-      
-      mBegin = 0;
-      mEnd   = iGlobal;
     }
 
-    CElementFaceIndex FindElementFaceIndex(std::size_t iGlobal) const
+    /*!
+     * @brief Function that resolves a collection-local flattened face index into a batch and batch-local index.
+     *
+     * @param[in] i zero-based flattened index local to this collection or direction.
+     *
+     * @return batch index and batch-local face index; terminates if the index is invalid.
+     */
+    CFaceAddress ResolveFace(std::size_t i) const
     {
-#if DEBUG
-      if( iGlobal < mBegin || iGlobal >= mEnd ) ERROR("Invalid global face index.");
-#endif
-      const std::size_t iFamily    = FindIndexFamily(iGlobal);
-      const CFaceRange& range = mFamilyRanges[iFamily];
-  
-      return CElementFaceIndex{ iFamily, iGlobal - range.mBegin };
-    }
-  
-    std::size_t GetnFace(void) const
-    {
-#if DEBUG
-      if( mBegin > mEnd ) ERROR("Invalid number of faces detected.");
-#endif
-      return mEnd - mBegin;
-    }
-
-    std::size_t GetnFamily(void) const
-    {
-      return mFamilies.size();
+      // The flat index is local to this face collection.
+      for(std::size_t iBatch=0; iBatch<mBatchRanges.size(); iBatch++)
+      {
+        const CFaceRange& range = mBatchRanges[iBatch];
+        if( range.Contains(i) ) return CFaceAddress{ iBatch, i - range.mBegin };
+      }
+      ERROR("Invalid collection-local face index.");
     }
 
-    const as3vector1d<TFamily>& GetFamilies(void) const
+    /*!
+     * @brief Getter function which returns the number of faces.
+     *
+     * @return number of faces.
+     */
+    std::size_t GetnFace(void) const { return mNFace; }
+
+    /*!
+     * @brief Getter function which returns the number of face batches.
+     *
+     * @return number of face batches.
+     */
+    std::size_t GetnBatch(void) const { return mBatches.size(); }
+
+    /*!
+     * @brief Getter function which returns the face batches in this collection.
+     *
+     * @return face batches in this collection.
+     */
+    const as3vector1d<TBatch>& GetBatches(void) const
     {
-      return mFamilies;
-    }
-    as3vector1d<TFamily>& GetFamilies(void)
-    {
-      return mFamilies;
+      return mBatches;
     }
 
-    const TFamily& GetFamily(std::size_t iFamily) const
+    /*!
+     * @brief Getter function which returns one batch selected by a collection-local index.
+     *
+     * @param[in] iBatch batch index local to the selected face category.
+     *
+     * @return one batch selected by a collection-local index.
+     */
+    const TBatch& GetBatch(std::size_t iBatch) const
     {
 #if DEBUG
-      if( iFamily >= mFamilies.size() ) ERROR("Invalid family index.");
+      if( iBatch >= mBatches.size() ) ERROR("Invalid face batch index.");
 #endif
-      return mFamilies[iFamily];
+      return mBatches[iBatch];
     }
-    TFamily& GetFamily(std::size_t iFamily)
-    {
-#if DEBUG
-      if( iFamily >= mFamilies.size() ) ERROR("Invalid family index.");
-#endif
-      return mFamilies[iFamily];
-    }
-  
+
   private:
-    std::size_t mBegin = 0;
-    std::size_t mEnd   = 0;
- 
-    as3vector1d<TFamily>    mFamilies;
-    as3vector1d<CFaceRange> mFamilyRanges;
-  
-    std::size_t FindIndexFamily(std::size_t iGlobal) const
-    {
-      for(std::size_t iFamily=0; iFamily<mFamilyRanges.size(); iFamily++)
-      {
-        if( mFamilyRanges[iFamily].Contains(iGlobal)) return iFamily;
-      }
-      ERROR("Invalid global face index.");
-    }
+    std::size_t mNFace = 0; ///< Number of faces in this collection or interface.
+
+    as3vector1d<TBatch>     mBatches;      ///< Owned face batches.
+    as3vector1d<CFaceRange> mBatchRanges;  ///< Collection-local flattened ranges corresponding to the batches.
 };
 
 //-----------------------------------------------------------------------------------
 
 
-class CMultizoneFaceGeometry
+/*!
+ * @brief Interior, boundary and interface face collections in one owner-side logical direction.
+ */
+class CDirectionalFaceConnectivity
 {
-  // NOTE, this class always stores the global faces according to:
-  //       [internal][boundary][interface]. 
+
+    /*!
+     * @brief NOTE, this class stores faces across all zones in one logical direction:
+     *   [interior][boundary][interface]. An interface uses its owner's direction.
+     *
+     * @param[in] face_direction logical I- or J-face direction.
+     */
 	public:
-    
-    CMultizoneFaceGeometry(ETypeFace face_type) : mTypeFace(face_type) {}
 
-		void InitializeFaces(const CConfig            *config_container,
-				                 const CMultizoneGeometry *multizone_geometry_container);
+    explicit CDirectionalFaceConnectivity(ETypeFace face_direction) : mFaceDirection(face_direction) {}
 
+		/*!
+		 * @brief Function that constructs face records from zone-edge connectivity.
+		 *
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 */
+		void InitializeFaces(const CMultizoneGeometry *multizone_geometry_container);
 
-		ETypeFaceGeometry DeduceFaceTypeFromIndex(std::size_t i) const
-		{
-			if( i < GetnInternalFaces() )                       return ETypeFaceGeometry::INTERNAL;
-			if( i < GetnInternalFaces() + GetnBoundaryFaces() ) return ETypeFaceGeometry::BOUNDARY;
-			if( i < GetnFacesTotal() )                          return ETypeFaceGeometry::INTERFACE;
-			ERROR("Invalid face index specified.");
-		}
+    /*!
+     * @brief Function that resolves a direction-local face index into its category, batch and batch-local face
+     *   index.
+     *
+     * @param[in] i zero-based flattened index local to this collection or direction.
+     *
+     * @return face category, category-local batch index and batch-local face index.
+     */
+    CFlattenedFaceIndex ResolveFace(std::size_t i) const;
 
-    std::size_t GetIndexInternalFace(std::size_t iGlobal) const
-    {
-      return iGlobal;
-    }
-    std::size_t GetIndexBoundaryFace(std::size_t iGlobal) const
-    {
-      return iGlobal - GetnInternalFaces();
-    }
-    std::size_t GetIndexInterfaceFace(std::size_t iGlobal) const
-    {
-      return iGlobal - GetnInternalFaces() - GetnBoundaryFaces();
-    }
+    /*!
+     * @brief Getter function which returns the interior-face collection.
+     *
+     * @return interior-face collection.
+     */
+    const auto& GetInteriorFaces(void)  const {return mInteriorFaces;}
 
-    const auto& GetInternalFacesGroup(void)  const {return mInternalFacesGroup;}
-    const auto& GetBoundaryFacesGroup(void)  const {return mBoundaryFacesGroup;}
-    const auto& GetInterfaceFacesGroup(void) const {return mInterfaceFacesGroup;}
+    /*!
+     * @brief Getter function which returns the physical boundary-face collection.
+     *
+     * @return physical boundary-face collection.
+     */
+    const auto& GetBoundaryFaces(void)  const {return mBoundaryFaces;}
 
-		std::size_t GetnInternalFaces(void)  const { return mInternalFacesGroup.GetnFace();  }
-		std::size_t GetnBoundaryFaces(void)  const { return mBoundaryFacesGroup.GetnFace();  }
-		std::size_t GetnInterfaceFaces(void) const { return mInterfaceFacesGroup.GetnFace(); }
+    /*!
+     * @brief Getter function which returns the interface-face collection.
+     *
+     * @return interface-face collection.
+     */
+    const auto& GetInterfaceFaces(void) const {return mInterfaceFaces;}
 
+		/*!
+		 * @brief Getter function which returns the number of interior faces.
+		 *
+		 * @return number of interior faces.
+		 */
+		std::size_t GetnInteriorFaces(void)  const { return mInteriorFaces.GetnFace();  }
+
+		/*!
+		 * @brief Getter function which returns the number of physical boundary faces.
+		 *
+		 * @return number of physical boundary faces.
+		 */
+		std::size_t GetnBoundaryFaces(void)  const { return mBoundaryFaces.GetnFace();  }
+
+		/*!
+		 * @brief Getter function which returns the number of interface faces.
+		 *
+		 * @return number of interface faces.
+		 */
+		std::size_t GetnInterfaceFaces(void) const { return mInterfaceFaces.GetnFace(); }
+
+		/*!
+		 * @brief Getter function which returns the total number of faces across the three categories.
+		 *
+		 * @return total number of faces across the three categories.
+		 */
 		std::size_t GetnFacesTotal(void) const
 		{
-			return GetnInternalFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
+			return GetnInteriorFaces() + GetnBoundaryFaces() + GetnInterfaceFaces();
 		}
 
-    ETypeFace GetTypeFace(void) const { return mTypeFace; }
-
-    std::size_t GetnInterfaceFamilies(void) const { return mInterfaceFacesGroup.GetnFamily(); }
-
-    // NOTE, we return by value because its only 2 size_t variables, besides, the 
-    // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex FindInternalElementFaceIndex(std::size_t i) const
-    {
-#if DEBUG
-			if( i >= GetnInternalFaces() ) ERROR("Index exceeds maximum data size."); 
-#endif
-      return mInternalFacesGroup.FindElementFaceIndex(i);
-    } 
-
-    const CInternalFacesFamily& GetInternalFacesFamily(std::size_t i) const
-    {
-#if DEBUG
-			if( i >= mInternalFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size."); 
-#endif
-      return mInternalFacesGroup.GetFamily(i);
-    }
-
-    // NOTE, we return by value because its only 2 size_t variables, besides, the 
-    // construction in CGroupFaces returns it by value! 
-    CElementFaceIndex FindInterfaceElementFaceIndex(std::size_t i) const
-    {
-#if DEBUG
-			if( i >= GetnInterfaceFaces() ) ERROR("Index exceeds maximum data size."); 
-#endif
-      return mInterfaceFacesGroup.FindElementFaceIndex(i);
-    } 
-    
-    const CInterfaceFacesFamily& GetInterfaceFacesFamily(std::size_t i) const
-    {
-#if DEBUG
-			if( i >= mInterfaceFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size."); 
-#endif
-      return mInterfaceFacesGroup.GetFamily(i);
-    }
-
-    // Note, we return by value because its only 2 size_t variables, besides, the 
-    // construction in CGroupFaces returns it by value!
-    CElementFaceIndex FindBoundaryElementFaceIndex(std::size_t i) const
-    {
-#if DEBUG
-      if( i >= GetnBoundaryFaces() ) ERROR("Index exceeds maximum data size.");
-#endif
-      return mBoundaryFacesGroup.FindElementFaceIndex(i);
-    }
-
-    const CBoundaryFacesFamily& GetBoundaryFacesFamily(std::size_t i) const
-    {
-#if DEBUG
-      if( i >= mBoundaryFacesGroup.GetnFamily() ) ERROR("Index exceeds maximum data size.");
-#endif
-      return mBoundaryFacesGroup.GetFamily(i);
-    }
+    /*!
+     * @brief Getter function which returns the logical I- or J-face direction.
+     *
+     * @return logical I- or J-face direction.
+     */
+    ETypeFace GetFaceDirection(void) const { return mFaceDirection; }
 
 	private:
-    ETypeFace mTypeFace;
+    ETypeFace mFaceDirection; ///< Logical I- or J-face direction.
 
-		// A Group is made up of: [iFamily][iFace].
-    CGroupFaces<CInternalFacesFamily>  mInternalFacesGroup;
-    CGroupFaces<CBoundaryFacesFamily>  mBoundaryFacesGroup;
-    CGroupFaces<CInterfaceFacesFamily> mInterfaceFacesGroup;
+    CFaceCollection<CInteriorFaceBatch>  mInteriorFaces;   ///< Interior faces in the selected logical direction.
+    CFaceCollection<CBoundaryFaceBatch>  mBoundaryFaces;   ///< Physical boundary faces in the selected logical direction.
+    CFaceCollection<CInterfaceFaceBatch> mInterfaceFaces;  ///< Interface faces grouped by their owner-side logical direction.
 
 
-		void InitializeInternalFaces(const CMultizoneGeometry *multizone_geometry_container);
-		void InitializeBoundaryFaces(const CConfig            *config_container,
-                                 const CMultizoneGeometry *multizone_geometry_container);
-		void InitializeInterfaceFaces(const CConfig            *config_container,
-				                          const CMultizoneGeometry *multizone_geometry_container);
+		/*!
+		 * @brief Function that collects same-zone interior faces in this logical direction.
+		 *
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 */
+		void InitializeInteriorFaces(const CMultizoneGeometry *multizone_geometry_container);
+
+		/*!
+		 * @brief Function that collects physical boundary faces in this logical direction.
+		 *
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 */
+		void InitializeBoundaryFaces(const CMultizoneGeometry *multizone_geometry_container);
+
+		/*!
+		 * @brief Function that collects interfaces according to their owner-side logical direction.
+		 *
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 */
+		void InitializeInterfaceFaces(const CMultizoneGeometry *multizone_geometry_container);
 };
 
 

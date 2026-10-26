@@ -1,30 +1,41 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Element solution storage, metric transformations and mass matrices.
+ */
+
+
+#include <cstddef>
+#include <exception>
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
 #include "tensor_structure.hpp"
 
+#include <array>
+
 
 /*!
- * @brief A class used for initializing and definining a physical element. 
+ * @brief A class used for initializing and defining a physical element.
  */
 class CPhysicalElement
 {
 	public:
 
-		unsigned short        mNPoly;           ///< Solution polynomial order.
-		as3double             mVolumeElement;   ///< Volume of this element.
-		as3double             mLengthScaleVol;  ///< Length scale defined based on the volume of this element.
-		as3double             mLengthScaleIDir; ///< Average length scale of the i-direction of this element.
-		as3double             mLengthScaleJDir; ///< Average length scale of the j-direction of this element.
-		as3double             mAvgNormIDir[2];  ///< Average unit-normal in the i-direction. 
-		as3double             mAvgNormJDir[2];  ///< Average unit-normal in the j-direction. 		
+		std::size_t           mNPoly;            ///< Solution polynomial order.
+		as3double             mVolumeElement;    ///< Volume of this element.
+		as3double             mLengthScaleVol;   ///< Length scale defined based on the volume of this element.
+		as3double             mLengthScaleIDir;  ///< Average length scale of the i-direction of this element.
+		as3double             mLengthScaleJDir;  ///< Average length scale of the j-direction of this element.
+		as3double             mAvgNormIDir[2];   ///< Average unit-normal in the i-direction. 
+		as3double             mAvgNormJDir[2];   ///< Average unit-normal in the j-direction. 		
 
-		CMatrixAS3<as3double> mSol2D;           ///< Solution on the physical element in 2D.
-		CMatrixAS3<as3double> mRes2D;           ///< Residual of the solution on the physical element in 2D.
-		CMatrixAS3<as3double> mSolOld2D;        ///< Tentative (previous) solution on the physical element in 2D.
-		CMatrixAS3<as3double> mInvMassMatrix;   ///< Inverse of the mass matrix.
+		CMatrixAS3<as3double> mSol2D;          ///< Solution on the physical element in 2D.
+		CMatrixAS3<as3double> mRes2D;          ///< Residual of the solution on the physical element in 2D.
+		CMatrixAS3<as3double> mSolOld2D;       ///< Tentative (previous) solution on the physical element in 2D.
+		CMatrixAS3<as3double> mInvMassMatrix;  ///< Inverse of the mass matrix.
 		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
 																				    ///< [0]: |J|, [1]: drdx, [2]: drdy, [3]: dsdx, [4]: dsdy.
@@ -41,16 +52,28 @@ class CPhysicalElement
 																						///< [0]: ||n||, [1]: nx, [2]: ny, [3]: drdx, [4]: drdy, [5]: dsdx, [6]: dsdy.
 
 
-		// TESTING
-		CMatrixAS3<as3double> mResMinus;
+		// Each local face owns its contribution, independent of neighboring zone directions.
+		std::array<CMatrixAS3<as3double>, 4> mResSurface; ///< Each local face owns its contribution, independent of neighboring zone directions.
+
+    /*!
+     * @brief Getter function which returns the residual buffer owned by the requested local face.
+     *
+     * @param[in] face local edge or reference-operator selector.
+     *
+     * @return residual buffer owned by the requested local face.
+     */
+    CMatrixAS3<as3double>& GetSurfaceResidual(EFaceLocation face)
+    {
+      return mResSurface[static_cast<std::size_t>(face)];
+    }
 
 		/*!
-		 * @brief Default constructor of CPhysicalElement, which initializes a CPhysicalElement class.
+		 * @brief Constructor that initializes CPhysicalElement from the specified data.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
-		 * @param[in] element_geometry geometry of the physical element. 
+		 * @param[in] element_geometry geometry of the physical element.
 		 * @param[in] iZone current zone ID.
 		 * @param[in] nVar number of working variables.
 		 */
@@ -58,17 +81,18 @@ class CPhysicalElement
 										 CStandardElement *standard_element,
 										 ITensorProduct   *tensor_container,
 										 CElementGeometry *element_geometry,
-						         unsigned short    iZone,
-										 unsigned short    nVar);
+						         std::size_t    iZone,
+										 std::size_t    nVar);
 
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
 		~CPhysicalElement(void);
 
 
 		/*!
-		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the volume integration points.
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the
+		 *   volume integration points.
 		 *
 		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
 		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
@@ -77,7 +101,8 @@ class CPhysicalElement
 				                                     CWorkMatrixAS3<as3double> &dVarDs);
 
 		/*!
-		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMIN surface integration points.
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMIN
+		 *   surface integration points.
 		 *
 		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
 		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
@@ -86,7 +111,8 @@ class CPhysicalElement
 				                                          CWorkMatrixAS3<as3double> &dVarDs);
 
 		/*!
-		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMAX surface integration points.
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMAX
+		 *   surface integration points.
 		 *
 		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
 		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
@@ -95,7 +121,8 @@ class CPhysicalElement
 				                                          CWorkMatrixAS3<as3double> &dVarDs);
 
 		/*!
-		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMIN surface integration points.
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMIN
+		 *   surface integration points.
 		 *
 		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
 		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
@@ -104,7 +131,8 @@ class CPhysicalElement
 				                                          CWorkMatrixAS3<as3double> &dVarDs);
 
 		/*!
-		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMAX surface integration points.
+		 * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMAX
+		 *   surface integration points.
 		 *
 		 * @param[in,out] dVarDr variable derivative in r-direction (input) and x-direction (output).
 		 * @param[in,out] dVarDs variable derivative in s-direction (input) and y-direction (output).
@@ -114,13 +142,14 @@ class CPhysicalElement
 
 		/*!
 		 * @brief Function that returns the number of working variables in the solution.
-		 * 
+		 *
 		 * @return number of working variables.
 		 */
-		size_t GetnWorkingVar(void) const {return mSol2D.row();}
+		std::size_t GetnWorkingVar(void) const {return mSol2D.row();}
 
 		/*!
-		 * @brief Function that returns the metrics on the integration points of a surface, based on the face type.
+		 * @brief Function that returns the metrics on the integration points of a surface, based on the
+		 *   face type.
 		 *
 		 * @param[in] face type of face.
 		 *
@@ -144,9 +173,10 @@ class CPhysicalElement
 
 	private:
 	
+
 		/*!
 		 * @brief Function that computes the volume metrics at the solution points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -157,7 +187,7 @@ class CPhysicalElement
 
 		/*!
 		 * @brief Function that computes the volume metrics at the integration points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -168,7 +198,7 @@ class CPhysicalElement
 
 		/*!
 		 * @brief Function that computes the IMIN surface metrics at the integration points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -179,7 +209,7 @@ class CPhysicalElement
 
 		/*!
 		 * @brief Function that computes the IMAX surface metrics at the integration points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -188,9 +218,10 @@ class CPhysicalElement
 																   ITensorProduct        *tensor_container,
 				                           CMatrixAS3<as3double> &coord);
 	
+
 		/*!
 		 * @brief Function that computes the JMIN surface metrics at the integration points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -201,7 +232,7 @@ class CPhysicalElement
 
 		/*!
 		 * @brief Function that computes the JMAX surface metrics at the integration points.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 * @param[in] coord physical coordinates over the element.
@@ -211,9 +242,10 @@ class CPhysicalElement
 				                           CMatrixAS3<as3double> &coord);
 
 	
+
 		/*!
 		 * @brief Function that computes the inverse mass matrix on the physical element.
-		 * 
+		 *
 		 * @param[in] standard_element standard element container.
 		 * @param[in] tensor_container tensor product container.
 		 */
@@ -221,7 +253,8 @@ class CPhysicalElement
 																  ITensorProduct   *tensor_container);
 
 		/*!
-		 * @brief Function that computes the volume and average surface properties on the physical element.
+		 * @brief Function that computes the volume and average surface properties on the physical
+		 *   element.
 		 *
 		 * @param[in] standard_element standard element container.
 		 */

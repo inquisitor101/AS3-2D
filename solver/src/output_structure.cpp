@@ -11,7 +11,7 @@ COutput::COutput
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-	* Constructor for the output class, which is responsible for the entire output routines.
+	* Constructor that creates the visualization writer.
 	*/
 {
 	mVTKContainer = CGenericFactory::CreateVTKContainer(config_container, multizone_geometry_container);
@@ -24,7 +24,7 @@ COutput::~COutput
  void
 )
  /*
-	* Destructor, which cleans up after the output class.
+	* Destructor for COutput.
 	*/
 {
 
@@ -40,7 +40,7 @@ void COutput::WriteVisualFile
  const CMultizoneSolver   *multizone_solver_container
 )
  /*
-	* Function that writes a visualization file.
+	* Function that writes the current multizone solution through the visualization writer.
 	*/
 {
 	// Ensure the VTK container is initialized.

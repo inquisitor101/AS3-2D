@@ -1,11 +1,13 @@
 #include "collective_residual_computation.hpp"
 
+#include <cstddef>
+
 
 //-----------------------------------------------------------------------------------
-// NResidualComputation namespace functions.
+// Local surface residual functions.
 //-----------------------------------------------------------------------------------
 
-void NResidualComputation::ComputeVolumeResidualsCollective
+static void ComputeIFaceResidualsCollective
 (
  const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
@@ -13,52 +15,11 @@ void NResidualComputation::ComputeVolumeResidualsCollective
  as3double                  localtime
 )
  /*
-  *
+  * Function that collectively computes I-face residuals without an end barrier.
   */
 {
   // Ensure this is an OpenMP parallel region, in case we're running in parallel.
-  AssertParallelRegion();
-
-	// Get the total number of elements in all zones.
-	const auto nElemTotal = multizone_geometry_container->GetnElemTotal();
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nElemTotal; i++)
-	{
-		// Extract the element indices.
-		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
-
-		// Deduce the current element's zone and index.
-		const auto iZone = elem_info.mIndexZone; 
-		const auto iElem = elem_info.mIndexElem; 
-
-		// Extract the relevant solver.
-		auto* solver = multizone_solver_container->GetSinglezoneSolver(iZone);
-		// Extract the relevant grid.
-		auto* grid   = multizone_geometry_container->GetSinglezoneGeometry(iZone);
-
-		// Compute the volume terms on this element. Note, this step also initializes the residual.
-		solver->ComputeVolumeResidual(grid, workarray, localtime, iElem); 
-	}
-}
-
-//-----------------------------------------------------------------------------------
-
-void NResidualComputation::ComputeIFaceResidualsCollective
-(
- const CMultizoneGeometry  *multizone_geometry_container,
- CMultizoneSolver          *multizone_solver_container,
- CPoolMatrixAS3<as3double> &workarray,
- as3double                  localtime
-)
- /*
-  *
-  */
-{
-  // Ensure this is an OpenMP parallel region, in case we're running in parallel.
-  AssertParallelRegion();
+  NResidualComputation::AssertParallelRegion();
 
 	// Get the total faces in the i-direction.
 	const auto& idir_faces_multizone = multizone_geometry_container->GetMultizoneIFaces();
@@ -67,9 +28,9 @@ void NResidualComputation::ComputeIFaceResidualsCollective
   const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
 
 #ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 #endif
-	for(size_t i=0; i<nFacesIDir; i++)
+	for(std::size_t i=0; i<nFacesIDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
     const auto face_info = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
@@ -81,13 +42,13 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = idir_faces_multizone.GetInteriorFaces().GetBatch( face_info.mIndexBatch );
         // Extract the current face.
-				const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
+				const auto& internal_face = face_batch.GetFace( face_info.mIndexFace );
 			
-        const auto iZone  = family_face.GetiZone();
-				const auto iElemL = internal_face.mIndexElementM;
+        const auto iZone  = face_batch.GetZoneIndex();
+				const auto iElemL = internal_face.mIndexElementMinus;
 
 				const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
@@ -99,43 +60,43 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 
       case( ETypeFaceGeometry::BOUNDARY ):
       {
-        // Extract the relevant family index.
-        const auto iFamily = face_info.mIndexFamily;
+        // Extract the relevant batch index.
+        const auto iBatch = face_info.mIndexBatch;
         // Extract the associated boundary index.
-        const auto iBoundary = multizone_solver_container->GetIndexBoundaryIFace(iFamily);
+        const auto iBoundary = multizone_solver_container->GetIndexBoundaryIFace(iBatch);
 
         // Extract the associated boundary object.
         const auto* boundary = multizone_solver_container->GetBoundary(iBoundary);
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetBoundaryFacesFamily( iFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = idir_faces_multizone.GetBoundaryFaces().GetBatch( iBatch );
 
         // Extract the relevant zone index.
-        const auto iZone = family_face.GetiZone();
+        const auto iZone = face_batch.GetZoneIndex();
         
         // Extract the relevant grid and solver.
         const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
         auto* solver     = multizone_solver_container->GetSinglezoneSolver(iZone);
 
         // Compute the boundary face residual.
-        boundary->ComputeBoundaryResidual(grid, solver, family_face, face_info, workarray, localtime);       
+        boundary->ComputeBoundaryResidual(grid, solver, face_batch, face_info, workarray, localtime);       
 
         break;
       }
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the relevant family index, which is the same as the interface container's index.
-        const auto iFamily = face_info.mIndexFamily;
+        // Extract the relevant batch index, which is the same as the interface container's index.
+        const auto iBatch = face_info.mIndexBatch;
         // Extract the associated interface index.
-        const auto iInterface = multizone_solver_container->GetIndexInterfaceIFace(iFamily); 
+        const auto iInterface = multizone_solver_container->GetIndexInterfaceIFace(iBatch); 
         
         // Extract the associated interface object.
         const auto* interface = multizone_solver_container->GetInterface(iInterface); 
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( iFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = idir_faces_multizone.GetInterfaceFaces().GetBatch( iBatch );
        
         // Compute the interface residual.
-        interface->ComputeInterfaceResidual(multizone_solver_container, family_face, face_info, workarray, localtime);
+        interface->ComputeInterfaceResidual(multizone_solver_container, face_batch, face_info, workarray, localtime);
         
         break;
       }
@@ -147,7 +108,7 @@ void NResidualComputation::ComputeIFaceResidualsCollective
 
 //-----------------------------------------------------------------------------------
 
-void NResidualComputation::ComputeJFaceResidualsCollective
+static void ComputeJFaceResidualsCollective
 (
  const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
@@ -155,11 +116,11 @@ void NResidualComputation::ComputeJFaceResidualsCollective
  as3double                  localtime
 )
  /*
-  *
+  * Function that collectively computes J-face residuals without an end barrier.
   */
 {
   // Ensure this is an OpenMP parallel region, in case we're running in parallel.
-  AssertParallelRegion();
+  NResidualComputation::AssertParallelRegion();
 
 	// Get the total faces in the j-direction.
 	const auto& jdir_faces_multizone = multizone_geometry_container->GetMultizoneJFaces();
@@ -168,9 +129,9 @@ void NResidualComputation::ComputeJFaceResidualsCollective
   const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
 
 #ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
+#pragma omp for schedule(static) nowait
 #endif
-	for(size_t i=0; i<nFacesJDir; i++)
+	for(std::size_t i=0; i<nFacesJDir; i++)
 	{
 		// Get the relevant flattened index of the current face.
     //const auto face_info = multizone_geometry_container->GetFlattenedIndexJFace(i);
@@ -183,14 +144,14 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 		{
 			case( ETypeFaceGeometry::INTERNAL ):
 			{
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = jdir_faces_multizone.GetInteriorFaces().GetBatch( face_info.mIndexBatch );
        
         // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
+        const auto& internal_face = face_batch.GetFace( face_info.mIndexFace );
 
-        const auto iZone  = family_face.GetiZone();
-        const auto iElemB = internal_face.mIndexElementM;
+        const auto iZone  = face_batch.GetZoneIndex();
+        const auto iElemB = internal_face.mIndexElementMinus;
 
         const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
@@ -202,42 +163,42 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 
       case( ETypeFaceGeometry::BOUNDARY ):
       {
-        // Extract the relevant family index.
-        const auto iFamily = face_info.mIndexFamily;
+        // Extract the relevant batch index.
+        const auto iBatch = face_info.mIndexBatch;
         // Extract the associated boundary index.
-        const auto iBoundary = multizone_solver_container->GetIndexBoundaryJFace(iFamily);
+        const auto iBoundary = multizone_solver_container->GetIndexBoundaryJFace(iBatch);
 
         // Extract the associated boundary object.
         const auto* boundary = multizone_solver_container->GetBoundary(iBoundary);
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetBoundaryFacesFamily( iFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = jdir_faces_multizone.GetBoundaryFaces().GetBatch( iBatch );
         // Extract the relevant zone index.
-        const auto iZone = family_face.GetiZone();
+        const auto iZone = face_batch.GetZoneIndex();
         
         // Extract the relevant grid and solver.
         const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
         auto* solver     = multizone_solver_container->GetSinglezoneSolver(iZone);
 
         // Compute the boundary face residual.
-        boundary->ComputeBoundaryResidual(grid, solver, family_face, face_info, workarray, localtime);       
+        boundary->ComputeBoundaryResidual(grid, solver, face_batch, face_info, workarray, localtime);       
 
         break;
       }
 
       case( ETypeFaceGeometry::INTERFACE ):
       {
-        // Extract the relevant family index, which is the same as the interface container's index.
-        const auto iFamily = face_info.mIndexFamily;
+        // Extract the relevant batch index, which is the same as the interface container's index.
+        const auto iBatch = face_info.mIndexBatch;
         // Extract the associated interface index.
-        const auto iInterface = multizone_solver_container->GetIndexInterfaceJFace(iFamily); 
+        const auto iInterface = multizone_solver_container->GetIndexInterfaceJFace(iBatch); 
         
         // Extract the associated interface object.
         const auto* interface = multizone_solver_container->GetInterface(iInterface); 
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( iFamily );
+        // Extract the batch owning the current face.
+        const auto& face_batch = jdir_faces_multizone.GetInterfaceFaces().GetBatch( iBatch );
 
         // Compute the interface residual.
-        interface->ComputeInterfaceResidual(multizone_solver_container, family_face, face_info, workarray, localtime);
+        interface->ComputeInterfaceResidual(multizone_solver_container, face_batch, face_info, workarray, localtime);
         
         break;
       }
@@ -248,269 +209,61 @@ void NResidualComputation::ComputeJFaceResidualsCollective
 }
 
 //-----------------------------------------------------------------------------------
-
-void NResidualComputation::AccumulateIFaceResidualsCollective
-(
- const CMultizoneGeometry *multizone_geometry_container,
- CMultizoneSolver         *multizone_solver_container
-)
- /*
-  *
-  */
-{
-  // Ensure this is an OpenMP parallel region, in case we're running in parallel.
-  AssertParallelRegion();
-
-	// Get the total faces in the i-direction.
-	const auto& idir_faces_multizone = multizone_geometry_container->GetMultizoneIFaces();
-	
-	// Get the total number faces in the i--direction.
-  const auto nFacesIDir = idir_faces_multizone.GetnFacesTotal(); 
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesIDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = multizone_geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-		
-    // Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-        // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-
-				const auto iZone  = family_face.GetiZone();
-				const auto iElemL = internal_face.mIndexElementM;
-
-        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElemL);
-
-        auto& tmpL = physical_element->mResMinus;
-        auto& resL = physical_element->mRes2D;
-        
-        for(size_t l=0; l<resL.size(); l++) resL[l] += tmpL[l];
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::BOUNDARY ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetBoundaryFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& boundary_face = family_face.GetBoundaryFace( face_info.mIndexFace ); 
-
-        const auto iZone = family_face.GetiZone();
-        const auto iElem = boundary_face.mIndexElement;
-
-        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElem);
-
-        auto& tmp = physical_element->mResMinus;
-        auto& res = physical_element->mRes2D;
-
-        if( family_face.GetisMaxFace() )
-        {
-          for(size_t l=0; l<res.size(); l++) res[l] += tmp[l];
-        }
-
-        break;
-      }
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = idir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
-
-        const auto iZoneM = family_face.GetiZone();
-        const auto iZoneP = family_face.GetjZone();
-
-        const auto iElemM = interface_face.mIndexElementI;
-        const auto iElemP = interface_face.mIndexElementJ;
-
-        auto* physical_element_m = multizone_solver_container->GetSinglezoneSolver(iZoneM)->GetPhysicalElement(iElemM);
-        auto* physical_element_p = multizone_solver_container->GetSinglezoneSolver(iZoneP)->GetPhysicalElement(iElemP);
-
-        auto& tmp_m = physical_element_m->mResMinus;
-        auto& res_m = physical_element_m->mRes2D;
-
-        auto& tmp_p = physical_element_p->mResMinus;
-        auto& res_p = physical_element_p->mRes2D;
-
-        if( family_face.GetisMaxFaceI() )
-        {
-          for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
-        }
-
-        if( family_face.GetisMaxFaceJ() )
-        {
-          for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
-        }
-
-        break;
-      }
-
-			default: ERROR("Unknown IFace type, could not accumulate its residual.");
-		}
-	}
-}
-
+// NResidualComputation namespace functions.
 //-----------------------------------------------------------------------------------
 
-void NResidualComputation::AccumulateJFaceResidualsCollective
-(
- const CMultizoneGeometry *multizone_geometry_container,
- CMultizoneSolver         *multizone_solver_container
-)
- /*
-  *
-  */
-{
-  // Ensure this is an OpenMP parallel region, in case we're running in parallel.
-  AssertParallelRegion();
-
-	// Get the total faces in the j-direction.
-	const auto& jdir_faces_multizone = multizone_geometry_container->GetMultizoneJFaces();
-	
-	// Get the total number faces in the  j-direction.
-  const auto nFacesJDir = jdir_faces_multizone.GetnFacesTotal(); 
-
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-	for(size_t i=0; i<nFacesJDir; i++)
-	{
-		// Get the relevant flattened index of the current face.
-    //const auto face_info = multizone_geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
-    // Extract the current type of face.
-    const auto face_type = face_info.mFaceType;
-
-		// Check what type of face we are dealing with.
-		switch( face_type )
-		{
-			case( ETypeFaceGeometry::INTERNAL ):
-			{
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInternalFacesFamily( face_info.mIndexFamily );
-       
-        // Extract the current face.
-        const auto& internal_face = family_face.GetInternalFace( face_info.mIndexFace );
-
-				const auto iZone  = family_face.GetiZone();
-				const auto iElemB = internal_face.mIndexElementM;
-
-        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElemB);
-
-        auto& tmpB = physical_element->mResMinus;
-        auto& resB = physical_element->mRes2D;
-        
-        for(size_t l=0; l<resB.size(); l++) resB[l] += tmpB[l];
-
-				break;
-			}
-
-      case( ETypeFaceGeometry::BOUNDARY ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetBoundaryFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& boundary_face = family_face.GetBoundaryFace( face_info.mIndexFace ); 
-
-        const auto iZone = family_face.GetiZone();
-        const auto iElem = boundary_face.mIndexElement;
-
-        auto* physical_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetPhysicalElement(iElem);
-
-        auto& tmp = physical_element->mResMinus;
-        auto& res = physical_element->mRes2D;
-
-        if( family_face.GetisMaxFace() )
-        {
-          for(size_t l=0; l<res.size(); l++) res[l] += tmp[l];
-        }
-
-        break;
-      }
-
-      case( ETypeFaceGeometry::INTERFACE ):
-      {
-        // Extract the family owning the current face.
-        const auto& family_face = jdir_faces_multizone.GetInterfaceFacesFamily( face_info.mIndexFamily );
-
-        // Extract the actual face.
-        const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
-
-        const auto iZoneM = family_face.GetiZone();
-        const auto iZoneP = family_face.GetjZone();
-
-        const auto iElemM = interface_face.mIndexElementI;
-        const auto iElemP = interface_face.mIndexElementJ;
-
-        auto* physical_element_m = multizone_solver_container->GetSinglezoneSolver(iZoneM)->GetPhysicalElement(iElemM);
-        auto* physical_element_p = multizone_solver_container->GetSinglezoneSolver(iZoneP)->GetPhysicalElement(iElemP);
-
-        auto& tmp_m = physical_element_m->mResMinus;
-        auto& res_m = physical_element_m->mRes2D;
-
-        auto& tmp_p = physical_element_p->mResMinus;
-        auto& res_p = physical_element_p->mRes2D;
-
-        if( family_face.GetisMaxFaceI() )
-        {
-          for(size_t l=0; l<res_m.size(); l++) res_m[l] += tmp_m[l];
-        }
-
-        if( family_face.GetisMaxFaceJ() )
-        {
-          for(size_t l=0; l<res_p.size(); l++) res_p[l] += tmp_p[l];
-        }
-
-        break;
-      }
-
-			default: ERROR("Unknown JFace type, could not update its residual.");
-		}
-	}
-}
-
-//-----------------------------------------------------------------------------------
-
-void NResidualComputation::ApplyInverseMassMatricesCollective
+void NResidualComputation::ComputeSurfaceResidualsCollectiveNowait
 (
  const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
- CPoolMatrixAS3<as3double> &workarray
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
 )
  /*
-  *
+  * Function that collectively computes both directional surface sweeps without an end barrier.
   */
 {
   // Ensure this is an OpenMP parallel region, in case we're running in parallel.
   AssertParallelRegion();
+
+  // Compute both directions into their respective local face buffers.
+  ComputeIFaceResidualsCollective(multizone_geometry_container,
+                                  multizone_solver_container,
+                                  workarray, localtime);
+
+  ComputeJFaceResidualsCollective(multizone_geometry_container,
+                                  multizone_solver_container,
+                                  workarray, localtime);
+}
+
+//-----------------------------------------------------------------------------------
+
+void NResidualComputation::ComputeElementResidualsCollective
+(
+ const CMultizoneGeometry  *multizone_geometry_container,
+ CMultizoneSolver          *multizone_solver_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime
+)
+ /*
+  * Function that waits for surface writes and collectively assembles mass-scaled element residuals.
+  */
+{
+  // Ensure this is an OpenMP parallel region, in case we're running in parallel.
+  AssertParallelRegion();
+
+  // Wait for all surface contributions before reading the local face buffers.
+#ifdef HAVE_OPENMP
+#pragma omp barrier
+#endif
 
 	// Get the total number of elements in all zones.
 	const auto nElemTotal = multizone_geometry_container->GetnElemTotal();
 
-  // Borrow memory once, and use all the existing work array (which is more than enough).
-  auto tmp = workarray.GetWorkMatrixAS3( 1, workarray.size() );
-
 #ifdef HAVE_OPENMP
 #pragma omp for schedule(static)
 #endif
-	for(size_t i=0; i<nElemTotal; i++)
+	for(std::size_t i=0; i<nElemTotal; i++)
 	{
     // Extract the element indices.
 		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
@@ -521,14 +274,46 @@ void NResidualComputation::ApplyInverseMassMatricesCollective
 
 		// Extract the relevant solver.
 		auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
-		// Extract the relevant physical element.
-		auto* element = solver->GetPhysicalElement(iElem);
+		// Extract the relevant grid.
+		auto* grid    = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
-    const as3double *minv = element->mInvMassMatrix.data();
-    as3double        *res = element->mRes2D.data();
-
-    solver->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, tmp.data()); 
+    // Compute the complete spatial residual for this element.
+    ComputeElementResidual(grid, solver, workarray, localtime, iElem);
   }
+}
+
+//-----------------------------------------------------------------------------------
+
+void NResidualComputation::ComputeElementResidual
+(
+ CSinglezoneGeometry       *singlezone_geometry_container,
+ ISolver                   *singlezone_solver_container,
+ CPoolMatrixAS3<as3double> &workarray,
+ as3double                  localtime,
+ std::size_t                     iElem
+)
+ /*
+  * Function that assembles one element residual and applies its inverse mass matrix.
+  */
+{
+  // Extract the relevant physical element.
+  auto* element = singlezone_solver_container->GetPhysicalElement(iElem);
+
+  // Compute the volume terms first, which also initializes the element residual.
+  singlezone_solver_container->ComputeVolumeResidual(singlezone_geometry_container, workarray, localtime, iElem);
+
+  // Accumulate the temporary surface residuals into the element residual.
+  auto& residual = element->mRes2D;
+  for(const auto& surface : element->mResSurface)
+    for(std::size_t l=0; l<residual.size(); l++) residual[l] += surface[l];
+
+  // Borrow the workspace after the volume temporaries have been released.
+  auto tmp = workarray.GetWorkMatrixAS3( 1, workarray.size() );
+
+  const as3double *minv = element->mInvMassMatrix.data();
+  as3double        *res = element->mRes2D.data();
+
+  singlezone_solver_container->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, tmp.data());
 }
 
 

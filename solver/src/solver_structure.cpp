@@ -1,5 +1,9 @@
 #include "solver_structure.hpp"
 
+#include <cstddef>
+#include <iostream>
+#include <ostream>
+
 
 //-----------------------------------------------------------------------------------
 // CMultizoneSolver member functions.
@@ -11,7 +15,7 @@ CMultizoneSolver::CMultizoneSolver
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Constructor that creates the solver for each grid zone.
   */
 {
   // Deduce the number of zones.
@@ -21,7 +25,7 @@ CMultizoneSolver::CMultizoneSolver
 	mMultizoneSolverContainer.reserve( mNZone );
 
 	// Initialize each solver.
-	for(unsigned short iZone=0; iZone<mNZone; iZone++)
+	for(std::size_t iZone=0; iZone<mNZone; iZone++)
 	{
     // Consistency check.
     if( iZone != multizone_geometry_container->GetSinglezoneGeometry(iZone)->GetZoneID() )
@@ -45,12 +49,12 @@ void CMultizoneSolver::InitializeInterfaces
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Function that creates interface evaluators and their direction-local batch mappings.
   */
 {
   // Extract the interfaces.
-  const auto& idir_interfaces = multizone_geometry_container->GetInterfaceFamiliesIFace();
-  const auto& jdir_interfaces = multizone_geometry_container->GetInterfaceFamiliesJFace();
+  const auto& idir_interfaces = multizone_geometry_container->GetInterfaceBatchesIFace();
+  const auto& jdir_interfaces = multizone_geometry_container->GetInterfaceBatchesJFace();
 
   // Reserve the required memory for the indicial mapping of the interfaces.
   mIndexInterfaceIFace.reserve( idir_interfaces.size() );
@@ -61,16 +65,16 @@ void CMultizoneSolver::InitializeInterfaces
 
 
   // Loop over each interface which contains the ith face as a IFace.
-  for(const auto& family : idir_interfaces )
+  for(const auto& batch : idir_interfaces )
   {
     // Global-book-keeping index.
-    const size_t iInterface = mMultizoneInterfaceContainer.size();
+    const std::size_t iInterface = mMultizoneInterfaceContainer.size();
 
     // Initialize each interface object.
     mMultizoneInterfaceContainer.emplace_back
     (
      CGenericFactory::CreateInterfaceContainer(config_container,
-                                               this, family)
+                                               this, batch)
     );
 
     // Book-keep the index map.
@@ -79,16 +83,16 @@ void CMultizoneSolver::InitializeInterfaces
 
 
   // Loop over each interface which contains the ith face as a IFace.
-  for(const auto& family : jdir_interfaces )
+  for(const auto& batch : jdir_interfaces )
   {
     // Global-book-keeping index.
-    const size_t iInterface = mMultizoneInterfaceContainer.size();
+    const std::size_t iInterface = mMultizoneInterfaceContainer.size();
 
     // Initialize each interface object.
     mMultizoneInterfaceContainer.emplace_back
     (
      CGenericFactory::CreateInterfaceContainer(config_container,
-                                               this, family)
+                                               this, batch)
     );
   
     // Book-keep the index map.
@@ -104,12 +108,12 @@ void CMultizoneSolver::InitializeBoundaries
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Function that creates boundary evaluators and their direction-local batch mappings.
   */
 {
   // Extract the boundaries.
-  const auto& idir_boundaries = multizone_geometry_container->GetBoundaryFamiliesIFace();
-  const auto& jdir_boundaries = multizone_geometry_container->GetBoundaryFamiliesJFace();
+  const auto& idir_boundaries = multizone_geometry_container->GetBoundaryBatchesIFace();
+  const auto& jdir_boundaries = multizone_geometry_container->GetBoundaryBatchesJFace();
 
   // Reserve the required memory for the indicial mapping of the boundaries.
   mIndexBoundaryIFace.reserve( idir_boundaries.size() );
@@ -119,13 +123,13 @@ void CMultizoneSolver::InitializeBoundaries
   mMultizoneBoundaryContainer.reserve( idir_boundaries.size() + jdir_boundaries.size() );
 
   // Loop over each boundary which contains with an IFace.
-  for(const auto& family : idir_boundaries )
+  for(const auto& batch : idir_boundaries )
   {
     // Global-book-keeping index.
     const std::size_t iBoundary = mMultizoneBoundaryContainer.size();
 
     // Extract the current zone index.
-    const std::size_t iZone = family.GetiZone();
+    const std::size_t iZone = batch.GetZoneIndex();
 
     // Extract the current zone solver and geometry.
     const auto* zone_solver   = GetSinglezoneSolver(iZone);
@@ -137,7 +141,7 @@ void CMultizoneSolver::InitializeBoundaries
      CGenericFactory::CreateBoundaryContainer(config_container,
                                               zone_geometry,
                                               zone_solver, 
-                                              family)
+                                              batch)
     );
 
     // Book-keep the index map.
@@ -146,13 +150,13 @@ void CMultizoneSolver::InitializeBoundaries
 
 
   // Loop over each boundary which contains with an JFace.
-  for(const auto& family : jdir_boundaries )
+  for(const auto& batch : jdir_boundaries )
   {
     // Global-book-keeping index.
     const std::size_t iBoundary = mMultizoneBoundaryContainer.size();
 
     // Extract the current zone index.
-    const std::size_t iZone = family.GetiZone();
+    const std::size_t iZone = batch.GetZoneIndex();
 
     // Extract the current zone solver and geometry.
     const auto* zone_solver   = GetSinglezoneSolver(iZone);
@@ -164,7 +168,7 @@ void CMultizoneSolver::InitializeBoundaries
      CGenericFactory::CreateBoundaryContainer(config_container,
                                               zone_geometry,
                                               zone_solver, 
-                                              family)
+                                              batch)
     );
 
     // Book-keep the index map.
@@ -183,16 +187,16 @@ ISolver::ISolver
 (
  const CConfig             *config_container,
  const CSinglezoneGeometry *singlezone_geometry_container,
- unsigned short             nVar
+ std::size_t                nVar
 )
 	:
 		mZoneID( singlezone_geometry_container->GetZoneID() )
  /*
-	* Constructor for the interface solver class.
+	* Constructor that creates the zone reference element, tensor and Riemann solvers.
 	*/
 {
 	// Instantiate a standard element object.
-	mStandardElementContainer = CGenericFactory::CreateStandardElement(config_container, mZoneID);
+	mStandardElementContainer = CGenericFactory::CreateStandardElement(singlezone_geometry_container);
 
 	// Instantiate a tensor-product object.
 	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(), nVar);
@@ -209,7 +213,7 @@ ISolver::~ISolver
  void
 )
  /*
-	* Destructor, which cleans up after the interface solver class.
+	* Destructor for ISolver.
 	*/
 {
 
@@ -229,7 +233,7 @@ CEESolver::CEESolver
 	:
 		ISolver(config_container, singlezone_geometry_container, CEESolver::mNVar)
  /*
-	* Constructor for the (non-linear) Euler equations class.
+	* Constructor that initializes the Euler solver for one zone.
 	*/
 {
 
@@ -242,7 +246,7 @@ CEESolver::~CEESolver
  void
 )
  /*
-	* Destructor, which cleans up after the Euler equations class.
+	* Destructor for CEESolver.
 	*/
 {
 
@@ -256,7 +260,7 @@ void CEESolver::InitPhysicalElements
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-	* Function that initializes the physical elements. 
+	* Function that constructs physical element states and metrics for the zone.
 	*/
 {	
 	// Report output.
@@ -273,7 +277,7 @@ void CEESolver::InitPhysicalElements
 	// require additional variables. For now, avoid an interface class, as this object is the most 
 	// performance-reliant data class in the code. Perhaps it is better to keep a single class, but 
 	// instantiate it differently, depending on the type of solver and buffer layer specification.
-	for(size_t i=0; i<mPhysicalElementContainer.size(); i++)
+	for(std::size_t i=0; i<mPhysicalElementContainer.size(); i++)
 	{
 		mPhysicalElementContainer[i] = CGenericFactory::CreatePhysicalElement(config_container,
 				                                                                  mStandardElementContainer.get(),
@@ -293,14 +297,14 @@ void CEESolver::ComputeVolumeResidual
  CSinglezoneGeometry       *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- size_t                     iElem
+ std::size_t                iElem
 )
  /*
-	* Function that computes the volume terms for a given element. 
+	* Function that overwrites one element residual with its volume contribution.
 	*/
 {
 	// Extract the number of integration points in 2D.
-	size_t nInt2D = mStandardElementContainer->GetnInt2D();
+	const std::size_t nInt2D = mStandardElementContainer->GetnInt2D();
 	// Extract the quadrature integration weights on the standard element.
 	auto&  wInt2D = mStandardElementContainer->GetwInt2D();
 
@@ -328,7 +332,8 @@ void CEESolver::ComputeVolumeResidual
 
 
 	// Loop over the integration points and compute the weighted terms.
-	for(size_t l=0; l<nInt2D; l++)
+#pragma omp simd
+  for(std::size_t l=0; l<nInt2D; l++)
 	{
 		// Compute the weighting factor: Jacobian multiplied by the integration weight.
 		// Note, the residual is defined on the RHS: 
@@ -387,21 +392,17 @@ void CEESolver::ComputeSurfaceResidualIDir
  const CSinglezoneGeometry *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- size_t                     iElemL
+ std::size_t                iElemL
 )
  /*
-	* Function that computes the residual terms in the i-direction of an EE-type PDE. 
+	* Function that computes one same-zone I-face flux and fills both local face buffers.
 	*/
 {
-	// Extract the number of elements in this zone.
-	const size_t niElem = singlezone_geometry_container->GetniElem();	
-	const size_t njElem = singlezone_geometry_container->GetnjElem();
-
   // Deduce the right element's index.
-  const size_t iElemR = iElemL + 1;
+  const std::size_t iElemR = iElemL + 1;
 
 	// Extract the number of integration points in 1D.
-	size_t nInt1D = mStandardElementContainer->GetnInt1D();
+	std::size_t nInt1D = mStandardElementContainer->GetnInt1D();
 	// Extract the quadrature integration weights in 1D on the standard element.
 	auto&  wInt1D = mStandardElementContainer->GetwInt1D();
 
@@ -419,15 +420,16 @@ void CEESolver::ComputeSurfaceResidualIDir
 	// Reference to the left element solution.
 	auto& solL = elemL->mSol2D;
 	// Reference to the right element residual (temporary).
-	auto& resL = elemL->mResMinus;
+	auto& resL = elemL->GetSurfaceResidual(EFaceLocation::IMAX);
 
 	// Reset the values in the resL, before proceeding.
-	for(size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
+	for(std::size_t l=0; l<resL.size(); l++) resL[l] = C_ZERO;
 
 	// Reference to the right element solution.
 	auto& solR = elemR->mSol2D;
 	// Reference to the right element residual.
-	auto& resR = elemR->mRes2D;
+	auto& resR = elemR->GetSurfaceResidual(EFaceLocation::IMIN);
+  resR.reset();
 
 	// Compute the solution on the integration nodes of the left element.
 	mTensorProductContainer->CompileTimeSurfaceIMAX(solL.data(),
@@ -447,7 +449,7 @@ void CEESolver::ComputeSurfaceResidualIDir
                                                           nullptr, nullptr, resL.data());
 
 	// For local conservation, negate the flux, since it leaves the left element to enter the right element.
-	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+	for(std::size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the right element, which is on the IMIN boundary.
 	mTensorProductContainer->CompileTimeResidualSurfaceIMIN(flux.data(), 
@@ -461,21 +463,19 @@ void CEESolver::ComputeSurfaceResidualJDir
  const CSinglezoneGeometry *singlezone_geometry_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- size_t                     iElemB
+ std::size_t                iElemB
 )
  /*
-	* Function that computes the residual terms in the j-direction of an EE-type PDE. 
+	* Function that computes one same-zone J-face flux and fills both local face buffers.
 	*/
 {
-	// Extract the number of elements in this zone.
-	const size_t niElem = singlezone_geometry_container->GetniElem();	
-	const size_t njElem = singlezone_geometry_container->GetnjElem();
-
+  // Extract the number of elements in the ith-direction in this zone.
+	const std::size_t niElem = singlezone_geometry_container->GetniElem();	
   // Deduce the top element's index.
-  const size_t iElemT = iElemB + niElem;
+  const std::size_t iElemT = iElemB + niElem;
 
 	// Extract the number of integration points in 1D.
-	size_t nInt1D = mStandardElementContainer->GetnInt1D();
+	std::size_t nInt1D = mStandardElementContainer->GetnInt1D();
 	// Extract the quadrature integration weights in 1D on the standard element.
 	auto&  wInt1D = mStandardElementContainer->GetwInt1D();
 
@@ -493,15 +493,16 @@ void CEESolver::ComputeSurfaceResidualJDir
 	// Reference to the left element solution.
 	auto& solB = elemB->mSol2D;
 	// Reference to the right element residual (temporary).
-	auto& resB = elemB->mResMinus;
+	auto& resB = elemB->GetSurfaceResidual(EFaceLocation::JMAX);
 
 	// Reset the values in the resL, before proceeding.
-	for(size_t l=0; l<resB.size(); l++) resB[l] = C_ZERO;
+	for(std::size_t l=0; l<resB.size(); l++) resB[l] = C_ZERO;
 
 	// Reference to the right element solution.
 	auto& solT = elemT->mSol2D;
 	// Reference to the right element residual.
-	auto& resT = elemT->mRes2D;
+	auto& resT = elemT->GetSurfaceResidual(EFaceLocation::JMIN);
+  resT.reset();
 
 	// Compute the solution on the integration nodes of the left element.
 	mTensorProductContainer->CompileTimeSurfaceJMAX(solB.data(),
@@ -521,7 +522,7 @@ void CEESolver::ComputeSurfaceResidualJDir
                                                           nullptr, nullptr, resB.data());
 
 	// For local conservation, negate the flux, since it leaves the left element to enter the right element.
-	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+	for(std::size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
 
 	// Compute the residual on the right element, which is on the IMIN boundary.
 	mTensorProductContainer->CompileTimeResidualSurfaceJMIN(flux.data(), 

@@ -11,11 +11,11 @@ COpenMP::COpenMP
  CConfig *config_container
 )
  /*
-	* Constructor for the OpenMP shared memory parallelization class.
+	* Constructor that records the maximum OpenMP team size.
 	*/
 {
 #ifdef HAVE_OPENMP
-  mNThread = omp_get_max_threads();
+  mNThread = static_cast<std::size_t>(omp_get_max_threads());
 #else
   mNThread = 1;
 #endif
@@ -28,7 +28,7 @@ COpenMP::~COpenMP
  void
 )
  /*
-	* Destructor, which cleans up after the OpenMP class.
+	* Destructor for COpenMP.
 	*/
 {
 

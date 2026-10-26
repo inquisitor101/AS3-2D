@@ -1,5 +1,9 @@
 #include "iteration_structure.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include "temporal_structure.hpp"
+
 
 //-----------------------------------------------------------------------------------
 // CIteration member functions.
@@ -12,11 +16,11 @@ CIteration::CIteration
  const CMultizoneSolver *multizone_solver_container
 )
  /*
-	* Constructor for the iteration class.
+	* Constructor that sizes the workspace needed by each solver thread.
 	*/
 {
 	// Check the relevant number of data entries required in the work array.
-	for(unsigned short iZone=0; iZone<config_container->GetnZone(); iZone++)
+	for(std::size_t iZone=0; iZone<config_container->GetnZone(); iZone++)
 	{
     // Get reference to the relevant solver.
     const auto* solver_container = multizone_solver_container->GetSinglezoneSolver(iZone);
@@ -26,19 +30,19 @@ CIteration::CIteration
 		{
 			case(ETypeSolver::EE):
 			{
-				const size_t nItem2D = 3;  // volume  terms needed.
-				const size_t nItem1D = 2;  // surface terms needed.
+				const std::size_t nItem2D = 3;  // volume  terms needed.
+				const std::size_t nItem1D = 2;  // surface terms needed.
 				
-				const size_t nVar    = solver_container->GetnVar();
-				const size_t nInt1D  = solver_container->GetStandardElement()->GetnInt1D();
-				const size_t nInt2D  = solver_container->GetStandardElement()->GetnInt2D();
+				const std::size_t nVar    = solver_container->GetnVar();
+				const std::size_t nInt1D  = solver_container->GetStandardElement()->GetnInt1D();
+				const std::size_t nInt2D  = solver_container->GetStandardElement()->GetnInt2D();
 
 				// Compute the total number of required volume and surface terms in the work array.
-				const size_t nVol  = nItem2D*nInt2D*nVar;
-				const size_t nSurf = nItem1D*nInt1D*nVar;
+				const std::size_t nVol  = nItem2D*nInt2D*nVar;
+				const std::size_t nSurf = nItem1D*nInt1D*nVar;
 
 				// Take the maximum storage between the volume and surface terms.
-				const size_t nData = std::max( nVol, nSurf );
+				const std::size_t nData = std::max( nVol, nSurf );
 
 				// Take whichever is the max possible storage across all zones (can be inefficient).
 				mNWorkData = std::max( mNWorkData, nData );
@@ -58,43 +62,7 @@ CIteration::~CIteration
  void
 )
  /*
-	* Destructor, which cleans up after the iteration class.
-	*/
-{
-
-}
-
-//-----------------------------------------------------------------------------------
-
-void CIteration::PreProcessIteration
-(
- CConfig                   *config_container,
- CMultizoneGeometry        *multizone_geometry_container,
- COpenMP                   *openmp_container,
- CMultizoneSolver          *multizone_solver_container,
- CPoolMatrixAS3<as3double> &workarray,
- as3double                  localtime 
-)
- /*
-	* Function that preprocesses the solution, before sweeping the grid.
-	*/
-{
-
-}
-
-//-----------------------------------------------------------------------------------
-
-void CIteration::PostProcessIteration
-(
- CConfig                   *config_container,
- CMultizoneGeometry        *multizone_geometry_container,
- COpenMP                   *openmp_container,
- CMultizoneSolver          *multizone_solver_container,
- CPoolMatrixAS3<as3double> &workarray,
- as3double                  localtime 
-)
- /*
-	* Function that postprocesses the solution, after sweeping the grid.
+	* Destructor for CIteration.
 	*/
 {
 
@@ -112,38 +80,77 @@ void CIteration::ComputeResiduals
  as3double                  localtime
 )
  /*
-	* Function that computes the residual in all zones. Note, these all use 
-  * a collective call via an optimized OpenMP for loop. They must be executed 
-  * inside an OpenMP parallel region
+	* Function that collectively computes surface and element residuals for all zones.
 	*/
 {
-  // First, we compute the volume residual, which also initializes the residuals.
-  NResidualComputation::ComputeVolumeResidualsCollective(multizone_geometry_container, 
-                                                         multizone_solver_container, 
-                                                         workarray, localtime);
+  // First, compute the surface residuals into their local face buffers.
+  NResidualComputation::ComputeSurfaceResidualsCollectiveNowait(multizone_geometry_container,
+                                                               multizone_solver_container,
+                                                               workarray, localtime);
 
-  // Then, we compute the IFace residuals.
-  NResidualComputation::ComputeIFaceResidualsCollective(multizone_geometry_container, 
-                                                        multizone_solver_container, 
-                                                        workarray, localtime);
+  // Then, compute the volume terms, gather the surfaces, and apply the inverse mass matrix per element.
+  NResidualComputation::ComputeElementResidualsCollective(multizone_geometry_container,
+                                                          multizone_solver_container,
+                                                          workarray, localtime);
+}
 
-  // Afterwards, we must accumulate the temporary stored IFace residuals.
-  NResidualComputation::AccumulateIFaceResidualsCollective(multizone_geometry_container, 
-                                                           multizone_solver_container);
+//-----------------------------------------------------------------------------------
 
-  // Same with JFace residuals.
-  NResidualComputation::ComputeJFaceResidualsCollective(multizone_geometry_container,
-                                                        multizone_solver_container,
-                                                        workarray, localtime);
+void CIteration::AdvanceStage
+(
+ const CMultizoneGeometry *multizone_geometry_container,
+ CMultizoneSolver         *multizone_solver_container,
+ const ITemporal          *temporal_container,
+ as3double                 localtime,
+ as3double                 timestep,
+ std::size_t            iStageRK
+)
+ /*
+  * Function that computes surface residuals, synchronizes, then assembles and updates each element.
+  */
+{
+#ifdef HAVE_OPENMP
+#pragma omp parallel
+#endif
+  {
+    // Each thread owns its workspace for both surface and volume computations.
+    CPoolMatrixAS3<as3double> workarray(mNWorkData);
 
-  // Also, accumulate the temporary stored JFace residuals.
-  NResidualComputation::AccumulateJFaceResidualsCollective(multizone_geometry_container,
-                                                           multizone_solver_container);
+    // Compute the surface residuals into their local face buffers.
+    NResidualComputation::ComputeSurfaceResidualsCollectiveNowait(multizone_geometry_container,
+                                                                 multizone_solver_container,
+                                                                 workarray, localtime);
 
-  // Finally, we update the residuals by including the mass matrix's effect.
-  NResidualComputation::ApplyInverseMassMatricesCollective(multizone_geometry_container, 
-                                                           multizone_solver_container, 
-                                                           workarray);
+    // Wait for all surface contributions before changing any element solution.
+#ifdef HAVE_OPENMP
+#pragma omp barrier
+#endif
+
+    // Get the total number of elements in all zones.
+    const auto nElemTotal = multizone_geometry_container->GetnElemTotal();
+
+#ifdef HAVE_OPENMP
+#pragma omp for schedule(static) nowait
+#endif
+    for(std::size_t i=0; i<nElemTotal; i++)
+    {
+      // Extract the element indices.
+      const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
+      const auto iZone = elem_info.mIndexZone;
+      const auto iElem = elem_info.mIndexElem;
+
+      // Extract the relevant solver, grid, and physical element.
+      auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
+      auto* grid    = multizone_geometry_container->GetSinglezoneGeometry(iZone);
+      auto* element = solver->GetPhysicalElement(iElem);
+
+      // Compute the volume terms, accumulate the surfaces, and apply the inverse mass matrix.
+      NResidualComputation::ComputeElementResidual(grid, solver, workarray, localtime, iElem);
+
+      // The temporal method supplies the update formula for this element.
+      temporal_container->UpdateElementSolution(element, timestep, iStageRK);
+    }
+  } // The parallel-region barrier completes all solution updates before the next stage.
 }
 
 //-----------------------------------------------------------------------------------
@@ -153,27 +160,15 @@ void CIteration::GridSweep
  CConfig            *config_container,
  CMultizoneGeometry *multizone_geometry_container,
  COpenMP            *openmp_container,
- CMultizoneSolver   *multizone_solver_container, 
- as3double           localtime 
+ CMultizoneSolver   *multizone_solver_container,
+ as3double           localtime
 )
  /*
-	* Function that performs a grid sweep over all the zones. 
+	* Function that collectively computes spatial residuals without a temporal update.
 	*/
 {
-	// Initialize a work array, to avoid multiple memory allocations.
-	// Note, during parallelization, this needs to be allocated inside 
-	// the (shared memory) parallel region -- not here.
+	// Initialize a separate work array for each thread in the enclosing parallel region.
 	CPoolMatrixAS3<as3double> workarray(mNWorkData);
-
-
-	// Check for any preprocessing steps.
-	PreProcessIteration(config_container,
-			                multizone_geometry_container,
-											openmp_container,
-											multizone_solver_container,
-											workarray,
-											localtime);
-
 
 	// Compute the residual over all zones.
 	ComputeResiduals(config_container,
@@ -182,13 +177,4 @@ void CIteration::GridSweep
 									 multizone_solver_container,
 									 workarray,
 									 localtime);
-
-
-	// Check for any postprocessing steps.
-	PostProcessIteration(config_container,
-			                 multizone_geometry_container,
-											 openmp_container,
-											 multizone_solver_container,
-											 workarray,
-											 localtime);
 }

@@ -1,4 +1,13 @@
 #include "geometry_structure.hpp"
+
+#include <algorithm>
+#include <cstddef>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <sstream>
+#include <string>
 #include "import_structure.hpp"
 #include "log_structure.hpp"
 
@@ -13,12 +22,12 @@
 
 CMultizoneGeometry::CMultizoneGeometry
 (
- CConfig *config_container
+ const CConfig *config_container
 )
 	:
 		mNZone( config_container->GetnZone() )
  /*
-	* Constructor for the geometry, which contains all the grid geometry.
+	* Constructor that checks and imports the multizone grid.
 	*/
 {
 	// Check and report output for the existance of the specified grid files.
@@ -37,7 +46,7 @@ CMultizoneGeometry::~CMultizoneGeometry
  void
 )
  /*
-	* Destructor, which cleans up after the driver class.
+	* Destructor for CMultizoneGeometry.
 	*/
 {
 
@@ -50,7 +59,7 @@ void CMultizoneGeometry::ImportGrid
  const CConfig *config_container
 )
  /*
-  *
+  * Function that imports AS3 metadata, zone coordinates and zone-edge markers.
   */
 {
 	if( config_container->GetMeshFormat() != EMeshFormat::AS3 )
@@ -86,7 +95,7 @@ void CMultizoneGeometry::ImportGrid
   mSinglezoneGeometry.reserve( mNZone );
 
   // Obtain the single zone grids.
-  for(size_t iZone=0; iZone<mNZone; iZone++)
+  for(std::size_t iZone=0; iZone<mNZone; iZone++)
   {
     const auto& filename = dir + "blocks/block_" + std::to_string(iZone) + ".bin"; 
     mSinglezoneGeometry.push_back( ReadAS3BinarySinglezoneGrid(filename, metadata, iZone) );
@@ -174,10 +183,10 @@ void CMultizoneGeometry::ImportGrid
 
 void CMultizoneGeometry::CheckExistanceGridFiles
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Function that checks the existance of the grid files and reports the output.
+	* Function that checks the configured grid directory and required AS3 files.
 	*/
 {
 	// Report output.
@@ -192,7 +201,7 @@ void CMultizoneGeometry::CheckExistanceGridFiles
   std::string dir = config_container->GetGridDirectory();
 
 	// Loop over all the expected zones and report their grid filenames.
-	for(unsigned short i=0; i<mNZone; i++)
+	for(std::size_t i=0; i<mNZone; i++)
 	{
 		std::string filename = dir + "blocks/block_" + std::to_string(i) + ".bin";
 		// Check if the file exists.
@@ -219,18 +228,17 @@ void CMultizoneGeometry::CheckExistanceGridFiles
 
 void CMultizoneGeometry::InitializeGridTopology
 (
- const CConfig *config_container,
  const COpenMP *openmp_container
 )
  /*
-	*
+	* Function that builds flattened element and face indices and load-balancing permutations.
 	*/
 {
 	// Initialize the faces in the i-direction.
-	mMultizoneIFaces.InitializeFaces(config_container, this);
+	mMultizoneIFaces.InitializeFaces(this);
 
 	// Initialize the faces in the j-direction.
-	mMultizoneJFaces.InitializeFaces(config_container, this);
+	mMultizoneJFaces.InitializeFaces(this);
 
 
   // Temporary lambda to flatten the face indices for a given multizone face container.
@@ -243,49 +251,12 @@ void CMultizoneGeometry::InitializeGridTopology
     flattened_indices.reserve(nFaces);
  
     // Loop over each face and construct its indicial mapping.
-    for (auto i=0; i<nFaces; i++)
+    for(std::size_t i=0; i<nFaces; i++)
     {
-      // Get the current face type.
-      const auto face_type = multizone_faces.DeduceFaceTypeFromIndex(i);
-  
-      // Define the local face index according to its type.
-      size_t iFaceLocal;
-
-      // Define the local face infomation according to its type.
-      CElementFaceIndex face_info;
-
-      switch (face_type)
-      {
-        case( ETypeFaceGeometry::INTERNAL ):
-        {
-          iFaceLocal = multizone_faces.GetIndexInternalFace(i);
-          face_info  = multizone_faces.FindInternalElementFaceIndex(iFaceLocal);
-          break;
-        }
-  
-        case( ETypeFaceGeometry::BOUNDARY ):
-        {
-          iFaceLocal = multizone_faces.GetIndexBoundaryFace(i);
-          face_info  = multizone_faces.FindBoundaryElementFaceIndex(iFaceLocal);
-          break;
-        }
-  
-        case( ETypeFaceGeometry::INTERFACE ):
-        {
-          iFaceLocal = multizone_faces.GetIndexInterfaceFace(i);
-          face_info  = multizone_faces.FindInterfaceElementFaceIndex(iFaceLocal);
-          break;
-        }
-  
-        default:
-          ERROR("Unknown face type.");
-      }
-  
-      // Store the flattened face index.
-      flattened_indices.emplace_back( 
-          CFlattenedFaceIndex{face_info.mIndexFamily, face_info.mIndexFace, face_type} 
-          );
+      // Resolve the face kind, batch index and batch-local face index.
+      flattened_indices.push_back( multizone_faces.ResolveFace(i) );
     }
+
   };
 
 
@@ -303,9 +274,9 @@ void CMultizoneGeometry::InitializeGridTopology
 	mFlattenedIndexVolumeElement.reserve( mNElemTotal );
 
 	// Deduce the flattening strategy of the elements.
-	for(unsigned short iZone=0; iZone<mSinglezoneGeometry.size(); iZone++)
+	for(std::size_t iZone=0; iZone<mSinglezoneGeometry.size(); iZone++)
 	{
-		for(size_t iElem=0; iElem<mSinglezoneGeometry[iZone]->GetnElem(); iElem++)
+		for(std::size_t iElem=0; iElem<mSinglezoneGeometry[iZone]->GetnElem(); iElem++)
 		{
 			mFlattenedIndexVolumeElement.emplace_back( CFlattenedElementIndex{iZone, iElem} ); 
 		}
@@ -313,7 +284,7 @@ void CMultizoneGeometry::InitializeGridTopology
 
 
   // For load-balancing reasons, select the number of chunks to be equal to the number of OpenMP threads. 
-  const size_t nChunk = openmp_container->GetnThread();
+  const std::size_t nChunk = openmp_container->GetnThread();
 
   // Obtain a better load-balanced face partitioning strategy for the i-faces.
   mIFaceLoadBalancedPermutation = CLoadBalancedFacePermutation( mFlattenedIndexIFace, 
@@ -348,10 +319,10 @@ CSinglezoneGeometry::CSinglezoneGeometry
     mNPolyGrid(nPoly),
     mNiElem(niElem),
     mNjElem(njElem),
-    mNodalDistribution(nodalDistribution),
-    mIsAffine(isAffine)
+    mIsAffine(isAffine),
+    mNodalDistribution(nodalDistribution)
  /*
-  * Initialize zone properties and allocate all element coordinate matrices.
+  * Constructor that records zone properties and allocates element coordinates.
   */
 {
   if( mNiElem == 0 || mNjElem == 0 )
@@ -374,32 +345,12 @@ CSinglezoneGeometry::CSinglezoneGeometry
 
 //-----------------------------------------------------------------------------------
 
-CSinglezoneGeometry::CSinglezoneGeometry
-(
- CConfig        *config_container,
- std::string     gridfile,
- unsigned short  iZone
-)
-	: 
-		mZoneID(iZone), 
-	  mGridFile(gridfile),
-		mNPolyGrid(config_container->GetnPoly(iZone))
- /*
-	* Constructor for the zone geometry, which contains a single grid geometry.
-	*/
-{
-	// Generate the nodal face indices for a quadrilateral element.
-	GenerateNodalFaceIndices();
-}
-
-//-----------------------------------------------------------------------------------
-
 CSinglezoneGeometry::~CSinglezoneGeometry
 (
  void
 )
  /*
-	* Destructor, which cleans up after the driver class.
+	* Destructor for CSinglezoneGeometry.
 	*/
 {
 
@@ -412,22 +363,22 @@ void CSinglezoneGeometry::GenerateNodalFaceIndices
  void
 )
  /*
-	* Function that generates nodal indices for the 4 faces of a quadrilateral.
+	* Function that builds reference-node indices for the four local quadrilateral edges.
 	*/
 {
 	// Deduce the number of solution points in 1D in this zone.
-	const unsigned short nSol1D = mNPolyGrid+1;
+	const std::size_t nSol1D = mNPolyGrid+1;
 
 	// TODO: change to a contiguous array, using CMatrixAS3.
   // Allocate memory for the nodal indices on all sides.
-	mFaceNodalIndices.resize( 4, as3vector1d<unsigned short>(nSol1D) );
+	mFaceNodalIndices.resize( 4, as3vector1d<std::size_t>(nSol1D) );
 
 	// Offsets in the i- and j-direction.
-	const unsigned short di = mNPolyGrid;
-	const unsigned short dj = static_cast<unsigned short>( nSol1D*(nSol1D-1) );
+	const std::size_t di = mNPolyGrid;
+	const std::size_t dj = nSol1D*(nSol1D-1);
 	
 	// Loop over the face nodes and generate their local indices.
-	for(unsigned short i=0; i<nSol1D; i++)
+	for(std::size_t i=0; i<nSol1D; i++)
 	{
 		// Face: IMIN.
 		mFaceNodalIndices[0][i] = i*nSol1D;
@@ -446,18 +397,18 @@ void CSinglezoneGeometry::InitializeElements
 (
  as3vector2d<double> &xcoor,
  as3vector2d<double> &ycoor,
- unsigned int         niElem,
- unsigned int         njElem
+ std::size_t         niElem,
+ std::size_t         njElem
 )
  /*
-	* Function that initializes and defines all the element geometry in this zone..
+	* Function that constructs element geometries from per-element coordinate vectors.
 	*/
 {
 	// Deduce the number of elements and ensure consistency.
 	if( xcoor.size() != ycoor.size() ) ERROR("Number of coordinates in x and y is not identical.");
 
 	// Ensure the total number of elements is correct.
-	if( static_cast<size_t>(niElem*njElem) != xcoor.size() ) ERROR("Inconsistency in number of elements.");
+	if( niElem*njElem != xcoor.size() ) ERROR("Inconsistency in number of elements.");
 
 	// Set the number of elements in each dimension.
 	mNiElem = niElem;
@@ -467,10 +418,10 @@ void CSinglezoneGeometry::InitializeElements
 	mElementGeometry.resize( xcoor.size() );
 
 	// Total number of grid nodes in 2D, as user-specified.
-	const size_t nNode2D = (mNPolyGrid+1)*(mNPolyGrid+1);
+	const std::size_t nNode2D = (mNPolyGrid+1)*(mNPolyGrid+1);
 
 	// Loop over each element and instantiate its coordinates.
-	for(size_t i=0; i<xcoor.size(); i++)
+	for(std::size_t i=0; i<xcoor.size(); i++)
 	{
 		// Ensure the polynomial order is correct.
 		if( (xcoor[i].size() != nNode2D) || (ycoor[i].size() != nNode2D) )
@@ -490,7 +441,7 @@ as3vector1d<std::size_t> CSinglezoneGeometry::ComputeSurfaceElementIndices
  EFaceLocation face_location
 ) const
  /*
-  * Return surface elements in increasing local i or j order.
+  * Function that returns zone-local element indices in traversal order along an edge.
   */
 {
   // Prevent unsigned underflow when computing niElem-1 or njElem-1.
@@ -543,7 +494,7 @@ as3vector1d<std::size_t> CSinglezoneGeometry::ComputeSurfaceNodeIndices
  EFaceLocation face_location
 ) const
  /*
-  * Return surface nodes in increasing local i or j order.
+  * Function that returns reference-node indices in traversal order along an edge.
   */
 {
   // Number of nodes in each local direction of the element.
@@ -596,7 +547,7 @@ CElementGeometry::CElementGeometry
 )
   : mCoordSolDOFs(2, nNode2D)
  /*
-  * Allocate the final coordinate matrix without intermediate coordinate vectors.
+  * Constructor that allocates geometry-node coordinates for one element.
   */
 {
 
@@ -610,7 +561,7 @@ CElementGeometry::CElementGeometry
  as3vector1d<double> &y
 )
  /*
-	* Constructor for the element geometry, which contains a single element geometry.
+	* Constructor that copies the geometry-node coordinates.
 	*/
 {
 	// Ensure consistency.
@@ -620,7 +571,7 @@ CElementGeometry::CElementGeometry
 	mCoordSolDOFs.resize( 2, x.size() );
 
 	// Copy the coordinates.
-	for(size_t i=0; i<x.size(); i++)
+	for(std::size_t i=0; i<x.size(); i++)
 	{
 		mCoordSolDOFs(0,i) = x[i];
 		mCoordSolDOFs(1,i) = y[i];
@@ -634,7 +585,7 @@ CElementGeometry::~CElementGeometry
  void
 )
  /*
-	* Destructor, which cleans up after the element geometry class.
+	* Destructor for CElementGeometry.
 	*/
 {
 

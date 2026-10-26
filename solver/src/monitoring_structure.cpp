@@ -8,10 +8,10 @@
 
 CMonitorData::CMonitorData
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Constructor that initializes the monitoring data.
+	* Constructor that initializes simulation monitoring data.
 	*/
 {
 

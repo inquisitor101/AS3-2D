@@ -1,5 +1,13 @@
 #include "log_structure.hpp"
 
+#include <algorithm>
+#include <cstddef>
+#include <iomanip>
+#include <ios>
+#include <iostream>
+#include <ostream>
+#include <string>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -12,7 +20,7 @@ void NLogger::PrintInitSolver
  CConfig *config_container
 )
  /*
-	* Function that prints the information about what solver is used in each zone.
+	* Function that prints the equation type used in each zone.
 	*/
 {
 	std::cout << "----------------------------------------------"
@@ -43,7 +51,7 @@ void NLogger::PrintInitSolver
 
 
 	// Loop over each zone and print the corresponding solver specs.
-	for(unsigned short iZone=0; iZone<nZone; iZone++)
+	for(std::size_t iZone=0; iZone<nZone; iZone++)
 	{
 		switch( config_container->GetTypeSolver(iZone) )
 		{
@@ -74,7 +82,7 @@ void NLogger::DisplayBoundaryConditions
  const CMultizoneSolver   *multizone_solver_container
 )
  /*
-	* Function that displays the boundary condition information over all zones.
+	* Function that prints the configured physical and periodic boundary conditions.
 	*/
 {
   // TODO: finish this.
@@ -85,7 +93,7 @@ void NLogger::DisplayBoundaryConditions
 	//std::cout << "Reporting boundary conditions specified:" << std::endl;
 
 	//// Max length of marker names, used for output format.
-	//size_t maxlen = 0;
+	//std::size_t maxlen = 0;
 	//
 	//// Determine the maximum length of the interface marker names.
 	//for( auto& [name, bc]: config_container->GetMarkerTag() )
@@ -106,7 +114,7 @@ void NLogger::DisplayBoundaryConditions
 	//		        << marker.size() << " markers with BCs:" << std::endl;
 
 	//	// Counter for the number of boundaries in this zone.
-	//	size_t n = 0;
+	//	std::size_t n = 0;
 
 	//	// Loop over each marker and deduce its type and information.
 	//	for( auto& m: marker )
@@ -137,7 +145,7 @@ void NLogger::DisplayBoundaryConditions
 	//					// Copy the name tags to a fixed-length string.
 	//					std::string tmp = iname;
 	//					std::string inamepad(maxlen, ' ');
-	//					for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
+	//					for(std::size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
 
 	//					// Report output concerning the interface markers.
 	//					std::cout << "     "    << izone    << "." 
@@ -165,7 +173,7 @@ void NLogger::DisplayBoundaryConditions
 	//					// Copy the name tags to a fixed-length string.
 	//					std::string tmp = iname;
 	//					std::string inamepad(maxlen, ' ');
-	//					for(size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
+	//					for(std::size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
 
 	//					// Report output concerning the interface markers.
 	//					std::cout << "     "    << izone    << "." 
@@ -202,20 +210,20 @@ void NLogger::MonitorOutput
 (
  CConfig       *config_container,
  CMonitorData  *monitor_container,
- unsigned long  iter,
+ std::size_t  iter,
  as3double      time,
  as3double      step
 )
  /*
-	* Function that outputs the header of the information being displayed.
+	* Function that prints the monitoring header and current simulation values.
 	*/
 {
 	// Extract the max number of iterations.
-	unsigned long nMaxIter = config_container->GetMaxIterTime();
+	std::size_t nMaxIter = config_container->GetMaxIterTime();
 	// Number of output reports for monitoring progress.
-	unsigned long nOutput  = std::max(1ul, nMaxIter/100);
+	std::size_t nOutput  = std::max(std::size_t{1}, nMaxIter/100);
 	// Compute number of max digits needed for output.
-	unsigned long nDigits  = std::to_string(nMaxIter).size();
+	std::size_t nDigits  = std::to_string(nMaxIter).size();
 
 	// Display header.
 	if( iter%(50*nOutput) == 0 )
@@ -236,7 +244,7 @@ void NLogger::MonitorOutput
   // Extract the maximum Mach number.
   const as3double Mmax  = monitor_container->mMachMax;
 	// Extract the number of substeps per sync.
-	const size_t    nsub  = monitor_container->mNSyncSubStep;
+	const std::size_t    nsub  = monitor_container->mNSyncSubStep;
 	// Extract the min and max time steps, per sync step.
 	const as3double dtmin = monitor_container->mMinTimeStep;
 	const as3double dtmax = monitor_container->mMaxTimeStep;
@@ -264,7 +272,7 @@ void NLogger::DisplayOpenMPInfo
  const CMultizoneSolver   *multizone_solver_container
 )
  /*
-	* Function that displays the OpenMP information, if any.
+	* Function that prints thread counts and estimated static work distribution.
 	*/
 {
   // Report output.
@@ -272,45 +280,45 @@ void NLogger::DisplayOpenMPInfo
 							 "----------------------------------------------\n";
 #ifdef HAVE_OPENMP
   // Get max number of threads specified.
-  const size_t nThreads = omp_get_max_threads();
+  const std::size_t nThreads = static_cast<std::size_t>(omp_get_max_threads());
   std::cout << "This is a parallel implementation using: "
             << nThreads << " threads." << std::endl;
 
 	// Get the total number of elements in all zones.
-	const size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
+	const std::size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
 	// Get the total number of i-faces in all zones.
-	const size_t nIFace     = multizone_geometry_container->GetnIFace();
+	const std::size_t nIFace     = multizone_geometry_container->GetnIFace();
 	// Get the total number of j-faces in all zones.
-	const size_t nJFace     = multizone_geometry_container->GetnJFace();
+	const std::size_t nJFace     = multizone_geometry_container->GetnJFace();
 
   // Estimate computational work load of each thread.
-  as3vector1d<size_t> workloadDOFs(nThreads, 0);
-	as3vector1d<size_t> workloadElem(nThreads, 0);
-	as3vector1d<size_t> workloadIFace(nThreads, 0);
-	as3vector1d<size_t> workloadJFace(nThreads, 0);
+  as3vector1d<std::size_t> workloadDOFs(nThreads, 0);
+	as3vector1d<std::size_t> workloadElem(nThreads, 0);
+	as3vector1d<std::size_t> workloadIFace(nThreads, 0);
+	as3vector1d<std::size_t> workloadJFace(nThreads, 0);
 
-  as3vector1d<size_t> workloadIFaceInternal_standard(nThreads,  0);
-  as3vector1d<size_t> workloadIFaceBoundary_standard(nThreads,  0);
-  as3vector1d<size_t> workloadIFaceInterface_standard(nThreads, 0);
+  as3vector1d<std::size_t> workloadIFaceInternal_standard(nThreads,  0);
+  as3vector1d<std::size_t> workloadIFaceBoundary_standard(nThreads,  0);
+  as3vector1d<std::size_t> workloadIFaceInterface_standard(nThreads, 0);
 
-  as3vector1d<size_t> workloadIFaceInternal_balanced(nThreads,  0);
-  as3vector1d<size_t> workloadIFaceBoundary_balanced(nThreads,  0);
-  as3vector1d<size_t> workloadIFaceInterface_balanced(nThreads, 0);
+  as3vector1d<std::size_t> workloadIFaceInternal_balanced(nThreads,  0);
+  as3vector1d<std::size_t> workloadIFaceBoundary_balanced(nThreads,  0);
+  as3vector1d<std::size_t> workloadIFaceInterface_balanced(nThreads, 0);
 
-  as3vector1d<size_t> workloadJFaceInternal_standard(nThreads,  0);
-  as3vector1d<size_t> workloadJFaceBoundary_standard(nThreads,  0);
-  as3vector1d<size_t> workloadJFaceInterface_standard(nThreads, 0);
+  as3vector1d<std::size_t> workloadJFaceInternal_standard(nThreads,  0);
+  as3vector1d<std::size_t> workloadJFaceBoundary_standard(nThreads,  0);
+  as3vector1d<std::size_t> workloadJFaceInterface_standard(nThreads, 0);
 
-  as3vector1d<size_t> workloadJFaceInternal_balanced(nThreads,  0);
-  as3vector1d<size_t> workloadJFaceBoundary_balanced(nThreads,  0);
-  as3vector1d<size_t> workloadJFaceInterface_balanced(nThreads, 0);
+  as3vector1d<std::size_t> workloadJFaceInternal_balanced(nThreads,  0);
+  as3vector1d<std::size_t> workloadJFaceBoundary_balanced(nThreads,  0);
+  as3vector1d<std::size_t> workloadJFaceInterface_balanced(nThreads, 0);
 
 	// Estimate the i-surface workload.
 #pragma omp parallel for schedule(static)
-	for(size_t i=0; i<nIFace; i++)
+	for(std::size_t i=0; i<nIFace; i++)
 	{
     // Thread index.
-    const size_t iThread = omp_get_thread_num();
+    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
 
 		// Accumulate the number of elements per thread.
 		workloadIFace[iThread]++;
@@ -340,10 +348,10 @@ void NLogger::DisplayOpenMPInfo
 
 	// Estimate the j-surface workload.
 #pragma omp parallel for schedule(static)
-	for(size_t i=0; i<nJFace; i++)
+	for(std::size_t i=0; i<nJFace; i++)
 	{
     // Thread index.
-    const size_t iThread = omp_get_thread_num();
+    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
 
 		// Accumulate the number of elements per thread.
 		workloadJFace[iThread]++;
@@ -373,17 +381,16 @@ void NLogger::DisplayOpenMPInfo
 
 	// Estimate the elements' workload.
 #pragma omp parallel for schedule(static)
-  for(size_t i=0; i<nElemTotal; i++)
+  for(std::size_t i=0; i<nElemTotal; i++)
 	{
 		// Extract the element indices.
 		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
 
 		// Deduce the current element's zone and index.
 		const auto iZone = elem_info.mIndexZone; 
-		const auto iElem = elem_info.mIndexElem; 
 
     // Thread index.
-    const size_t iThread = omp_get_thread_num();
+    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
 
 		// Accumulate the number of elements per thread.
 		workloadElem[iThread]++;
@@ -394,40 +401,40 @@ void NLogger::DisplayOpenMPInfo
 
 
   // Compute the number of max digits needed for the output.
-  size_t nDigits = 0;
+  std::size_t nDigits = 0;
   for( auto& work: workloadDOFs ) nDigits = std::max( nDigits, work );
   // Deduce the max value needed for the digits width.
   nDigits = std::to_string(nDigits).size();
 
   // Total number of work load.
   std::cout << "The estimated workload shared among each thread is:\n";
-  for(size_t i=0; i<workloadDOFs.size(); i++)
+  for(std::size_t i=0; i<workloadDOFs.size(); i++)
     std::cout << "  Thread(" << i << ") has:\n" 
-			        << "   (*) " << std::setw(nDigits)
+			        << "   (*) " << std::setw(static_cast<int>(nDigits))
 			        << workloadIFace[i] << " [nIFace/thread]\n"
-							<< "      -> " << std::setw(nDigits)
-              << workloadIFaceInternal_standard[i]  << " [nInternalIFace/thread]  (standard)\t" << std::setw(nDigits)  
-              << workloadIFaceInternal_balanced[i]  << " [nInternalIFace/thread]  (balanced)\n" << std::setw(nDigits)
-              << "      -> " << std::setw(nDigits)
-              << workloadIFaceBoundary_standard[i]  << " [nBoundaryIFace/thread]  (standard)\t" << std::setw(nDigits)
-              << workloadIFaceBoundary_balanced[i]  << " [nBoundaryIFace/thread]  (balanced)\n" << std::setw(nDigits)
-              << "      -> " << std::setw(nDigits)
-              << workloadIFaceInterface_standard[i] << " [nInterfaceIFace/thread] (standard)\t" << std::setw(nDigits)
-              << workloadIFaceInterface_balanced[i] << " [nInterfaceIFace/thread] (balanced)\n" << std::setw(nDigits)
-              << "   (*) " << std::setw(nDigits)
+							<< "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadIFaceInternal_standard[i]  << " [nInternalIFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))  
+              << workloadIFaceInternal_balanced[i]  << " [nInternalIFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
+              << "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadIFaceBoundary_standard[i]  << " [nBoundaryIFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))
+              << workloadIFaceBoundary_balanced[i]  << " [nBoundaryIFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
+              << "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadIFaceInterface_standard[i] << " [nInterfaceIFace/thread] (standard)\t" << std::setw(static_cast<int>(nDigits))
+              << workloadIFaceInterface_balanced[i] << " [nInterfaceIFace/thread] (balanced)\n" << std::setw(static_cast<int>(nDigits))
+              << "   (*) " << std::setw(static_cast<int>(nDigits))
 							<< workloadJFace[i] << " [nJFace/thread]\n"
-							<< "      -> " << std::setw(nDigits)
-              << workloadJFaceInternal_standard[i]  << " [nInternalJFace/thread]  (standard)\t" << std::setw(nDigits) 
-              << workloadJFaceInternal_balanced[i]  << " [nInternalJFace/thread]  (balanced)\n" << std::setw(nDigits)
-              << "      -> " << std::setw(nDigits)
-              << workloadJFaceBoundary_standard[i]  << " [nBoundaryJFace/thread]  (standard)\t" << std::setw(nDigits)
-              << workloadJFaceBoundary_balanced[i]  << " [nBoundaryJFace/thread]  (balanced)\n" << std::setw(nDigits)
-              << "      -> " << std::setw(nDigits)
-              << workloadJFaceInterface_standard[i] << " [nInterfaceJFace/thread] (standard)\t" << std::setw(nDigits)
-              << workloadJFaceInterface_balanced[i] << " [nInterfaceJFace/thread] (balanced)\n" << std::setw(nDigits)
-							<< "   (*) " << std::setw(nDigits)
+							<< "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadJFaceInternal_standard[i]  << " [nInternalJFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits)) 
+              << workloadJFaceInternal_balanced[i]  << " [nInternalJFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
+              << "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadJFaceBoundary_standard[i]  << " [nBoundaryJFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))
+              << workloadJFaceBoundary_balanced[i]  << " [nBoundaryJFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
+              << "      -> " << std::setw(static_cast<int>(nDigits))
+              << workloadJFaceInterface_standard[i] << " [nInterfaceJFace/thread] (standard)\t" << std::setw(static_cast<int>(nDigits))
+              << workloadJFaceInterface_balanced[i] << " [nInterfaceJFace/thread] (balanced)\n" << std::setw(static_cast<int>(nDigits))
+							<< "   (*) " << std::setw(static_cast<int>(nDigits))
 			        << workloadElem[i] << " [nElement/thread]\n"
-							<< "   (*) " << std::setw(nDigits)
+							<< "   (*) " << std::setw(static_cast<int>(nDigits))
               << workloadDOFs[i] << " [nSolDOFs/thread]" << std::endl;
 #else
 	std::cout << "This is a serial implementation." << std::endl;
@@ -442,7 +449,7 @@ void NLogger::DisplayAS3BinaryMetadata
  std::ostream                                          &out
 )
  /*
-	* Function that prints the meta data information in the imported binary grid file.
+	* Function that prints AS3 grid metadata and file identifier mappings.
 	*/
 {
   const auto savedFlags = out.flags();
@@ -532,7 +539,7 @@ void NLogger::DisplayInternalMarkers
  const as3vector1d<CInternalFamilyMarker> &families
 )
  /*
-  * Display internal marker families and their zone-face connections.
+  * Function that prints internal zone-edge pairings and traversal orientation.
   */
 {
   // Return a readable face location.
@@ -615,7 +622,7 @@ void NLogger::DisplayExternalMarkers
  const as3vector1d<CExternalFamilyMarker> &families
 )
  /*
-  * Display external marker families, their names and zone-face locations.
+  * Function that prints named physical boundary markers and their zone edges.
   */
 {
   // Return a readable face location.
@@ -693,8 +700,7 @@ void NLogger::DisplayPeriodicMarkers
  const as3vector1d<CPeriodicFamilyMarker> &families
 )
  /*
-  * Display periodic marker families, their zone-face connections,
-  * indexing orientation and translation vectors from I to J.
+  * Function that prints periodic zone-edge pairings, orientation and translations.
   */
 {
   // Return a readable face location.

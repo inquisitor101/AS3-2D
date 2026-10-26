@@ -1,5 +1,13 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Dense matrix operations and tensor-product matrix utilities.
+ */
+
+
+#include <cstddef>
+
 #include "option_structure.hpp"
 
 
@@ -8,10 +16,11 @@
  */
 namespace NLinearAlgebra
 {
+
 	/*!
 	 * @brief Function that computes the inverse of the given matrix (double-precision).
 	 *
-	 * @param[in,out] A inverse of the matrix A (over-written). 
+	 * @param[in,out] A inverse of the matrix A (over-written).
 	 */
 	void InverseMatrix(CMatrixAS3<as3double> &A);
 
@@ -21,7 +30,7 @@ namespace NLinearAlgebra
 	 * @param[in] matA matrix A.
 	 * @param[in] matB matrix B.
 	 *
-	 * return matrix value: C = A*B.
+	 * @return matrix product matA*matB.
 	 */
 	CMatrixAS3<as3double> BLAS_GEMM(CMatrixAS3<as3double> &matA,
 			                            CMatrixAS3<as3double> &matB);
@@ -52,9 +61,9 @@ namespace NLinearAlgebra
 	 * @brief Function that computes a matrix-vector multiplication manually, with vecB being transposed.
 	 *
 	 * @param[in] matA matrix A.
-	 * @param[in] vecB vector B. 
+	 * @param[in] vecB vector B.
 	 * @param[out] vecC vector: {C} = A*{B}, where {} can be multiple vectors.
-   * @param[in,out] tmpV temporary vector storage.
+	 * @param[in,out] tmpV temporary vector storage.
 	 */
 	void MatrixVectorTransMult(CMatrixAS3<as3double> &matA,
 			                       CMatrixAS3<as3double> &vecB,
@@ -72,6 +81,8 @@ namespace NLinearAlgebra
 	/*!
 	 * @brief Function that creates the output of the transpose of an AS3-type matrix.
 	 *
+	 * @tparam T matrix scalar type.
+	 *
 	 * @param[in] A input matrix A.
 	 *
 	 * @return the transpose of matrix A.
@@ -80,17 +91,21 @@ namespace NLinearAlgebra
 	CMatrixAS3<T> TransposeAS3Matrix(CMatrixAS3<T> &A);
 
 	/*!
-	 * @brief Function the creates an identity matrix of dimension n and type T.
+	 * @brief Function that creates an identity matrix of dimension n and type T.
+	 *
+	 * @tparam T matrix scalar type.
 	 *
 	 * @param[in] n dimension of the (square) matrix.
 	 *
 	 * @return identity matrix of size n-by-n.
 	 */
 	template<typename T>
-	CMatrixAS3<T> CreateIdentityMatrix(size_t n);
+	CMatrixAS3<T> CreateIdentityMatrix(std::size_t n);
 
 	/*!
-	 * @brief Function the creates the output of a kronecker (outer-)product of two matrices.
+	 * @brief Function that computes the Kronecker product of two matrices.
+	 *
+	 * @tparam T matrix scalar type.
 	 *
 	 * @param[in] A reference to the left-hand matrix.
 	 * @param[in] B reference to the right-hand matrix.

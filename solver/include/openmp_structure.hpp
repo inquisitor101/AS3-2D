@@ -1,11 +1,19 @@
 #pragma once 
 
+/*!
+ * @file
+ * @brief Configuration and reporting of the OpenMP team size.
+ */
+
+
+#include <cstddef>
+
 #include "config_structure.hpp"
 
 
 
 /*!
- * @brief A class for the OpenMP shared memory parallelization. 
+ * @brief A class for the OpenMP shared memory parallelization.
  */
 class COpenMP
 {
@@ -18,17 +26,23 @@ class COpenMP
 		 */
 		COpenMP(CConfig *config_container);
 	
+
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
 		~COpenMP(void);
 
-    size_t GetnThread(void) const { return mNThread; }
+    /*!
+     * @brief Getter function which returns the configured OpenMP team size.
+     *
+     * @return configured OpenMP team size.
+     */
+    std::size_t GetnThread(void) const { return mNThread; }
 
 	protected:
 
 	private:
-    size_t mNThread = 1;
+    std::size_t mNThread = 1; ///< Configured number of OpenMP threads; one in a serial build.
 
 		// Disable default constructor.
 		COpenMP(void) = delete;

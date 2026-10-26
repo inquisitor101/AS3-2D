@@ -1,5 +1,9 @@
 #include "riemann_solver_structure.hpp"
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -12,7 +16,7 @@ IRiemannSolver::IRiemannSolver
  const CConfig *config_container
 )
  /*
-	* Constructor for the interface Riemann solver class.
+	* Constructor for the numerical-flux interface.
 	*/
 {
 
@@ -25,7 +29,7 @@ IRiemannSolver::~IRiemannSolver
  void
 )
  /*
-	* Destructor, which cleans up after the interface Riemann solver class.
+	* Destructor for IRiemannSolver.
 	*/
 {
 
@@ -44,7 +48,7 @@ CRoeRiemannSolver::CRoeRiemannSolver
 	:
 		IRiemannSolver(config_container)
  /*
-	* Constructor for a class based on Roe's Riemann solver.
+	* Constructor for Roe's approximate Riemann solver.
 	*/
 {
 
@@ -57,7 +61,7 @@ CRoeRiemannSolver::~CRoeRiemannSolver
  void
 )
  /*
-	* Destructor, which cleans up after Roe's Riemann solver class.
+	* Destructor for CRoeRiemannSolver.
 	*/
 {
 
@@ -75,11 +79,15 @@ void CRoeRiemannSolver::ComputeFlux
  CWorkMatrixAS3<as3double>       &flux
 )
  /*
-	* Function that cmoputes a unique flux state on a surface using Roe's method.
+	* Function that computes the weighted Euler numerical surface flux using Roe's method.
 	*/
 {
+  // Extract the number of integration points in 1D.
+  const std::size_t nInt1D = wts.size();
+
 	// Loop over the integration points and compute the unique flux.
-	for(size_t l=0; l<wts.size(); l++)
+#pragma omp simd
+  for(std::size_t l=0; l<nInt1D; l++)
 	{
 		// The face is assumed to be taken from the perspective of the left solution.
 		// Note, the residual is defined on the RHS: 

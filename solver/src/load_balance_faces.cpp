@@ -1,4 +1,8 @@
 #include "load_balance_faces.hpp"
+
+#include <cstddef>
+#include <iostream>
+#include <ostream>
 #include <queue>
 #include <algorithm>
 #include <functional>
@@ -11,11 +15,11 @@
 CLoadBalancedFacePermutation::CLoadBalancedFacePermutation
 (
  const as3vector1d<CFlattenedFaceIndex> &flattened_faces,
- size_t                                  nChunk,
+ std::size_t                             nChunk,
  EFaceLoadBalanceStrategy                strategy
 )
  /*
-  *
+  * Constructor that builds a cost-weighted face traversal.
   */
 { 
   InitializeLoadBalancing(flattened_faces, nChunk, strategy);
@@ -28,15 +32,15 @@ void CLoadBalancedFacePermutation::InitializeFaceWeights
  void
 )
  /*
-  *
+  * Function that sets relative costs for interior, boundary and interface faces.
   */
 {
   // NOTE, for now this is hard-coded, but this can be adjusted based on
   // benchmark runs, such that we obtain a normalized estimate with
   // respect to the internal face cost.
-  mWeightsFace.mWeightInternalFace  = 1.0f;
+  mWeightsFace.mWeightInternalFace  = 2.0f;
   mWeightsFace.mWeightBoundaryFace  = 1.0f; // this needs to be adjusted based on the BC for optimal results.
-  mWeightsFace.mWeightInterfaceFace = 5.0f;
+  mWeightsFace.mWeightInterfaceFace = 3.0f;
 }
 
 //-----------------------------------------------------------------------------------
@@ -44,11 +48,11 @@ void CLoadBalancedFacePermutation::InitializeFaceWeights
 void CLoadBalancedFacePermutation::InitializeLoadBalancing
 (
  const as3vector1d<CFlattenedFaceIndex> &flattened_faces,
- size_t                                  nChunk,
+ std::size_t                             nChunk,
  EFaceLoadBalanceStrategy                strategy
 )
  /*
-  *
+  * Function that validates the requested distribution and builds the face permutation.
   */
 {
   // Consistency check.
@@ -79,21 +83,21 @@ void CLoadBalancedFacePermutation::InitializeLoadBalancing
 void CLoadBalancedFacePermutation::BuildGreedyPermutation
 (
  const as3vector1d<CFlattenedFaceIndex> &flattened_faces,
- size_t                                  nChunk
+ std::size_t                             nChunk
 )
  /*
-  *
+  * Function that assigns costly faces first to the least-loaded traversal chunk.
   */
 {
   // Storage for faces and their weights.
   struct CWeightedFace
   {
-    size_t mIndex;
-    float  mWeight;
+    std::size_t mIndex;
+    float       mWeight;
   };
 
   // Deduce the number of faces.
-  const size_t nFace = flattened_faces.size();
+  const std::size_t nFace = flattened_faces.size();
 
   // Issue warning, in case of inefficient implementation.
   if( nChunk > nFace )
@@ -107,7 +111,7 @@ void CLoadBalancedFacePermutation::BuildGreedyPermutation
   weighted_faces.reserve( nFace );
 
   // Loop over each face and assign its weight.
-  for(size_t iFace=0; iFace<nFace; iFace++)
+  for(std::size_t iFace=0; iFace<nFace; iFace++)
   {
     const auto weight = GetFaceWeight( flattened_faces[iFace].mFaceType );
     weighted_faces.emplace_back( CWeightedFace{iFace, weight} );
@@ -122,10 +126,13 @@ void CLoadBalancedFacePermutation::BuildGreedyPermutation
   // Create a temporary object to store the load of each chunk.
   struct CChunkLoad
   {
-    size_t mIndexChunk;
-    float  mWeight;
+    std::size_t mIndexChunk;
+    float       mWeight;
 
     bool operator>(const CChunkLoad& other) const
+     /*
+      * Function that compares chunk weights for the minimum-load priority queue.
+      */
     {
       return mWeight > other.mWeight;
     }
@@ -134,13 +141,13 @@ void CLoadBalancedFacePermutation::BuildGreedyPermutation
   std::priority_queue<CChunkLoad, as3vector1d<CChunkLoad>, std::greater<CChunkLoad>> chunk_queue;
 
   // Initialize all chunks with zero load.
-  for(size_t iChunk=0; iChunk<nChunk; iChunk++)
+  for(std::size_t iChunk=0; iChunk<nChunk; iChunk++)
   {
     chunk_queue.push( CChunkLoad{iChunk, 0.0f} );
   }
 
   // Store the faces belonging to each chunk.
-  as3vector2d<size_t> chunk_faces(nChunk);
+  as3vector2d<std::size_t> chunk_faces(nChunk);
   as3vector1d<float>  chunk_weights(nChunk, 0.0f);
 
 
@@ -162,7 +169,7 @@ void CLoadBalancedFacePermutation::BuildGreedyPermutation
   mPermutation.clear();
   mPermutation.reserve( nFace );
 
-  for(size_t iChunk=0; iChunk<nChunk; iChunk++)
+  for(std::size_t iChunk=0; iChunk<nChunk; iChunk++)
   {
     mPermutation.insert( mPermutation.end(), 
                          chunk_faces[iChunk].begin(),
@@ -171,7 +178,7 @@ void CLoadBalancedFacePermutation::BuildGreedyPermutation
 
   // Display progress.
   std::cout << "\nReporting load balancing progress:\n";
-  for(size_t iChunk = 0; iChunk<nChunk; iChunk++)
+  for(std::size_t iChunk = 0; iChunk<nChunk; iChunk++)
   {
     std::cout
         << "  load[" << iChunk << "]: "

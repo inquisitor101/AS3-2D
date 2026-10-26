@@ -1,5 +1,11 @@
 #pragma once 
 
+/*!
+ * @file
+ * @brief Numerical surface flux interfaces and the Roe Euler flux.
+ */
+
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 
@@ -11,6 +17,7 @@ class IRiemannSolver
 {
 	public:
 	
+
 		/*!
 		 * @brief Constructor of IRiemannSolver, which serves as an interface for the Riemann solver.
 		 *
@@ -18,19 +25,22 @@ class IRiemannSolver
 		 */
 		IRiemannSolver(const CConfig *config_container);
 		
+
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Virtual destructor for destruction through the component interface.
 		 */
 		virtual ~IRiemannSolver(void);
 
 		/*!
-		 * @brief Pure virtual function that computes a unique flux state on a surface. Must be overridden.
+		 * @brief Pure virtual function that computes a weighted numerical surface flux.
 		 *
 		 * @param[in] wts integration weights on the standard element.
-		 * @param[in] met metrics on this face, based on the owner element/side.
-		 * @param[in] solL solution on the left face.
-		 * @param[in] solR solution on the right face.
-		 * @param[out] flux unique flux at this face.
+		 * @param[in] met surface length factor and supplied unit normal, stored as [3][point].
+		 * @param[in] solL left conservative state [4][point]: density, x-momentum, y-momentum, total
+		 *   energy density.
+		 * @param[in] solR right conservative state [4][point] in the same variable order as solL.
+		 * @param[out] flux numerical flux [4][point], including quadrature weight, surface length and
+		 *   residual sign.
 		 */
 		virtual void ComputeFlux(const CMatrixAS3<as3double>     &wts,
 				                     const CMatrixAS3<as3double>     &met,
@@ -39,7 +49,9 @@ class IRiemannSolver
 										         CWorkMatrixAS3<as3double>       &flux) = 0;
 
 		/*!
-		 * @brief Pure virtual function that returns the type of Riemann solver. Must be overridden.
+		 * @brief Getter function which returns the numerical flux method.
+		 *
+		 * @return implemented numerical flux method.
 		 */
 		virtual ETypeRiemannSolver GetTypeRiemannSolver(void) const = 0;
 
@@ -63,6 +75,7 @@ class CRoeRiemannSolver final: public IRiemannSolver
 {
 	public:
 	
+
 		/*!
 		 * @brief Constructor of CRoeRiemannSolver, which initializes Roe's Riemann solver.
 		 *
@@ -70,30 +83,35 @@ class CRoeRiemannSolver final: public IRiemannSolver
 		 */
 		CRoeRiemannSolver(const CConfig *config_container);
 		
-		/*!
-		 * @brief Destructor, which frees any allocated memory.
-		 */
-		~CRoeRiemannSolver(void) final;
 
 		/*!
-		 * @brief Function that returns the type of Riemann solver.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
-		ETypeRiemannSolver GetTypeRiemannSolver(void) const {return ETypeRiemannSolver::ROE;}
+		~CRoeRiemannSolver(void) override;
 
 		/*!
-		 * @brief Function that computes a unique flux state on a surface using Roe's method.
+		 * @brief Getter function which returns the numerical flux method.
+		 *
+		 * @return implemented numerical flux method.
+		 */
+		ETypeRiemannSolver GetTypeRiemannSolver(void) const override {return ETypeRiemannSolver::ROE;}
+
+		/*!
+		 * @brief Function that computes the weighted Euler numerical surface flux using Roe's method.
 		 *
 		 * @param[in] wts integration weights on the standard element.
-		 * @param[in] met metrics on this face, based on the owner element/side.
-		 * @param[in] solL solution on the left face.
-		 * @param[in] solR solution on the right face.
-		 * @param[out] flux unique flux at this face.
+		 * @param[in] met surface length factor and supplied unit normal, stored as [3][point].
+		 * @param[in] solL left conservative state [4][point]: density, x-momentum, y-momentum, total
+		 *   energy density.
+		 * @param[in] solR right conservative state [4][point] in the same variable order as solL.
+		 * @param[out] flux numerical flux [4][point], including quadrature weight, surface length and
+		 *   residual sign.
 		 */
 		void ComputeFlux(const CMatrixAS3<as3double>     &wts,
 		                 const CMatrixAS3<as3double>     &met,
 						         const CWorkMatrixAS3<as3double> &solL,
 		                 const CWorkMatrixAS3<as3double> &solR,
-						         CWorkMatrixAS3<as3double>       &flux) final;
+						         CWorkMatrixAS3<as3double>       &flux) override;
 
 	protected:
 

@@ -1,5 +1,14 @@
 #include "config_structure.hpp"
 
+#include <cstddef>
+#include <fstream>
+#include <ios>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <sstream>
+#include <string>
+
 
 //-----------------------------------------------------------------------------------
 // CConfig member functions.
@@ -11,7 +20,7 @@ CConfig::CConfig
  const char *filename
 )
  /*
-	* Constructor for the configuration class, which defines the simulation parameters.
+	* Constructor that reads and validates the simulation configuration.
 	*/
 {
 	// Report output.
@@ -77,7 +86,7 @@ CConfig::~CConfig
  void
 )
  /*
-	* Destructor, which cleans up after the configuration class.
+	* Destructor for CConfig.
 	*/
 {
 
@@ -90,7 +99,7 @@ bool CConfig::ReadZoneConfigurationOptions
  const char *filename
 )
  /*
-	* Function that reads the zone configuration options.
+	* Function that reads and validates the zone configuration options.
 	*/
 {
 	// Report output.
@@ -128,11 +137,6 @@ bool CConfig::ReadZoneConfigurationOptions
   PadEntriesVectorData(buffervec, "TYPE_DOF", mNZone, 1, 2);
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeDOF = GenericVectorMap(MapTypeDOF, buffervec, "TYPE_DOF");
-
-	// Read the solution/grid polynomial orders in each zone.
-	NInputUtility::AddVectorOption(paramfile, "POLY_ORDER", mNPoly, true);
-  // Pad entries for the mNPoly vector.
-  PadEntriesVectorData(mNPoly, "POLY_ORDER", mNZone, 1, 2);
 
 	// Read the type of Riemann solver specified in each zone.
 	NInputUtility::AddVectorOption(paramfile, "RIEMANN_SOLVER", buffervec, true);
@@ -173,7 +177,7 @@ bool CConfig::ReadOutputOptions
  const char *filename
 )
  /*
-	* Function that reads the output options.
+	* Function that reads visualization formats, variables and output filenames.
 	*/
 {
 	// Report output.
@@ -221,7 +225,7 @@ bool CConfig::ReadTemporalOptions
  const char *filename
 )
  /*
-	* Function that reads the temporal options.
+	* Function that reads the temporal method, time-step settings and CFL number.
 	*/
 {
 	// Report output.
@@ -267,7 +271,7 @@ bool CConfig::ReadInitialConditionOptions
  const char *filename
 )
  /*
-	* Function that reads the initial condition options.
+	* Function that reads the selected initial condition and its parameters.
 	*/
 {
 	// Report output.
@@ -309,7 +313,7 @@ bool CConfig::ReadBoundaryConditionOptions
  const char *filename
 )
  /*
-	* Function that reads the boundary condition options.
+	* Function that reads the configured physical and periodic boundary markers.
 	*/
 {
 	// Report output.
@@ -332,9 +336,9 @@ bool CConfig::ReadBoundaryConditionOptions
 		}
 
 		// Ensure the markers are indeed unique.
-		for(size_t i=0; i<mMarkerTag.size(); i++)
+		for(std::size_t i=0; i<mMarkerTag.size(); i++)
 		{
-			for(size_t j=i+1; j<mMarkerTag.size(); j++)
+			for(std::size_t j=i+1; j<mMarkerTag.size(); j++)
 			{
 				if( mMarkerTag[i].first == mMarkerTag[j].first ) 
 				{
@@ -363,7 +367,7 @@ void CConfig::ExtractInfoBoundaryCondition
  const char *filename
 )
  /*
-	* Function that reads the BC information, if present.
+	* Function that reads the parameters of the supported physical boundary conditions.
 	*/
 {
   // Open input file.
@@ -416,7 +420,7 @@ void CConfig::ExtractInfoInterfaceBC
  const char *filename
 )
  /*
-	* Function that reads the interface/periodic BC information, if present.
+	* Function that reads periodic marker pairs and their translations.
 	*/
 {
 	// Open input file.
@@ -478,7 +482,7 @@ void CConfig::IC_GaussianPressure
  const char *filename
 )
  /*
-	* Function that extract the additional parameters in a Gaussian pressure pulse IC.
+	* Function that reads the Gaussian pressure pulse and freestream parameters.
 	*/
 {
 	// Open input file.
@@ -529,7 +533,7 @@ void CConfig::IC_IsentropicVortex
  const char *filename
 )
  /*
-	* Function that extract the additional parameters in an isentropic vortex IC.
+	* Function that reads the isentropic vortex and freestream parameters.
 	*/
 {
 	// Open input file.

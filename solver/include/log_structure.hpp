@@ -1,5 +1,15 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Console output for configuration, grids, monitoring and parallel execution.
+ */
+
+
+#include <cstddef>
+#include <ostream>
+#include <string>
+
 #include <iosfwd>
 #include <iomanip>
 #include "option_structure.hpp"
@@ -19,6 +29,8 @@ namespace NLogger
 	/*!
 	 * @brief Function that prints the entries of a matrix.
 	 *
+	 * @tparam T matrix scalar type.
+	 *
 	 * @param[in] m reference to the matrix.
 	 * @param[in] g log message printed.
 	 */
@@ -27,9 +39,9 @@ namespace NLogger
 	{
 		using namespace std;
 		cout << "\n" << g << "\n";
-		for(size_t i=0; i<m.row(); i++)
+		for(std::size_t i=0; i<m.row(); i++)
 		{
-			for(size_t j=0; j<m.col(); j++)
+			for(std::size_t j=0; j<m.col(); j++)
 			{
 				cout << fixed << showpos << scientific << m(i,j) << " ";
 			}
@@ -42,13 +54,13 @@ namespace NLogger
 	 *
 	 * @param[in] config_container configuration/dictionary container.
 	 * @param[in] monitor_container data monitoring container.
+	 * @param[in] iter data monitored.
 	 * @param[in] time current physical time.
 	 * @param[in] step current time step.
-	 * @param[in] data data monitored.
 	 */
 	void MonitorOutput(CConfig       *config_container,
 			               CMonitorData  *monitor_container,
-			               unsigned long  iter,
+			               std::size_t  iter,
 			               as3double      time,
 										 as3double      step);
 
@@ -64,6 +76,7 @@ namespace NLogger
 	 *
 	 * @param[in] config_container configuration/dictionary container.
 	 * @param[in] multizone_geometry_container input geometry container.
+	 * @param[in] multizone_solver_container solvers and residual storage for all zones.
 	 */
 	void DisplayBoundaryConditions(const CConfig            *config_container,
 																 const CMultizoneGeometry *multizone_geometry_container,
@@ -74,18 +87,42 @@ namespace NLogger
 	 * @brief Function that displays the OpenMP information, if any.
 	 *
 	 * @param[in] openmp_container OpenMP shared parallelization container.
-	 * @param[in] solver_container input multizone solver container.
+	 * @param[in] multizone_geometry_container geometry of all grid zones.
+	 * @param[in] multizone_solver_container input multizone solver container.
 	 */
 	void DisplayOpenMPInfo(COpenMP                  *openmp_container,
 			                   const CMultizoneGeometry *multizone_geometry_container,
 												 const CMultizoneSolver   *multizone_solver_container);
 
 
+  /*!
+   * @brief Function that prints AS3 file metadata and identifier mappings.
+   *
+   * @param[in] metadata previously read AS3 header and zone metadata.
+   * @param[in] out output stream.
+   */
   void DisplayAS3BinaryMetadata(const NImportFile::NAS3BinaryFile::CAS3BinaryMetadata &metadata,
                                 std::ostream                                          &out);
 
+  /*!
+   * @brief Function that prints internal zone-edge pairings.
+   *
+   * @param[in] families zone-edge marker families to display.
+   */
   void DisplayInternalMarkers(const as3vector1d<CInternalFamilyMarker> &families);
+
+  /*!
+   * @brief Function that prints named physical boundary markers.
+   *
+   * @param[in] families zone-edge marker families to display.
+   */
   void DisplayExternalMarkers(const as3vector1d<CExternalFamilyMarker> &families);
+
+  /*!
+   * @brief Function that prints periodic zone-edge pairings and translations.
+   *
+   * @param[in] families zone-edge marker families to display.
+   */
   void DisplayPeriodicMarkers(const as3vector1d<CPeriodicFamilyMarker> &families);
 }
 

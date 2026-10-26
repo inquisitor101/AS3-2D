@@ -1,4 +1,9 @@
 #include "factory_structure.hpp"
+#include "compile_time_dimensions.hpp"
+
+#include <cstddef>
+#include <memory>
+#include <string>
 
 
 //-----------------------------------------------------------------------------------
@@ -9,10 +14,10 @@
 std::unique_ptr<CMonitorData> 
 CGenericFactory::CreateMonitoringContainer
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Function that creates a specialized instance of a temporal container.
+	* Function that constructs the simulation monitoring data container.
 	*/
 {
 	// For now, simply return the only monitoring data container.
@@ -24,10 +29,10 @@ CGenericFactory::CreateMonitoringContainer
 std::unique_ptr<ITemporal> 
 CGenericFactory::CreateTemporalContainer
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Function that creates a specialized instance of a temporal container.
+	* Function that constructs the configured temporal method.
 	*/
 {
 	// Check what type of container is specified.
@@ -55,7 +60,7 @@ CGenericFactory::CreateVTKContainer
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-	* Function that creates a specialized instance of a vtk container.
+	* Function that constructs the configured visualization writer.
 	*/
 {
 	// Check the type of output visualization format.
@@ -80,10 +85,10 @@ CGenericFactory::CreateVTKContainer
 std::unique_ptr<IInitialCondition> 
 CGenericFactory::CreateInitialConditionContainer
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Function that creates a specialized instance of an initial condition container.
+	* Function that constructs the configured initial-condition evaluator.
 	*/
 {
 	// Check what type of container is specified.
@@ -117,7 +122,7 @@ CGenericFactory::CreateRiemannSolverContainer
  ETypeRiemannSolver  riemann
 )
  /*
-	* Function that creates a specialized instance of a Riemann solver container.
+	* Function that constructs the selected numerical surface-flux solver.
 	*/
 {
 	// Check what type of container is specified.
@@ -141,24 +146,21 @@ CGenericFactory::CreateRiemannSolverContainer
 std::unique_ptr<CStandardElement> 
 CGenericFactory::CreateStandardElement
 (
- const CConfig  *config_container,
- unsigned short  iZone
+ const CSinglezoneGeometry *singlezone_geometry_container
 )
  /*
-	* Function that creates a specialized instance of a standard element container.
+	* Function that constructs the reference element for the zone geometry order and integration rule.
 	*/
 {
 	// Deduce the polynomial order of the solution and type of DOFs. 
-	auto nPoly   = config_container->GetnPoly(iZone); // TODO: change this to use the one in geometry
-	auto typeDOF = config_container->GetTypeDOF(iZone); // TODO: use the one imported in geometry
+	const auto nPoly      = singlezone_geometry_container->GetnPolyGrid();
+	const auto type_nodes = singlezone_geometry_container->GetTypeNodalDistribution(); 
 	
-  WARNING("See TODO comments above.");
-
 	// Get the number of (over-)integration points in 1D.
-	auto nInt1D  = NPolynomialUtility::IntegrationRule1D(nPoly); 
+	const auto nInt1D = NPolynomialUtility::IntegrationRule1D(nPoly); 
 
 	// Return the correct instantiation of this object.
-	return std::make_unique<CStandardElement>(typeDOF, nPoly, nInt1D);
+	return std::make_unique<CStandardElement>(type_nodes, nPoly, nInt1D);
 }
 
 //-----------------------------------------------------------------------------------
@@ -170,11 +172,11 @@ CGenericFactory::CreatePhysicalElement
  CStandardElement *standard_element,
  ITensorProduct   *tensor_container,
  CElementGeometry *element_geometry,
- unsigned short    iZone,
- unsigned short    nVar
+ std::size_t       iZone,
+ std::size_t       nVar
 )
  /*
-	* Function that creates a specialized instance of a physical element container.
+	* Function that constructs the physical state and metric storage for one element.
 	*/
 {
 	return std::make_unique<CPhysicalElement>(config_container, 
@@ -190,47 +192,24 @@ std::unique_ptr<ITensorProduct>
 CGenericFactory::CreateTensorContainer
 (
  CStandardElement *standard_element,
- unsigned short    nVar
+ std::size_t    nVar
 )
  /*
-	* Function that creates a specialized instance of a templated tensor container.
+	* Function that constructs a supported tensor specialization for the reference-element dimensions.
 	*/
 {
 	// Extract the number of solution points (k) and integration points (m) in 1D.
-	const size_t k = standard_element->GetnSol1D();
-	const size_t m = standard_element->GetnInt1D();
-  const size_t n = nVar;
+	const std::size_t k = standard_element->GetnSol1D();
+	const std::size_t m = standard_element->GetnInt1D();
+  const std::size_t n = nVar;
 
 	// Macro which helps in readability for the compile-time specialized tensor classes.
 #define SPECIALIZED_TENSOR(K,M,N) if( (K==k) && (M==m) && (N==n) ) \
 	return std::make_unique< CTensorProduct<K,M,N> >(standard_element);
 
-	SPECIALIZED_TENSOR(2,2,4);
-	SPECIALIZED_TENSOR(2,3,4);
+	AS3_SUPPORTED_ELEMENT_SPECIALIZATIONS(SPECIALIZED_TENSOR)
 
-	SPECIALIZED_TENSOR(3,3,4);
-	SPECIALIZED_TENSOR(3,4,4);
-
-	SPECIALIZED_TENSOR(4,4,4);
-	SPECIALIZED_TENSOR(4,5,4);
-
-	SPECIALIZED_TENSOR(5,5,4);
-	SPECIALIZED_TENSOR(5,7,4);
-
-	SPECIALIZED_TENSOR(6,6,4);
-	SPECIALIZED_TENSOR(6,8,4);
-
-	SPECIALIZED_TENSOR(7, 7,4);
-	SPECIALIZED_TENSOR(7,10,4);
-
-	SPECIALIZED_TENSOR(8, 8,4);
-	SPECIALIZED_TENSOR(8,11,4);
-
-	SPECIALIZED_TENSOR(9, 9,4);
-	SPECIALIZED_TENSOR(9,13,4);
-	
-	SPECIALIZED_TENSOR(10,10,4);
-	SPECIALIZED_TENSOR(10,14,4);
+#undef SPECIALIZED_TENSOR
 
 	// If the program made it this far, it means the specified values are not implemented.
 	ERROR("Combination of (K,M,N) = " + std::to_string(k) + ", " 
@@ -249,20 +228,20 @@ CGenericFactory::CreateBoundaryContainer
  const CConfig              *config_container,
  const CSinglezoneGeometry  *zone_geometry,
  const ISolver              *zone_solver,
- const CBoundaryFacesFamily &boundary_family
+ const CBoundaryFaceBatch   &boundary_batch
 )
  /*
-	* Function that creates a specialized instance of a boundary container.
+	* Function that constructs the configured physical boundary evaluator for one face batch.
 	*/
 {
 	// Determine the boundary condition parameters associated with this marker. 
-	const auto* param_bc = config_container->GetBoundaryParamMarker( boundary_family.GetName() ); 
+	const auto* param_bc = config_container->GetBoundaryParamMarker( boundary_batch.GetName() ); 
 
 	// Check if the parameter object is found, else issue an error.
 	if( !param_bc ) 
 	{
 		ERROR("Could not find the boundary parameter for the marker: " 
-				  + boundary_family.GetName());
+				  + boundary_batch.GetName());
 	}
 
 
@@ -274,7 +253,7 @@ CGenericFactory::CreateBoundaryContainer
       return std::make_unique<CSymmetryBoundary>(config_container,
                                                  zone_geometry,
                                                  zone_solver,
-                                                 boundary_family,
+                                                 boundary_batch,
                                                  param_bc);
       break;
     }
@@ -284,7 +263,7 @@ CGenericFactory::CreateBoundaryContainer
       return std::make_unique<CRiemannStaticMassInletBoundary>(config_container,
                                                                zone_geometry,
                                                                zone_solver,
-                                                               boundary_family,
+                                                               boundary_batch,
                                                                param_bc);
       break;
     }
@@ -294,7 +273,7 @@ CGenericFactory::CreateBoundaryContainer
       return std::make_unique<CRiemannPressureOutletBoundary>(config_container,
                                                               zone_geometry,
                                                               zone_solver,
-                                                              boundary_family,
+                                                              boundary_batch,
                                                               param_bc);
       break;
     }
@@ -315,7 +294,7 @@ CGenericFactory::CreateSolverContainer
  const CSinglezoneGeometry *singlezone_geometry
 )
  /*
-	* Function that creates a specialized instance of a solver container.
+	* Function that constructs the configured zone solver.
 	*/
 {
   // Extract the zone ID.
@@ -344,15 +323,15 @@ CGenericFactory::CreateInterfaceContainer
 (
  const CConfig               *config_container,
  CMultizoneSolver            *multizone_solver_container,
- const CInterfaceFacesFamily &interface_family
+ const CInterfaceFaceBatch   &interface_batch
 )
  /*
-	* Function that creates a specialized instance of an interface boundary container.
+	* Function that constructs the interface evaluator for a paired-zone face batch.
 	*/
 {
 	// Extract the zone ID of the faces sharing this interface.
-	const unsigned short iZone = interface_family.GetiZone();
-	const unsigned short jZone = interface_family.GetjZone();
+	const std::size_t iZone = interface_batch.GetOwnerZoneIndex();
+	const std::size_t jZone = interface_batch.GetNeighborZoneIndex();
 
 	// Check what type of solver we have in the iZone.
 	switch( multizone_solver_container->GetSinglezoneSolver(iZone)->GetTypeSolver() )
@@ -367,7 +346,7 @@ CGenericFactory::CreateInterfaceContainer
 				{
 					return std::make_unique<CEEInterface>(config_container, 
 																								multizone_solver_container,
-                                                interface_family);
+                                                interface_batch);
 					break;
 				}
 

@@ -1,5 +1,8 @@
 #include "boundary_structure.hpp"
 
+#include <cmath>
+#include <cstddef>
+
 
 //-----------------------------------------------------------------------------------
 // IBoundary member functions.
@@ -11,11 +14,11 @@ IBoundary::IBoundary
  const CConfig              *config_container,
  const CSinglezoneGeometry  *singlezone_geometry_container,
  const ISolver              *singlezone_solver_container,
- const CBoundaryFacesFamily &boundary_family,
+ const CBoundaryFaceBatch   &boundary_batch,
  const IBoundaryParamMarker *param_bc
 )
  /*
-	* Constructor for the interface boundary class.
+	* Constructor that selects the boundary Riemann solver and face kernels.
 	*/
 {
   // Extract the type of Riemann solver in each zone.
@@ -26,7 +29,7 @@ IBoundary::IBoundary
     CGenericFactory::CreateRiemannSolverContainer( config_container, type_riemann );
 
   // Initialize the compute kernels.
-  InitializeComputeKernels( singlezone_solver_container, boundary_family.GetFaceLocation() ); 
+  InitializeComputeKernels( singlezone_solver_container, boundary_batch.GetFaceLocation() ); 
 }
 
 //-----------------------------------------------------------------------------------
@@ -36,7 +39,7 @@ IBoundary::~IBoundary
  void
 )
  /*
-	* Destructor, which cleans up after the interface boundary class.
+	* Destructor for IBoundary.
 	*/
 {
 
@@ -50,7 +53,7 @@ void IBoundary::InitializeComputeKernels
  EFaceLocation  face_location
 )
  /*
-  *
+  * Function that selects the local face interpolation and residual kernels.
   */
 {
   // Temporary lambda to determine which surface interpolation function to use.
@@ -132,28 +135,28 @@ void IBoundary::ComputeBoundaryResidual
 (
  const CSinglezoneGeometry *singlezone_geometry_container,
  ISolver                   *singlezone_solver_container,
- const CBoundaryFacesFamily &family_face,
+ const CBoundaryFaceBatch   &face_batch,
  CFlattenedFaceIndex         face_info,
  CPoolMatrixAS3<as3double>  &workarray,
  as3double                   localtime
 ) const
  /*
-  *
+  * Function that computes and lifts one physical boundary flux into its local face buffer.
   */
 {
   // Extract the actual face.      
-  const auto& boundary_face = family_face.GetBoundaryFace( face_info.mIndexFace );
+  const auto& boundary_face = face_batch.GetFace( face_info.mIndexFace );
 
   const auto iElem = boundary_face.mIndexElement;
-  const EFaceLocation face_location = family_face.GetFaceLocation();
+  const EFaceLocation face_location = face_batch.GetFaceLocation();
 
   const auto* standard_element = singlezone_solver_container->GetStandardElement();
 
   // Get the respective number of integration points and weights on this face.
-  const size_t nInt1D = standard_element->GetnInt1D();
+  const std::size_t nInt1D = standard_element->GetnInt1D();
   auto&        wInt1D = standard_element->GetwInt1D();
   // Also the number of solution variables.
-  const size_t nVar   = singlezone_solver_container->GetnVar();
+  const std::size_t nVar   = singlezone_solver_container->GetnVar();
 
   // Get a pointer to the respective elements sharing this face.
   auto* elem = singlezone_solver_container->GetPhysicalElement(iElem);
@@ -164,17 +167,8 @@ void IBoundary::ComputeBoundaryResidual
 	auto& sol = elem->mSol2D;	
 
   // Reference to the owner element residual.
-  CMatrixAS3<as3double>* res;
-
-  if( family_face.GetisMaxFace() )
-  {
-    res = &elem->mResMinus;
-    res->reset();
-  }
-  else
-  {
-    res = &elem->mRes2D;
-  }
+  auto& res = elem->GetSurfaceResidual(face_location);
+  res.reset();
 
 	// Borrow memory for the solution on the two sides.
 	CWorkMatrixAS3<as3double> var_e = workarray.GetWorkMatrixAS3(nVar, nInt1D);
@@ -192,7 +186,7 @@ void IBoundary::ComputeBoundaryResidual
   mRiemannSolverContainer->ComputeFlux(wInt1D, met, var_e, var_b, flux);
 
   // Compute the residual on the owned element.
-  mFComputeResidualFace(flux.data(), nullptr, nullptr, res->data());
+  mFComputeResidualFace(flux.data(), nullptr, nullptr, res.data());
 }
 
 
@@ -206,16 +200,16 @@ CSymmetryBoundary::CSymmetryBoundary
  const CConfig              *config_container,
  const CSinglezoneGeometry  *singlezone_geometry_container,
  const ISolver              *singlezone_solver_container,
- const CBoundaryFacesFamily &boundary_family,
+ const CBoundaryFaceBatch   &boundary_batch,
  const IBoundaryParamMarker *param_bc
 )
   : IBoundary(config_container,
               singlezone_geometry_container,
               singlezone_solver_container,
-              boundary_family,
+              boundary_batch,
               param_bc)
  /*
-	* Constructor for the symmetry boundary class.
+	* Constructor that initializes an inviscid symmetry boundary.
 	*/
 {
   // Consistency check.
@@ -232,7 +226,7 @@ CSymmetryBoundary::~CSymmetryBoundary
  void
 )
  /*
-	* Destructor, which cleans up after the symmetry boundary class.
+	* Destructor for CSymmetryBoundary.
 	*/
 {
 
@@ -247,7 +241,7 @@ void CSymmetryBoundary::ComputeBoundaryState
  CWorkMatrixAS3<as3double>       &var_b
 ) const
  /*
-  *
+  * Function that reflects normal velocity to construct the exterior symmetry state.
   */
 {
   for(std::size_t l=0; l<met.col(); l++)
@@ -288,16 +282,16 @@ CRiemannStaticMassInletBoundary::CRiemannStaticMassInletBoundary
  const CConfig              *config_container,
  const CSinglezoneGeometry  *singlezone_geometry_container,
  const ISolver              *singlezone_solver_container,
- const CBoundaryFacesFamily &boundary_family,
+ const CBoundaryFaceBatch   &boundary_batch,
  const IBoundaryParamMarker *param_bc
 )
   : IBoundary(config_container,
               singlezone_geometry_container,
               singlezone_solver_container,
-              boundary_family,
+              boundary_batch,
               param_bc)
  /*
-	* Constructor for the Riemann static mass inlet boundary class.
+	* Constructor that stores the prescribed inlet density and velocity.
 	*/
 {
   // Consistency check.
@@ -322,7 +316,7 @@ CRiemannStaticMassInletBoundary::~CRiemannStaticMassInletBoundary
  void
 )
  /*
-	* Destructor, which cleans up after the Riemann static mass inlet boundary class.
+	* Destructor for CRiemannStaticMassInletBoundary.
 	*/
 {
 
@@ -337,7 +331,7 @@ void CRiemannStaticMassInletBoundary::ComputeBoundaryState
  CWorkMatrixAS3<as3double>       &var_b
 ) const
  /*
-  *
+  * Function that forms the exterior inlet state from prescribed density and velocity.
   */
 {
   // Abbreviations.
@@ -348,7 +342,6 @@ void CRiemannStaticMassInletBoundary::ComputeBoundaryState
   
   // Abbreviations involving gamma.
   const as3double gm1ovt  = C_HALF * C_GM1; 
-  const as3double tovgm1  = C_TWO * C_OVGM1;
   const as3double tgovgm1 = C_TWO * C_GMA * C_OVGM1;
 
   for(std::size_t l=0; l<met.col(); l++)
@@ -369,15 +362,9 @@ void CRiemannStaticMassInletBoundary::ComputeBoundaryState
     // Compute the normal velocity component.
     const as3double un = u * nx + v * ny;
 
-    // Compute the Riemann invariant which is extrapolated.
-    const as3double riemann = tovgm1 * a + un; 
-
     // Compute the normal velocity, based on the prescribed conditions.
     const as3double ubn = ub * nx + vb * ny; 
   
-    // Compute the speed of sound, based on the Riemann extrapolation.
-    const as3double ab = gm1ovt * ( riemann - ubn );
-
     // Compute the intermediate sound-speed ratio a_star/a along the interior
     // isentropic acoustic wave curve, using the prescribed normal velocity.
     const as3double ratio = C_ONE + gm1ovt * (un - ubn) / a;
@@ -405,16 +392,16 @@ CRiemannPressureOutletBoundary::CRiemannPressureOutletBoundary
  const CConfig              *config_container,
  const CSinglezoneGeometry  *singlezone_geometry_container,
  const ISolver              *singlezone_solver_container,
- const CBoundaryFacesFamily &boundary_family,
+ const CBoundaryFaceBatch   &boundary_batch,
  const IBoundaryParamMarker *param_bc
 )
   : IBoundary(config_container,
               singlezone_geometry_container,
               singlezone_solver_container,
-              boundary_family,
+              boundary_batch,
               param_bc)
  /*
-	* Constructor for the Riemann pressure outlet boundary class.
+	* Constructor that stores the prescribed outlet pressure.
 	*/
 {
   // Consistency check.
@@ -438,7 +425,7 @@ CRiemannPressureOutletBoundary::~CRiemannPressureOutletBoundary
  void
 )
  /*
-	* Destructor, which cleans up after the Riemann pressure outlet boundary class.
+	* Destructor for CRiemannPressureOutletBoundary.
 	*/
 {
 
@@ -453,7 +440,7 @@ void CRiemannPressureOutletBoundary::ComputeBoundaryState
  CWorkMatrixAS3<as3double>       &var_b
 ) const
  /*
-  *
+  * Function that forms the exterior outlet state with prescribed static pressure.
   */
 {
   // Abbreviations.

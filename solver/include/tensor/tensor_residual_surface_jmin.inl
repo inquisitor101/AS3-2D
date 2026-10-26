@@ -1,3 +1,10 @@
+/*!
+ * @file
+ * @brief Compile-time tensor kernels for residual surface jmin.
+ */
+
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -5,7 +12,21 @@
 //-----------------------------------------------------------------------------------
 
 
-template<size_t K, size_t M, size_t N>
+/*!
+ * @brief Function that lifts weighted inputs from the JMIN surface integration points to the solution DOFs.
+ *
+ * @tparam K number of solution points in 1D.
+ * @tparam M number of integration points in 1D.
+ * @tparam N number of variables.
+ *
+ * @param[in] B optional weighted value contribution [N][M]; nullptr omits this contribution.
+ * @param[in] BDerR optional weighted r-derivative contribution [N][M]; nullptr omits this contribution.
+ * @param[in] BDerS optional weighted s-derivative contribution [N][M]; nullptr omits this contribution.
+ * @param[in,out] C solution residual [N][K*K], incremented by this face contribution.
+ *
+ * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+ */
+template<std::size_t K, std::size_t M, std::size_t N>
 void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceJMIN
 (
  const as3double *B,
@@ -20,18 +41,18 @@ void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceJMIN
 	// Unpack the information needed, based on the standard element.
 	const as3double *A        = mLagrangeInt1DTrans.data();
 	const as3double *ADer     = mDerLagrangeInt1DTrans.data();
-	const as3double *aDerFace = mDerLagrangeMaxFace1D.data();
+	const as3double *aDerFace = mDerLagrangeMinFace1D.data();
 
 	// Cast the arrays from 1D to 2D.
 	const as3double (*a)[M]    = (const as3double (*)[M]) A;
 	const as3double (*aDer)[M] = (const as3double (*)[M]) ADer;
 
 	// Total number of (volume) integration/solution points in 2D.
-	constexpr size_t K2 = K*K;
+	constexpr std::size_t K2 = K*K;
 
 
 	// Loop over each N entry.
-	for(size_t l=0; l<N; l++)
+	for(std::size_t l=0; l<N; l++)
 	{
     // Cast array C from 1D to 2D.
     as3double (*c)[K]  = (as3double (*)[K]) &C[l*K2];
@@ -43,9 +64,9 @@ void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceJMIN
 			// Get a pointer to the current variable address in B.
 			const as3double *b = &B[l*M];
     	
-			for(size_t k=0; k<K; k++)
+			for(std::size_t k=0; k<K; k++)
 			{
-    	  for(size_t ii=0; ii<M; ii++)
+    	  for(std::size_t ii=0; ii<M; ii++)
     	    c[0][k] += a[k][ii] * b[ii];
     	}
 		}
@@ -57,9 +78,9 @@ void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceJMIN
 			// Get a pointer to the current variable address in BDerR.
 			const as3double *bDerR = &BDerR[l*M];
     	
-			for(size_t k=0; k<K; k++)
+			for(std::size_t k=0; k<K; k++)
 			{
-    	  for(size_t ii=0; ii<M; ii++)
+    	  for(std::size_t ii=0; ii<M; ii++)
     	    c[0][k] += aDer[k][ii] * bDerR[ii];
     	}
 		}
@@ -74,16 +95,19 @@ void CTensorProduct<K, M, N>::CompileTimeResidualSurfaceJMIN
 			as3double tmpI[K] = {};
 
 			// Interpolate the solution to the r-nodes.
-			for(size_t s=0; s<K; s++)
+			for(std::size_t s=0; s<K; s++)
 			{
-				for(size_t jj=0; jj<M; jj++)
+				for(std::size_t jj=0; jj<M; jj++)
 					tmpI[s] += a[s][jj] * bDerS[jj]; 
 			}
 
 			// Update the residual, by including the derivative in the s-direction.
-			for(size_t i=0; i<K; i++)
-				for(size_t j=0; j<K; j++)
+			for(std::size_t i=0; i<K; i++)
+			{
+#pragma omp simd
+				for(std::size_t j=0; j<K; j++)
 					c[i][j] += aDerFace[i] * tmpI[j];
+			}
 
 		}
 	}

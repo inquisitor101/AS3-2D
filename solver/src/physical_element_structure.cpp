@@ -1,5 +1,8 @@
 #include "physical_element_structure.hpp"
 
+#include <cmath>
+#include <cstddef>
+
 
 //-----------------------------------------------------------------------------------
 // CPhysicalElement member functions.
@@ -12,21 +15,21 @@ CPhysicalElement::CPhysicalElement
  CStandardElement *standard_element,
  ITensorProduct   *tensor_container,
  CElementGeometry *element_geometry,
- unsigned short    iZone,
- unsigned short    nVar
+ std::size_t       iZone,
+ std::size_t       nVar
 )
 	:
-		mNPoly( config_container->GetnPoly(iZone) )
+		mNPoly( standard_element->GetnPolySol() )
  /*
-	* Constructor for the physical element, which initiates an element in physical space.
+	* Constructor that initializes element state, metrics and inverse mass data.
 	*/
 {
 	// Ensure that the geometry has been imported already, otherwise issue an error and exit.
 	if( element_geometry->GetCoordSolDOFs().size() == 0 ) ERROR("Grid must be imported first.");
 
 	// Deduce the number of points in 1D and 2D.
-	const size_t nSol1D = mNPoly+1;
-	const size_t nSol2D = nSol1D*nSol1D;
+	const std::size_t nSol1D = mNPoly+1;
+	const std::size_t nSol2D = nSol1D*nSol1D;
 
 	// Allocate memory for the solution in 2D.
 	mSol2D.resize( nVar, nSol2D );
@@ -56,7 +59,7 @@ CPhysicalElement::CPhysicalElement
 	ComputeElementProperties(standard_element);
 
 	// Allocate memory for the temporary residuals (needed to avoid race conditions only when computing faces).
-	mResMinus.resize( nVar, nSol2D );
+	for(auto& residual : mResSurface) residual.resize( nVar, nSol2D );
 }
 
 //-----------------------------------------------------------------------------------
@@ -66,7 +69,7 @@ CPhysicalElement::~CPhysicalElement
  void
 )
  /*
-	* Destructor, which cleans up after the physical element class.
+	* Destructor for CPhysicalElement.
 	*/
 {
 
@@ -81,17 +84,17 @@ void CPhysicalElement::ComputeMetricsSolVolume
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the volume solution points.
+	* Function that computes mapping metrics at the volume solution points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 5;
+	const std::size_t nItem  = 5;
 	// Number of volume solution points in 1D.
-	const size_t nSol1D = standard_element->GetnSol1D(); 
+	const std::size_t nSol1D = standard_element->GetnSol1D(); 
 	// Number of volume solution points in 2D.
-	const size_t nSol2D = standard_element->GetnSol2D(); 
+	const std::size_t nSol2D = standard_element->GetnSol2D(); 
 
 	// Allocate memory for the volume metrics.
 	mMetricSol2D.resize( nItem, nSol2D );
@@ -111,7 +114,7 @@ void CPhysicalElement::ComputeMetricsSolVolume
 
 
 	// Compute the metrics.
-	for(size_t i=0; i<nSol2D; i++)
+	for(std::size_t i=0; i<nSol2D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -145,15 +148,15 @@ void CPhysicalElement::ComputeMetricsIntVolume
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the volume integration points.
+	* Function that computes mapping metrics at the volume integration points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 5;
+	const std::size_t nItem  = 5;
 	// Number of volume integration points in 2D.
-	const size_t nInt2D = standard_element->GetnInt2D(); 
+	const std::size_t nInt2D = standard_element->GetnInt2D(); 
 
 	// Allocate memory for the volume metrics.
 	mMetricInt2D.resize( nItem, nInt2D );
@@ -167,7 +170,7 @@ void CPhysicalElement::ComputeMetricsIntVolume
 			                                       dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
-	for(size_t i=0; i<nInt2D; i++)
+	for(std::size_t i=0; i<nInt2D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -201,15 +204,15 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the IMIN surface integration points.
+	* Function that computes surface and mapping metrics at the IMIN integration points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 7;
+	const std::size_t nItem  = 7;
 	// Number of volume integration points in 1D.
-	const size_t nInt1D = standard_element->GetnInt1D(); 
+	const std::size_t nInt1D = standard_element->GetnInt1D(); 
 
 	// Allocate memory for the surface metrics.
 	mMetricIntIMin1D.resize( nItem, nInt1D );
@@ -223,7 +226,7 @@ void CPhysicalElement::ComputeMetricsIntSurfIMIN
 			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
-	for(size_t i=0; i<nInt1D; i++)
+	for(std::size_t i=0; i<nInt1D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -267,15 +270,15 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the IMAX surface integration points.
+	* Function that computes surface and mapping metrics at the IMAX integration points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 7;
+	const std::size_t nItem  = 7;
 	// Number of volume integration points in 1D.
-	const size_t nInt1D = standard_element->GetnInt1D(); 
+	const std::size_t nInt1D = standard_element->GetnInt1D(); 
 
 	// Allocate memory for the surface metrics.
 	mMetricIntIMax1D.resize( nItem, nInt1D );
@@ -289,7 +292,7 @@ void CPhysicalElement::ComputeMetricsIntSurfIMAX
 			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
-	for(size_t i=0; i<nInt1D; i++)
+	for(std::size_t i=0; i<nInt1D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -333,15 +336,15 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the JMIN surface integration points.
+	* Function that computes surface and mapping metrics at the JMIN integration points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 7;
+	const std::size_t nItem  = 7;
 	// Number of volume integration points in 1D.
-	const size_t nInt1D = standard_element->GetnInt1D(); 
+	const std::size_t nInt1D = standard_element->GetnInt1D(); 
 
 	// Allocate memory for the surface metrics.
 	mMetricIntJMin1D.resize( nItem, nInt1D );
@@ -355,7 +358,7 @@ void CPhysicalElement::ComputeMetricsIntSurfJMIN
 			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
-	for(size_t i=0; i<nInt1D; i++)
+	for(std::size_t i=0; i<nInt1D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -399,15 +402,15 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
  CMatrixAS3<as3double> &coord
 )
  /*
-	* Function that computes the metrics at the JMAX surface integration points.
+	* Function that computes surface and mapping metrics at the JMAX integration points.
 	*/
 {
 	// Dimension of coordinates.
-	const size_t nDim   = 2;
+	const std::size_t nDim   = 2;
 	// Number of items in the metrics. See header for info on those items.
-	const size_t nItem  = 7;
+	const std::size_t nItem  = 7;
 	// Number of volume integration points in 1D.
-	const size_t nInt1D = standard_element->GetnInt1D(); 
+	const std::size_t nInt1D = standard_element->GetnInt1D(); 
 
 	// Allocate memory for the surface metrics.
 	mMetricIntJMax1D.resize( nItem, nInt1D );
@@ -421,7 +424,7 @@ void CPhysicalElement::ComputeMetricsIntSurfJMAX
 			                                            dSolDr.data(), dSolDs.data());
 
 	// Compute the metrics.
-	for(size_t i=0; i<nInt1D; i++)
+	for(std::size_t i=0; i<nInt1D; i++)
 	{
 		const as3double dxdr = dSolDr(0, i);
 		const as3double dxds = dSolDs(0, i);
@@ -464,14 +467,14 @@ void CPhysicalElement::ComputeInverseMassMatrix
  ITensorProduct   *tensor_container
 )
  /*
-	* Function that computes the inverse mass matrix on the physical element.
+	* Function that assembles and inverts the physical element mass matrix.
 	*/
 {
 	// Extract the number of solution points in 2D.
-	const size_t nSol2D = standard_element->GetnSol2D();
+	const std::size_t nSol2D = standard_element->GetnSol2D();
 	
 	// Extract the number of integration points in 2D.
-	const size_t nInt2D = standard_element->GetnInt2D();
+	const std::size_t nInt2D = standard_element->GetnInt2D();
 
 	// Extract the quadrature weights in 2D.
 	CMatrixAS3<as3double> w2D = standard_element->GetwInt2D();
@@ -487,9 +490,9 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	CMatrixAS3<as3double> B( nInt2D, nSol2D );
 
 	// Carry out the temporary product of diag(w2D*mMetricInt2D)*A and store it in B.
-	for(size_t i=0; i<nInt2D; i++)
+	for(std::size_t i=0; i<nInt2D; i++)
 	{
-		for(size_t j=0; j<nSol2D; j++)
+		for(std::size_t j=0; j<nSol2D; j++)
 		{
 			B(i,j) = mMetricInt2D(0,i)*w2D[i]*A(i,j);
 		}
@@ -510,7 +513,7 @@ void CPhysicalElement::ComputeElementProperties
  CStandardElement *standard_element
 )
  /*
-	* Function that computes the average surface properties on the physical element.
+	* Function that computes element volume, length scales and average face normals.
 	*/
 {
 	// Extract the integration weights in 1D and 2D.
@@ -518,12 +521,12 @@ void CPhysicalElement::ComputeElementProperties
 	auto& w2D = standard_element->GetwInt2D();
 
 	// Extract number of integration points in 1D and 2D.
-	const unsigned short nInt1D = standard_element->GetnInt1D();
-	const unsigned short nInt2D = standard_element->GetnInt2D();
+	const std::size_t nInt1D = standard_element->GetnInt1D();
+	const std::size_t nInt2D = standard_element->GetnInt2D();
 
 	// Compute the volume on this element.
 	mVolumeElement = C_ZERO;
-	for(size_t l=0; l<nInt2D; l++)
+	for(std::size_t l=0; l<nInt2D; l++)
 	{
 		mVolumeElement += w2D[l]*mMetricInt2D(0,l);
 	}
@@ -541,7 +544,7 @@ void CPhysicalElement::ComputeElementProperties
 
 	// Compute the surface properties in the i-direction.
 	mAvgNormIDir[0] = mAvgNormIDir[1] = C_ZERO;
-	for(size_t l=0; l<nInt1D; l++)
+	for(std::size_t l=0; l<nInt1D; l++)
 	{
 		mAvgNormIDir[0] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(1,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(1,l) );
 		mAvgNormIDir[1] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(2,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(2,l) );
@@ -564,7 +567,7 @@ void CPhysicalElement::ComputeElementProperties
 
 	// Compute the surface properties in the j-direction.
 	mAvgNormJDir[0] = mAvgNormJDir[1] = C_ZERO;
-	for(size_t l=0; l<nInt1D; l++)
+	for(std::size_t l=0; l<nInt1D; l++)
 	{
 		mAvgNormJDir[0] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(1,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(1,l) );
 		mAvgNormJDir[1] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(2,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(2,l) );

@@ -1,5 +1,11 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Initialization of the conservative Euler solution in each zone.
+ */
+
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
@@ -10,31 +16,33 @@
 class ISolver;
 
 /*!
- * @brief An interface class used for storing initializing the solution.
+ * @brief An interface for initializing the conservative solution in one zone.
  */
 class IInitialCondition
 {
 	public:
 
 		/*!
-		 * @brief Constructor of IInitialCondition, which serves as an interface for the initial condition.
+		 * @brief Constructor of IInitialCondition, which serves as an interface for the initial
+		 *   condition.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 */
-		IInitialCondition(CConfig *config_container);
+		IInitialCondition(const CConfig *config_container);
 
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Virtual destructor for destruction through the component interface.
 		 */
 		virtual ~IInitialCondition(void);
 
 
 		/*!
-		 * @brief A Pure virtual function that initializes the solution over a single zone. Must be overridden.
+		 * @brief A Pure virtual function that initializes the solution over a single zone. Must be
+		 *   overridden.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] singlezone_geometry zone geometry container. 
-		 * @param[in] solver_container solver container.
+		 * @param[in] singlezone_geometry zone geometry container.
+		 * @param[in,out] solver_container solver container.
 		 */
 		virtual void InitializeSolution(CConfig             *config_container,
 				                            CSinglezoneGeometry *singlezone_geometry,
@@ -55,7 +63,7 @@ class IInitialCondition
 //-----------------------------------------------------------------------------------
 
 /*!
- * @brief A class for a Gaussian pressure initial condition. 
+ * @brief A class for a Gaussian pressure initial condition.
  */
 class CGaussianPressureIC : public IInitialCondition
 {
@@ -66,10 +74,10 @@ class CGaussianPressureIC : public IInitialCondition
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 */
-		CGaussianPressureIC(CConfig *config_container);
+		CGaussianPressureIC(const CConfig *config_container);
 
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
 		~CGaussianPressureIC(void) override;
 
@@ -77,8 +85,8 @@ class CGaussianPressureIC : public IInitialCondition
 		 * @brief Function that initializes a Gaussian pressure pulse solution over a single zone.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] singlezone_geometry zone geometry container. 
-		 * @param[in] solver_container solver container.
+		 * @param[in] singlezone_geometry zone geometry container.
+		 * @param[in,out] solver_container solver container.
 		 */
 		void InitializeSolution(CConfig             *config_container,
 		                        CSinglezoneGeometry *singlezone_geometry,
@@ -87,26 +95,26 @@ class CGaussianPressureIC : public IInitialCondition
 	protected:
 
 	private:
-		as3double mXCenter;
-		as3double mYCenter;
+		as3double mXCenter;  ///< Initial disturbance center in the x-direction.
+		as3double mYCenter;  ///< Initial disturbance center in the y-direction.
 
-		as3double mRatio; 
-		as3double mWidth;
+		as3double mRatio;  ///< Initial disturbance strength.
+		as3double mWidth;  ///< Initial disturbance width or vortex radius.
 
-		as3double mMachInf;
-		as3double mThetaInf;
+		as3double mMachInf;   ///< Freestream Mach number.
+		as3double mThetaInf;  ///< Freestream flow angle in degrees.
 
-		as3double mDensityInf;
-		as3double mXVelocityInf;
-		as3double mYVelocityInf;
-		as3double mPressureInf;
-		as3double mTemperatureInf;
+		as3double mDensityInf;      ///< Freestream density.
+		as3double mXVelocityInf;    ///< Freestream velocity in the x-direction.
+		as3double mYVelocityInf;    ///< Freestream velocity in the y-direction.
+		as3double mPressureInf;     ///< Freestream static pressure.
+		as3double mTemperatureInf;  ///< Freestream static temperature.
 };
 
 //-----------------------------------------------------------------------------------
 
 /*!
- * @brief A class for an isentropic vortex initial condition. 
+ * @brief A class for an isentropic vortex initial condition.
  */
 class CIsentropicVortexIC : public IInitialCondition
 {
@@ -117,10 +125,10 @@ class CIsentropicVortexIC : public IInitialCondition
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 */
-		CIsentropicVortexIC(CConfig *config_container);
+		CIsentropicVortexIC(const CConfig *config_container);
 
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
 		~CIsentropicVortexIC(void) override;
 
@@ -128,8 +136,8 @@ class CIsentropicVortexIC : public IInitialCondition
 		 * @brief Function that initializes an isentropic vortex solution over a single zone.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] singlezone_geometry zone geometry container. 
-		 * @param[in] solver_container solver container.
+		 * @param[in] singlezone_geometry zone geometry container.
+		 * @param[in,out] solver_container solver container.
 		 */
 		void InitializeSolution(CConfig             *config_container,
 		                        CSinglezoneGeometry *singlezone_geometry,
@@ -138,20 +146,20 @@ class CIsentropicVortexIC : public IInitialCondition
 	protected:
 
 	private:
-		as3double mXCenter;
-		as3double mYCenter;
+		as3double mXCenter;  ///< Initial disturbance center in the x-direction.
+		as3double mYCenter;  ///< Initial disturbance center in the y-direction.
 
-		as3double mRatio; 
-		as3double mWidth;
+		as3double mRatio;  ///< Initial disturbance strength.
+		as3double mWidth;  ///< Initial disturbance width or vortex radius.
 
-		as3double mMachInf;
-		as3double mThetaInf;
+		as3double mMachInf;   ///< Freestream Mach number.
+		as3double mThetaInf;  ///< Freestream flow angle in degrees.
 
-		as3double mDensityInf;
-		as3double mXVelocityInf;
-		as3double mYVelocityInf;
-		as3double mPressureInf;
-		as3double mTemperatureInf;
+		as3double mDensityInf;      ///< Freestream density.
+		as3double mXVelocityInf;    ///< Freestream velocity in the x-direction.
+		as3double mYVelocityInf;    ///< Freestream velocity in the y-direction.
+		as3double mPressureInf;     ///< Freestream static pressure.
+		as3double mTemperatureInf;  ///< Freestream static temperature.
 };
 
 

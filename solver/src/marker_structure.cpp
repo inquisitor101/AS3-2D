@@ -1,5 +1,10 @@
 #include "marker_structure.hpp"
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+
 #include "geometry_structure.hpp"
 
 
@@ -15,7 +20,7 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
  const std::array<as3double, 2> &translation
 )
  /*
-  *
+  * Constructor that matches periodic zone edges by translated coordinates.
   */
 {
   // Consistency check.
@@ -29,7 +34,7 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
   const auto jName = jexternal_marker.GetName();
 
   // Deduce the number of markers.
-  const size_t nMarkers = iexternal_marker.GetnMarkers();
+  const std::size_t nMarkers = iexternal_marker.GetnMarkers();
 
   // Reserve the necessary number of markers.
   mMarkers.reserve( nMarkers );
@@ -102,7 +107,7 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
         const std::size_t jn1 = reversed ? jvec_inode.front() : jvec_inode.back();
 
         // Loop over every element on this marker.
-        for(size_t k=0; k<ivec_ielem.size(); k++)
+        for(std::size_t k=0; k<ivec_ielem.size(); k++)
         {
           // Abbreviations for the element indices.
           const std::size_t ie = ivec_ielem[k];
@@ -173,7 +178,7 @@ ETypeFace NMarkerUtility::GetTypeFace
  EFaceLocation face_location
 )
  /*
-  * Determine the direction of a face from its local location.
+  * Function that maps a local edge to its logical I- or J-face direction.
   */
 {
   switch( face_location )

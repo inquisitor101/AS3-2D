@@ -1,3 +1,15 @@
+/*!
+ * @file
+ * @brief Inline implementations for configuration text parsing, string conversion and byte swapping.
+ */
+
+#include <cstddef>
+#include <fstream>
+#include <ios>
+#include <sstream>
+#include <string>
+#include <vector>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -5,6 +17,15 @@
 //-----------------------------------------------------------------------------------
 
 
+/*!
+ * @brief Function that parses the unsigned numeric suffix after the first delimiter in each input string.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in] str string or strings containing a numeric suffix.
+ * @param[out] val numeric suffixes extracted from the strings.
+ * @param[in] sym delimiter preceding the numeric suffix.
+ */
 template<class TValueType>
 void NInputUtility::ExtractLastDigitFromString
 (
@@ -20,7 +41,7 @@ void NInputUtility::ExtractLastDigitFromString
 	val.resize( str.size() );
 
 	// Loop over each entry in the string and extract the final number.
-	for(unsigned short i=0; i<str.size(); i++)
+	for(std::size_t i=0; i<str.size(); i++)
 	{
 		val[i] = ExtractLastDigitFromString<TValueType>(str[i], sym);
 	}
@@ -28,6 +49,16 @@ void NInputUtility::ExtractLastDigitFromString
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that parses the unsigned numeric suffix after the first delimiter in a single input string.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in] str string or strings containing a numeric suffix.
+ * @param[in] sym delimiter preceding the numeric suffix.
+ *
+ * @return unsigned numeric suffix converted to TValueType; terminates if no delimiter is present.
+ */
 template<class TValueType>
 TValueType NInputUtility::ExtractLastDigitFromString
 (
@@ -39,7 +70,7 @@ TValueType NInputUtility::ExtractLastDigitFromString
 	*/
 {	
 	// Location of the symbol.
-	size_t pos = str.find(sym);
+	std::size_t pos = str.find(sym);
 	
 	// If located, extract the number.
 	if( pos != std::string::npos )
@@ -58,6 +89,17 @@ TValueType NInputUtility::ExtractLastDigitFromString
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function used in reading "scalar" data, takes default parameter.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in,out] inputFile input stream whose read position may change.
+ * @param[in] keyword configuration keyword to find.
+ * @param[in] value parsed output value.
+ * @param[in] defaultValue value used when the keyword is absent.
+ * @param[in] ResetLine whether to restore the original stream position after reading.
+ */
 template<class TValueType>
 void NInputUtility::AddScalarOption
 (
@@ -74,7 +116,7 @@ void NInputUtility::AddScalarOption
   // Initialize string.
   std::string valString;
   // Initialize line number.
-  long CurrentLine;
+  std::streampos CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -101,6 +143,16 @@ void NInputUtility::AddScalarOption
 	
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function used in reading "scalar" data.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in,out] inputFile input stream whose read position may change.
+ * @param[in] keyword configuration keyword to find.
+ * @param[in] value parsed output value.
+ * @param[in] ResetLine whether to restore the original stream position after reading.
+ */
 template<class TValueType>
 void NInputUtility::AddScalarOption
 (
@@ -116,7 +168,7 @@ void NInputUtility::AddScalarOption
   // Initialize string.
   std::string valString;
   // Initialize line number.
-  long CurrentLine;
+  std::streampos CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -144,6 +196,17 @@ void NInputUtility::AddScalarOption
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that works as a template to read vector data, otherwise assigns default value.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in,out] inputFile input stream whose read position may change.
+ * @param[in] keyword configuration keyword to find.
+ * @param[in] value parsed output value.
+ * @param[in] defaultValue value used when the keyword is absent.
+ * @param[in] ResetLine whether to restore the original stream position after reading.
+ */
 template<class TValueType>
 void NInputUtility::AddVectorOption
 (
@@ -164,7 +227,7 @@ void NInputUtility::AddVectorOption
   // Initialize string.
 	std::vector<std::string> valStringVector;
   // Initialize line number.
-  long CurrentLine;
+  std::streampos CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -179,7 +242,7 @@ void NInputUtility::AddVectorOption
   }
 
 	// Assign string value.
-	for(unsigned short iData=0; iData<valStringVector.size(); iData++)
+	for(std::size_t iData=0; iData<valStringVector.size(); iData++)
 	{
 		TValueType tmp;
 		std::istringstream istr(valStringVector[iData]);
@@ -198,6 +261,16 @@ void NInputUtility::AddVectorOption
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that works as a template to read vector data, otherwise exits.
+ *
+ * @tparam TValueType type used for parsed or padded values.
+ *
+ * @param[in,out] inputFile input stream whose read position may change.
+ * @param[in] keyword configuration keyword to find.
+ * @param[in] value parsed output value.
+ * @param[in] ResetLine whether to restore the original stream position after reading.
+ */
 template<class TValueType>
 void NInputUtility::AddVectorOption
 (
@@ -217,7 +290,7 @@ void NInputUtility::AddVectorOption
 	// Initialize string.
 	std::vector<std::string> valStringVector;
   // Initialize line number.
-  long CurrentLine;
+  std::streampos CurrentLine;
   // Record current line.
   if( ResetLine ) CurrentLine = inputFile.tellg();
 
@@ -233,7 +306,7 @@ void NInputUtility::AddVectorOption
   }
 
 	// Assign string value.
-	for(unsigned short iData=0; iData<valStringVector.size(); iData++)
+	for(std::size_t iData=0; iData<valStringVector.size(); iData++)
 	{
 		TValueType tmp;
 		std::istringstream istr(valStringVector[iData]);

@@ -1,5 +1,14 @@
 #include "input_structure.hpp"
 
+#include <cctype>
+#include <cstddef>
+#include <cstring>
+#include <fstream>
+#include <istream>
+#include <sstream>
+#include <string>
+#include <vector>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -11,7 +20,7 @@ std::string NInputUtility::GetFileExtension
  std::string filename
 )
  /*
-	* Function that extracts an extension from a given file name.
+	* Function that extracts the filename extension.
 	*/
 {
 	// Check whether or not an extension is present.
@@ -32,28 +41,28 @@ std::string NInputUtility::GetFileExtension
 void NInputUtility::SwapBytes
 (
  void   *buffer,
- size_t  nBytes,
- size_t  nItems
+ std::size_t  nBytes,
+ std::size_t  nItems
 )
  /*
-	* Function that swaps bytes.
+	* Function that reverses the byte order of each item in a buffer.
 	*/
 {
 	// Store half the number of bytes in kk and cast the buffer
 	// to a character buffer.
 	char *buf       = (char *) buffer;
-	const size_t kk = nBytes/2;
+	const std::size_t kk = nBytes/2;
 	
 	// Loop over the number of items in the buffer.
-	for(size_t j=0; j<nItems; ++j)
+	for(std::size_t j=0; j<nItems; ++j)
 	{
 	  // Initialize ii and jj, which are used to store the
 	  // indices of the bytes to be swapped.
-	  size_t ii = j*nBytes;
-	  size_t jj = ii + nBytes - 1;
+	  std::size_t ii = j*nBytes;
+	  std::size_t jj = ii + nBytes - 1;
 	
 	  // Swap the bytes.
-	  for(size_t i=0; i<kk; ++i, ++ii, --jj)
+	  for(std::size_t i=0; i<kk; ++i, ++ii, --jj)
 	  {
 	    const char tmp = buf[jj];
 	    buf[jj] = buf[ii];
@@ -69,32 +78,14 @@ void NInputUtility::RemoveBlanks
  std::string &lineBuf
 )
  /*
-  * Function that takes a string and removes any blanks in it.
+  * Function that removes spaces from a string in place.
   */
 {
-  // Find the first non space character.
-  int strLength  = static_cast<int>( lineBuf.length() );
-  int posLeading = 0;
-  while(posLeading < strLength && isspace(lineBuf[posLeading])) ++posLeading;
-
-  // Find the last non space character.
-  int posTrailing = strLength - 1;
-  while(posTrailing >= 0 && isspace(lineBuf[posTrailing])) --posTrailing;
-
-  // Determine the situation.
-  if(posLeading == strLength || posTrailing < 0)
-  {
-    // No non-blanks in the string. Set lineBuf to an empty string.
-    lineBuf = "";
-  }
-  else
-  {
-    // Non-blanks are present. Remove the blanks. First the trailing ones,
-    // because otherwise the positions are screwed up.
-    int eraseLenBack = strLength - posTrailing - 1;
-    if( eraseLenBack ) lineBuf.erase(posTrailing+1, eraseLenBack);
-    lineBuf.erase(0, posLeading);
-  }
+  std::size_t first = 0;
+  std::size_t last = lineBuf.size();
+  while(first < last && std::isspace(static_cast<unsigned char>(lineBuf[first]))) ++first;
+  while(last > first && std::isspace(static_cast<unsigned char>(lineBuf[last-1]))) --last;
+  lineBuf = lineBuf.substr(first, last-first);
 }
 
 //-----------------------------------------------------------------------------------
@@ -104,13 +95,13 @@ void NInputUtility::ReplaceTabsAndReturns
  std::string &lineBuf
 )
  /*
-  * Function that replaces tabs and returns with blanks.
+  * Function that replaces tabs and line endings with spaces in place.
   */
 {
   // Replace the tabs.
   for(;;)
   {
-    std::string::size_type pos = lineBuf.find("\t");
+    std::size_t pos = lineBuf.find("\t");
     if(pos == std::string::npos) break;
     lineBuf.replace(pos, 1, " ");
   }
@@ -118,7 +109,7 @@ void NInputUtility::ReplaceTabsAndReturns
   // Replace the returns.
   for(;;)
   {
-    std::string::size_type pos = lineBuf.find("\n");
+    std::size_t pos = lineBuf.find("\n");
     if(pos == std::string::npos) break;
     lineBuf.replace(pos, 1, " ");
   }
@@ -130,13 +121,13 @@ void NInputUtility::CreateLowerCase
  std::string &lineBuf
 )
  /*
-  * Function, which returns a lowered-case version of input string.
+  * Function that converts a string to lower case in place.
   */
 {
   // Determine the length of the string and convert its elements to
   // lower case.
-  std::string::size_type strLength = lineBuf.length();
-  for(std::string::size_type i=0; i<strLength; ++i)
+  std::size_t strLength = lineBuf.length();
+  for(std::size_t i=0; i<strLength; ++i)
     lineBuf[i] = (char) tolower(lineBuf[i]);
 }
 
@@ -149,11 +140,11 @@ bool NInputUtility::FindStringVectorFromKeyword
  std::vector<std::string> &valStringVector
 )
 /*
- * Function that searches for and finds a string vector from input file.
+ * Function that finds a configuration keyword and extracts its vector entries.
  */
 {
   // Length of target string.
-  const size_t lenKeyword = std::strlen(keyword);
+  const std::size_t lenKeyword = std::strlen(keyword);
 
   // Initialize search as false.
   bool keywordFound = false;
@@ -167,7 +158,7 @@ bool NInputUtility::FindStringVectorFromKeyword
     ReplaceTabsAndReturns(lineBuf);
 
     // Ignore comments, i.e. "%"
-    std::string::size_type pos = lineBuf.find("%");
+    std::size_t pos = lineBuf.find("%");
     if(pos != std::string::npos ) lineBuf.erase(pos, lineBuf.length()-pos);
 
     // Remove any blanks in line.
@@ -206,7 +197,7 @@ bool NInputUtility::FindStringVectorFromKeyword
 				if( !valStringVector.empty() ){
 
 					// Extract final index.
-					const size_t idx = valStringVector.size()-1;
+					const std::size_t idx = valStringVector.size()-1;
 
 					// Extract last character of string.
 					char endSymbol = valStringVector[idx].back();
@@ -239,11 +230,11 @@ bool NInputUtility::FindStringFromKeyword
  std::string   &valString
 )
 /*
- * Function that searches for and finds a string from input file.
+ * Function that finds a configuration keyword and extracts its scalar text.
  */
 {
   // Length of target string.
-  const size_t lenKeyword = std::strlen(keyword);
+  const std::size_t lenKeyword = std::strlen(keyword);
 
   // Initialize search as false.
   bool keywordFound = false;
@@ -257,7 +248,7 @@ bool NInputUtility::FindStringFromKeyword
     ReplaceTabsAndReturns(lineBuf);
 
     // Ignore comments, i.e. "%"
-    std::string::size_type pos = lineBuf.find("%");
+    std::size_t pos = lineBuf.find("%");
     if(pos != std::string::npos ) lineBuf.erase(pos, lineBuf.length()-pos);
 
     // Remove any blanks in line.

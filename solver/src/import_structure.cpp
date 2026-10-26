@@ -1,5 +1,12 @@
 #include "import_structure.hpp"
 
+#include <cstddef>
+#include <cstdio>
+#include <map>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include <set>
 
 
@@ -12,21 +19,21 @@ NImportFile::NAS3BinaryFile::CAS3BinaryMetadata NImportFile::NAS3BinaryFile::Rea
  const std::string &filename
 )
  /*
-	* Function that imports an AS3 meta data in binary format.
+	* Function that reads and validates the AS3 grid header and identifier mappings.
 	*/
 {
   // Open the AS3 file for binary reading.
   const auto file = OpenAS3BinaryFile(filename);
 
   // Temporary lambdo to read one mapping, checking for duplicate IDs and names.
-  auto lReadMapping = [&]() -> std::map<as3fileuint, std::string>
+  auto lReadMapping = [&]() -> std::map<std::size_t, std::string>
   {
     const auto count = ReadAS3UInt(file);
 
-    std::map<as3fileuint, std::string> entries;
+    std::map<std::size_t, std::string> entries;
     std::set<std::string> names;
 
-    for(as3fileuint i=0; i<count; i++)
+    for(std::size_t i=0; i<count; i++)
     {
       const auto name = ReadString(file);
       const auto id   = ReadAS3UInt(file);
@@ -63,13 +70,13 @@ NImportFile::NAS3BinaryFile::CAS3BinaryMetadata NImportFile::NAS3BinaryFile::Rea
   metadata.mZones.reserve(nZone);
 
   // Read all per-zone metadata.
-  for(size_t i=0; i<nZone; i++)
+  for(std::size_t i=0; i<nZone; i++)
   {
     // Read the relevant information.
-    const size_t iZone  = ReadAS3UInt(file);
-    const size_t nPoly  = ReadAS3UInt(file);
-    const size_t niElem = ReadAS3UInt(file);
-    const size_t njElem = ReadAS3UInt(file);
+    const std::size_t iZone  = ReadAS3UInt(file);
+    const std::size_t nPoly  = ReadAS3UInt(file);
+    const std::size_t niElem = ReadAS3UInt(file);
+    const std::size_t njElem = ReadAS3UInt(file);
 
     // Consistency checks.
     if( iZone != i ) ERROR(filename + " uses different zone indices than expected.");
@@ -149,20 +156,20 @@ std::unique_ptr<CSinglezoneGeometry> NImportFile::NAS3BinaryFile::ReadAS3BinaryS
  std::size_t               iZone
 )
  /*
-	* Function that imports an AS3 single zone grid in binary format.
+	* Function that imports one zone and its element coordinates from an AS3 binary file.
 	*/
 {
   // Open the AS3 file for binary reading.
   const auto file = OpenAS3BinaryFile(filename);
 
   // Extract the header information.
-  const size_t nPoly  = ReadAS3UInt(file);
-  const size_t niElem = ReadAS3UInt(file);
-  const size_t njElem = ReadAS3UInt(file);
+  const std::size_t nPoly  = ReadAS3UInt(file);
+  const std::size_t niElem = ReadAS3UInt(file);
+  const std::size_t njElem = ReadAS3UInt(file);
   
   const bool isAffine = ReadBoolean(file);
  
-  const size_t input_nodal_distribution = ReadAS3UInt(file);
+  const std::size_t input_nodal_distribution = ReadAS3UInt(file);
 
   // Deduce the type of nodal points.
   ETypeDOF nodal_distribution = metadata.mMappings.mNodalDistributions.at( input_nodal_distribution );
@@ -215,24 +222,24 @@ as3vector1d<CExternalFamilyMarker> NImportFile::NAS3BinaryFile::ReadAS3ExternalM
  const CAS3BinaryMetadata &metadata
 )
  /*
-	* Function that imports an AS3 external marker file in binary format.
+	* Function that reads named physical boundary marker families from the AS3 grid file.
 	*/
 {
   // Open the AS3 file for binary reading.
   const auto file = OpenAS3BinaryFile(filename);
 
   // Read the number of different marker families.
-  const size_t nFamily = ReadAS3UInt(file);
+  const std::size_t nFamily = ReadAS3UInt(file);
  
   // Reserve the needed memory for the external marker family object.
   as3vector1d<CExternalFamilyMarker> external_family_marker;
   external_family_marker.reserve( nFamily ); 
 
   // Extract the relevant marker information for each family.
-  for(size_t i=0; i<nFamily; i++)
+  for(std::size_t i=0; i<nFamily; i++)
   {
-    const size_t iFamily   = ReadAS3UInt(file);
-    const size_t nBoundary = ReadAS3UInt(file);
+    const std::size_t iFamily   = ReadAS3UInt(file);
+    const std::size_t nBoundary = ReadAS3UInt(file);
     const auto   name      = ReadString(file);
 
     // Consistency checks.
@@ -245,11 +252,11 @@ as3vector1d<CExternalFamilyMarker> NImportFile::NAS3BinaryFile::ReadAS3ExternalM
     auto& markers = family.GetMarkers();
 
     // Loop over each marker in this family.
-    for(size_t j=0; j<nBoundary; j++)
+    for(std::size_t j=0; j<nBoundary; j++)
     {
-      const size_t iBoundary           = ReadAS3UInt(file);
-      const size_t iZone               = ReadAS3UInt(file);
-      const size_t input_face_location = ReadAS3UInt(file); 
+      const std::size_t iBoundary           = ReadAS3UInt(file);
+      const std::size_t iZone               = ReadAS3UInt(file);
+      const std::size_t input_face_location = ReadAS3UInt(file); 
 
       // Consistency checks.
       if( iBoundary != j ) ERROR(filename + " uses different boundary indices than expected.");
@@ -274,25 +281,25 @@ as3vector1d<CInternalFamilyMarker> NImportFile::NAS3BinaryFile::ReadAS3InternalM
  const CAS3BinaryMetadata &metadata
 )
  /*
-	* Function that imports an AS3 internal marker file in binary format.
+	* Function that reads paired-zone interface marker families from the AS3 grid file.
 	*/
 {
   // Open the AS3 file for binary reading.
   const auto file = OpenAS3BinaryFile(filename);
 
   // Read the number of internal markers, which are interfaces.
-  const size_t nInterface = ReadAS3UInt(file);
+  const std::size_t nInterface = ReadAS3UInt(file);
  
   // This is always a single family, but we keep it as a vector, 
   // for general implementations.
-  const size_t nFamily = 1;
+  const std::size_t nFamily = 1;
 
   // Reserve the needed memory for the internal marker family object.
   as3vector1d<CInternalFamilyMarker> internal_family_marker;
   internal_family_marker.reserve( nFamily ); 
 
   // Extract the relevant marker information for each family.
-  for(size_t i=0; i<nFamily; i++)
+  for(std::size_t i=0; i<nFamily; i++)
   {
     // Initialize a family, and obtain a reference for it.
     auto& family = internal_family_marker.emplace_back( nInterface );
@@ -301,15 +308,15 @@ as3vector1d<CInternalFamilyMarker> NImportFile::NAS3BinaryFile::ReadAS3InternalM
     auto& markers = family.GetMarkers();
 
     // Loop over each marker in this family.
-    for(size_t j=0; j<nInterface; j++)
+    for(std::size_t j=0; j<nInterface; j++)
     {
-      const size_t iInterface           = ReadAS3UInt(file);
+      const std::size_t iInterface           = ReadAS3UInt(file);
       
-      const size_t iZone                = ReadAS3UInt(file);
-      const size_t input_iface_location = ReadAS3UInt(file); 
+      const std::size_t iZone                = ReadAS3UInt(file);
+      const std::size_t input_iface_location = ReadAS3UInt(file); 
 
-      const size_t jZone                = ReadAS3UInt(file);
-      const size_t input_jface_location = ReadAS3UInt(file); 
+      const std::size_t jZone                = ReadAS3UInt(file);
+      const std::size_t input_jface_location = ReadAS3UInt(file); 
 
       const bool is_reversed            = ReadBoolean(file);
 
@@ -336,7 +343,7 @@ NImportFile::NAS3BinaryFile::CBinaryFile NImportFile::NAS3BinaryFile::OpenAS3Bin
  const std::string &filename
 )
  /*
-  *
+  * Function that opens an AS3 binary file and determines its byte order.
   */
 {
   // Create a binary file object.
@@ -367,12 +374,12 @@ NImportFile::NAS3BinaryFile::CBinaryFile NImportFile::NAS3BinaryFile::OpenAS3Bin
 
 //-----------------------------------------------------------------------------------
 
-NImportFile::NAS3BinaryFile::as3fileuint NImportFile::NAS3BinaryFile::ReadAS3UInt
+std::size_t NImportFile::NAS3BinaryFile::ReadAS3UInt
 (
  const CBinaryFile &file
 )
  /*
-  *
+  * Function that reads a 32-bit AS3 unsigned integer and converts it to host byte order.
   */
 {
   as3fileuint value{};
@@ -386,7 +393,7 @@ NImportFile::NAS3BinaryFile::as3fileuint NImportFile::NAS3BinaryFile::ReadAS3UIn
   {
     NInputUtility::SwapBytes(&value, sizeof(value), 1);
   }
-  return value;  
+  return static_cast<std::size_t>(value);  
 }
 
 //-----------------------------------------------------------------------------------
@@ -396,7 +403,7 @@ std::string NImportFile::NAS3BinaryFile::ReadString
  const CBinaryFile &file
 )
  /*
-  *
+  * Function that reads a length-prefixed string from the AS3 binary file.
   */
 {
   const auto length = ReadAS3UInt(file);
@@ -417,7 +424,7 @@ bool NImportFile::NAS3BinaryFile::ReadBoolean
  const CBinaryFile &file
 )
  /*
-  *
+  * Function that reads a boolean value from the AS3 binary file.
   */
 {
   const auto value = ReadAS3UInt(file);
@@ -433,8 +440,7 @@ std::size_t NImportFile::NAS3BinaryFile::DetermineCoordinatePrecisionBytes
   std::size_t        nCoor
 )
  /*
-  * Infer coordinate precision from the remaining coordinate payload.
-  * Restore the file position before returning.
+  * Function that infers coordinate precision without changing the file position.
   */
 {
   const auto& filename = file.mFilename;

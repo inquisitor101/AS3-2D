@@ -1,73 +1,106 @@
 #include "face_structure.hpp"
+
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
+#include <string>
+#include <utility>
 #include "geometry_structure.hpp"
 
 
 //-----------------------------------------------------------------------------------
-// CMultizoneFaceGeometry member functions.
+// CDirectionalFaceConnectivity member functions.
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeFaces
+void CDirectionalFaceConnectivity::InitializeFaces
 (
- const CConfig            *config_container,
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Function that builds the three face collections for one owner-side logical direction.
   */
 {
-  // Initialize the family of faces.
-  InitializeInternalFaces(multizone_geometry_container);
-  InitializeInterfaceFaces(config_container, multizone_geometry_container);
-  InitializeBoundaryFaces(config_container, multizone_geometry_container);
+  // Initialize the collections of faces.
+  InitializeInteriorFaces(multizone_geometry_container);
+  InitializeInterfaceFaces(multizone_geometry_container);
+  InitializeBoundaryFaces(multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeInternalFaces
+CFlattenedFaceIndex CDirectionalFaceConnectivity::ResolveFace
+(
+ std::size_t i
+) const
+ /*
+  * Function that resolves a direction-local face index into its category, batch and local face.
+  */
+{
+  CFaceAddress face_info;
+  ETypeFaceGeometry face_type;
+
+  if( i < GetnInteriorFaces() )
+  {
+    face_type = ETypeFaceGeometry::INTERNAL;
+    face_info = mInteriorFaces.ResolveFace(i);
+  }
+  else if( i < GetnInteriorFaces() + GetnBoundaryFaces() )
+  {
+    face_type = ETypeFaceGeometry::BOUNDARY;
+    face_info = mBoundaryFaces.ResolveFace(i - GetnInteriorFaces());
+  }
+  else if( i < GetnFacesTotal() )
+  {
+    face_type = ETypeFaceGeometry::INTERFACE;
+    face_info = mInterfaceFaces.ResolveFace(i - GetnInteriorFaces() - GetnBoundaryFaces());
+  }
+  else ERROR("Invalid direction-local face index.");
+
+  return CFlattenedFaceIndex{ face_info.mIndexBatch, face_info.mIndexFace, face_type };
+}
+
+//-----------------------------------------------------------------------------------
+
+void CDirectionalFaceConnectivity::InitializeInteriorFaces
 (
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-	*
+	* Function that collects same-zone interior faces in the selected logical direction.
 	*/
 {
-  // TODO: make the group initialize this, since it owns them.
-  // Temporary internal families, will be moved inside their group. 
-  as3vector1d<CInternalFacesFamily> internal_families;
+  // Temporary internal face batches, will be moved inside their collection. 
+  as3vector1d<CInteriorFaceBatch> interior_batches;
 
   // Extract the total number of zones.
   const auto nZone = multizone_geometry_container->GetnZone();
 
-  // Initialize the family of internal faces, based on the number of zones.
-  internal_families.reserve( nZone );
+  // Initialize the batches of interior faces, based on the number of zones.
+  interior_batches.reserve( nZone );
 
   // Loop over each zone and initialize its internal faces, based on the class's face type.
   for( const auto& zone_geometry : multizone_geometry_container->GetSinglezoneGeometry() )
   {
-    // Initialize a family of internal faces belonging to this zone.
-    internal_families.emplace_back( mTypeFace, zone_geometry.get() );
+    // Initialize a batch of interior faces belonging to this zone.
+    interior_batches.emplace_back( mFaceDirection, zone_geometry.get() );
   }
 
-  // Move the ownership to their respective group.
-  mInternalFacesGroup.Initialize( std::move(internal_families) );
+  // Move the ownership to their respective collection.
+  mInteriorFaces.Initialize( std::move(interior_batches) );
 }
 
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeInterfaceFaces
+void CDirectionalFaceConnectivity::InitializeInterfaceFaces
 (
- const CConfig            *config_container,
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  * Function that initializes interfaces across all zones with the assumption of
-  * only doing so for ith components whose face direction matches this class.
-  * Both internal and periodic markers define interfaces.
+  * Function that collects internal and periodic interfaces by owner-side logical direction.
   */
 {
-  // TODO: make the group initialize this, since it owns them.
-  // Temporary interface families, will be moved inside their group. 
-  as3vector1d<CInterfaceFacesFamily> interface_families;
+  // Temporary interface face batches, will be moved inside their collection. 
+  as3vector1d<CInterfaceFaceBatch> interface_batches;
 
   // Extract the internal and periodic marker families.
   const auto& internal_markers = multizone_geometry_container->GetInternalFamilyMarkers();
@@ -83,7 +116,7 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
     {
       for( const auto& marker : family.GetMarkers() )
       {
-        if( marker.GetiTypeFace() == mTypeFace )
+        if( marker.GetiTypeFace() == mFaceDirection )
         {
           nInterfaces++;
         }
@@ -97,19 +130,19 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
   const std::size_t nInterfacesConsidered = lCountRelevantInterfaces(internal_markers) 
                                           + lCountRelevantInterfaces(periodic_markers);
 
-  // Allocate memory for the family of interfaces.
-  interface_families.reserve( nInterfacesConsidered );
+  // Allocate memory for the batches of interfaces.
+  interface_batches.reserve( nInterfacesConsidered );
 
   // Loop over each internal marker family.
   for( const auto& family : internal_markers )
   {
     for( const auto& marker : family.GetMarkers() )
     {
-      // Only consider interfaces whose ith face matches this class's direction.
-      if( marker.GetiTypeFace() != mTypeFace ) continue;
+      // Only consider interfaces whose owner face matches this class's direction.
+      if( marker.GetiTypeFace() != mFaceDirection ) continue;
 
-      // Create a family of interface faces belonging to this zone pair.
-      interface_families.emplace_back( multizone_geometry_container, marker );
+      // Create a batch of interface faces belonging to this zone pair.
+      interface_batches.emplace_back( multizone_geometry_container, marker );
     }
   }
 
@@ -118,38 +151,36 @@ void CMultizoneFaceGeometry::InitializeInterfaceFaces
   {
     for( const auto& marker : family.GetMarkers() )
     {
-      // Only consider interfaces whose ith face matches this class's direction.
-      if( marker.GetiTypeFace() != mTypeFace ) continue;
+      // Only consider interfaces whose owner face matches this class's direction.
+      if( marker.GetiTypeFace() != mFaceDirection ) continue;
 
-      // Create a family of interface faces belonging to this periodic zone pair.
-      interface_families.emplace_back( multizone_geometry_container, marker );
+      // Create a batch of interface faces belonging to this periodic zone pair.
+      interface_batches.emplace_back( multizone_geometry_container, marker );
     }
   }
 
-  // Move the ownership to their respective group.
-  // Also initialize an empty group when no interfaces are relevant.
-  mInterfaceFacesGroup.Initialize( std::move(interface_families) );
+  // Move the ownership to their respective collection.
+  // Also initialize an empty collection when no interfaces are relevant.
+  mInterfaceFaces.Initialize( std::move(interface_batches) );
 }
 
 //-----------------------------------------------------------------------------------
 
-void CMultizoneFaceGeometry::InitializeBoundaryFaces
+void CDirectionalFaceConnectivity::InitializeBoundaryFaces
 (
- const CConfig            *config_container,
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Function that collects physical boundary faces in the selected logical direction.
   */
 {
-  // TODO: make the group initialize this, since it owns them.
-  // Temporary boundary families, will be moved inside their group. 
-  as3vector1d<CBoundaryFacesFamily> boundary_families;
+  // Temporary boundary face batches, will be moved inside their collection. 
+  as3vector1d<CBoundaryFaceBatch> boundary_batches;
 
   // Extract the boundary marker families.
   const auto& boundary_markers = multizone_geometry_container->GetExternalFamilyMarkers();
 
-   // Helper lambda to count the bounadries relevant for this class.
+   // Helper lambda to count the boundaries relevant for this class.
   auto lCountRelevantBoundaries = [&](const auto &families) -> std::size_t
   {
     std::size_t nBoundaries = 0;
@@ -158,7 +189,7 @@ void CMultizoneFaceGeometry::InitializeBoundaryFaces
     {
       for( const auto& marker : family.GetMarkers() )
       {
-        if( marker.GetTypeFace() == mTypeFace )
+        if( marker.GetTypeFace() == mFaceDirection )
         {
           nBoundaries++;
         }
@@ -171,8 +202,8 @@ void CMultizoneFaceGeometry::InitializeBoundaryFaces
   // Get the number of valid boundaries for this direction.
   const std::size_t nBoundariesConsidered = lCountRelevantBoundaries(boundary_markers);
 
-  // Allocate memory for the family of boundaries.
-  boundary_families.reserve( nBoundariesConsidered );
+  // Allocate memory for the batches of boundaries.
+  boundary_batches.reserve( nBoundariesConsidered );
 
   // Loop over each boundary marker family.
   for( const auto& family : boundary_markers )
@@ -180,7 +211,7 @@ void CMultizoneFaceGeometry::InitializeBoundaryFaces
     for( const auto& marker : family.GetMarkers() )
     {
       // Only consider boundaries whose face matches this class's direction.
-      if( marker.GetTypeFace() != mTypeFace ) continue;
+      if( marker.GetTypeFace() != mFaceDirection ) continue;
 
       // Extract the relevant zone index.
       const std::size_t iZone = marker.mIndexZone;
@@ -188,76 +219,76 @@ void CMultizoneFaceGeometry::InitializeBoundaryFaces
       // Obtain the relevant single zone geometry.
       const auto* zone_geometry = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
-      // Create a family of boundary faces belonging to this face.
-      boundary_families.emplace_back( zone_geometry, marker, family.GetName() );
+      // Create a batch of boundary faces belonging to this face.
+      boundary_batches.emplace_back( zone_geometry, marker, family.GetName() );
     }
   }
 
-   // Move the ownership to their respective group.
-  mBoundaryFacesGroup.Initialize( std::move(boundary_families) );
+   // Move the ownership to their respective collection.
+  mBoundaryFaces.Initialize( std::move(boundary_batches) );
 }
 
 
 //-----------------------------------------------------------------------------------
-// CInternalFacesFamily member functions.
+// CInteriorFaceBatch member functions.
 //-----------------------------------------------------------------------------------
 
-CInternalFacesFamily::CInternalFacesFamily
+CInteriorFaceBatch::CInteriorFaceBatch
 (
- ETypeFace                  face_type,
+ ETypeFace                  face_direction,
  const CSinglezoneGeometry *singlezone_geometry_container
 )
-  : mTypeFace( face_type ), mIndexZone( singlezone_geometry_container->GetZoneID() )
+  : mFaceDirection( face_direction ), mIndexZone( singlezone_geometry_container->GetZoneID() )
  /*
-  *
+  * Constructor that builds interior faces for one zone and logical direction.
   */
 {
-  InitializeInternalFaces(singlezone_geometry_container);
+  InitializeFaces(singlezone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
-void CInternalFacesFamily::InitializeInternalFaces
+void CInteriorFaceBatch::InitializeFaces
 (
  const CSinglezoneGeometry *singlezone_geometry_container
 )
  /*
-  *
+  * Function that builds same-zone interior faces and their shared neighbor offset.
   */
 {        
   // Extract the relevant information for an internal face.
-  const size_t niElem = singlezone_geometry_container->GetniElem();
-  const size_t njElem = singlezone_geometry_container->GetnjElem();
+  const std::size_t niElem = singlezone_geometry_container->GetniElem();
+  const std::size_t njElem = singlezone_geometry_container->GetnjElem();
 
   // Initialize the faces, based on the respective class direction.
-  switch( mTypeFace )
+  switch( mFaceDirection )
   {
     case(ETypeFace::IFACE):
     {
       // Deduce the number of internal i-faces in this zone.
-      const size_t nInternalFaces = njElem * (niElem-1);
+      const std::size_t nInternalFaces = njElem * (niElem-1);
 
       // The offset of the right element (w.r.t. to the left) is always a +1.
       mOffsetElementPlus = 1;
 
 			// Reserve the needed amount of memory for the internal i-faces.
-			mInternalFaces.reserve(nInternalFaces);
+			mFaces.reserve(nInternalFaces);
 
       // Loop over the i-faces in this zone.
-      for(size_t j=0; j<njElem; j++)
+      for(std::size_t j=0; j<njElem; j++)
       {
-        for(size_t i=1; i<niElem; i++)
+        for(std::size_t i=1; i<niElem; i++)
         {
           // Calculate the left element index, which is the "minus" element for this i-face.
-          const size_t iElemL = j * niElem + i-1;
+          const std::size_t iElemL = j * niElem + i-1;
 
           // Construct the current internal i-face.
-          mInternalFaces.emplace_back( iElemL ); 
+          mFaces.emplace_back( iElemL ); 
         }
       }
 
       // Consistency check.
-      if( mInternalFaces.size() != nInternalFaces )
+      if( mFaces.size() != nInternalFaces )
       {
         ERROR("Size of the internal i-faces is wrong.");
       } 
@@ -268,27 +299,27 @@ void CInternalFacesFamily::InitializeInternalFaces
     case(ETypeFace::JFACE):
     {
       // Deduce the number of internal j-faces in this zone.
-      const size_t nInternalFaces = niElem * (njElem-1);
+      const std::size_t nInternalFaces = niElem * (njElem-1);
 
       // The offset of the top element (w.r.t. to the bottom) is always a +niElem.
       mOffsetElementPlus = niElem;
 
 			// Reserve the needed amount of memory for the internal j-faces.
-			mInternalFaces.reserve(nInternalFaces);
+			mFaces.reserve(nInternalFaces);
 
-  		for(size_t j=1; j<njElem; j++)
+  		for(std::size_t j=1; j<njElem; j++)
   		{
-  		  for(size_t i=0; i<niElem; i++)
+  		  for(std::size_t i=0; i<niElem; i++)
   		  {
   		    // Deduce the flattened element indices.
-  		    const size_t iElemB = j * niElem + i - niElem;
+  		    const std::size_t iElemB = j * niElem + i - niElem;
   		    
-					mInternalFaces.emplace_back( iElemB ); 
+					mFaces.emplace_back( iElemB ); 
   		  }
   		}
 
       // Consistency check.
-      if( mInternalFaces.size() != nInternalFaces )
+      if( mFaces.size() != nInternalFaces )
       {
         ERROR("Size of the internal j-faces is wrong.");
       } 
@@ -303,89 +334,87 @@ void CInternalFacesFamily::InitializeInternalFaces
 
 
 //-----------------------------------------------------------------------------------
-// CInterfaceFacesFamily member functions.
+// CInterfaceFaceBatch member functions.
 //-----------------------------------------------------------------------------------
 
-CInterfaceFacesFamily::CInterfaceFacesFamily
+CInterfaceFaceBatch::CInterfaceFaceBatch
 (
  const CMultizoneGeometry                     *multizone_geometry_container,
  const CInternalFamilyMarker::CInternalMarker &marker 
 )
-  : mIndexZoneI( marker.mIndexZoneI ),
-    mIndexZoneJ( marker.mIndexZoneJ ),
-    mTypeFaceI( marker.GetiTypeFace() ),
-    mTypeFaceJ( marker.GetjTypeFace() ),
-    mFaceLocationI( marker.mFaceLocationI ),
-    mFaceLocationJ( marker.mFaceLocationJ ),
+  : mIndexZoneOwner( marker.mIndexZoneI ),
+    mIndexZoneNeighbor( marker.mIndexZoneJ ),
+    mFaceDirectionOwner( marker.GetiTypeFace() ),
+    mFaceDirectionNeighbor( marker.GetjTypeFace() ),
+    mFaceLocationOwner( marker.mFaceLocationI ),
+    mFaceLocationNeighbor( marker.mFaceLocationJ ),
     mIsReversed( marker.mIsReversed ),
-    mIsPeriodic( false ),
     mTranslationVector( {C_ZERO, C_ZERO} )
  /*
-  *
+  * Constructor that pairs connected zone edges and records their orientation.
   */
 {
 	// Deduce whether these faces are on a max (imax/jmax) or not.
-	mIsMaxFaceI 
-    = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
-	mIsMaxFaceJ 
-    = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceOwner 
+    = ( mFaceLocationOwner == EFaceLocation::IMAX || mFaceLocationOwner == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceNeighbor 
+    = ( mFaceLocationNeighbor == EFaceLocation::IMAX || mFaceLocationNeighbor == EFaceLocation::JMAX ) ? true : false;
 
   // Initiailize the interface faces belonging to these markers.
-  InitializeInterfaceFaces(multizone_geometry_container);
+  InitializeFaces(multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
-CInterfaceFacesFamily::CInterfaceFacesFamily
+CInterfaceFaceBatch::CInterfaceFaceBatch
 (
  const CMultizoneGeometry                     *multizone_geometry_container,
  const CPeriodicFamilyMarker::CPeriodicMarker &marker 
 )
-  : mIndexZoneI( marker.mIndexZoneI ),
-    mIndexZoneJ( marker.mIndexZoneJ ),
-    mTypeFaceI( marker.GetiTypeFace() ),
-    mTypeFaceJ( marker.GetjTypeFace() ),
-    mFaceLocationI( marker.mFaceLocationI ),
-    mFaceLocationJ( marker.mFaceLocationJ ),
+  : mIndexZoneOwner( marker.mIndexZoneI ),
+    mIndexZoneNeighbor( marker.mIndexZoneJ ),
+    mFaceDirectionOwner( marker.GetiTypeFace() ),
+    mFaceDirectionNeighbor( marker.GetjTypeFace() ),
+    mFaceLocationOwner( marker.mFaceLocationI ),
+    mFaceLocationNeighbor( marker.mFaceLocationJ ),
+    mFaceNameOwner( marker.mNameI ),
+    mFaceNameNeighbor( marker.mNameJ ),
     mIsReversed( marker.mIsReversed ),
-    mFaceNameI( marker.mNameI ),
-    mFaceNameJ( marker.mNameJ ),
-    mIsPeriodic( true ),
     mTranslationVector( marker.mTranslationVector )
  /*
-  *
+  * Constructor that pairs periodic zone edges and records their translation.
   */
 {
 	// Deduce whether these faces are on a max (imax/jmax) or not.
-	mIsMaxFaceI 
-    = ( mFaceLocationI == EFaceLocation::IMAX || mFaceLocationI == EFaceLocation::JMAX ) ? true : false;
-	mIsMaxFaceJ 
-    = ( mFaceLocationJ == EFaceLocation::IMAX || mFaceLocationJ == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceOwner 
+    = ( mFaceLocationOwner == EFaceLocation::IMAX || mFaceLocationOwner == EFaceLocation::JMAX ) ? true : false;
+	mIsMaxFaceNeighbor 
+    = ( mFaceLocationNeighbor == EFaceLocation::IMAX || mFaceLocationNeighbor == EFaceLocation::JMAX ) ? true : false;
 
 
   // Initiailize the interface faces belonging to these markers.
-  InitializeInterfaceFaces(multizone_geometry_container);
+  InitializeFaces(multizone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
-void CInterfaceFacesFamily::InitializeInterfaceFaces
+void CInterfaceFaceBatch::InitializeFaces
 (
  const CMultizoneGeometry *multizone_geometry_container
 )
  /*
-  *
+  * Function that pairs owner and neighbor elements in the interface traversal order.
   */
 {
   // Extract the local singlezone grids.
-  const auto* igrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneI );
-  const auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneJ );
+  const auto* igrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneOwner );
+  const auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry( mIndexZoneNeighbor );
 
   // Ensure the number of elements match.
   const std::size_t nei 
-    = ( mTypeFaceI == ETypeFace::IFACE ) ? igrid->GetnjElem() : igrid->GetniElem(); 
+    = ( mFaceDirectionOwner == ETypeFace::IFACE ) ? igrid->GetnjElem() : igrid->GetniElem(); 
   const std::size_t nej 
-    = ( mTypeFaceJ == ETypeFace::IFACE ) ? jgrid->GetnjElem() : jgrid->GetniElem();
+    = ( mFaceDirectionNeighbor == ETypeFace::IFACE ) ? jgrid->GetnjElem() : jgrid->GetniElem();
 
   // Consistency check.
   if( nei != nej )
@@ -401,8 +430,8 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
  
 
   // Get the element indices on this face.
-  const auto ivec_ielem = igrid->ComputeSurfaceElementIndices( mFaceLocationI );
-  const auto jvec_ielem = jgrid->ComputeSurfaceElementIndices( mFaceLocationJ );
+  const auto ivec_ielem = igrid->ComputeSurfaceElementIndices( mFaceLocationOwner );
+  const auto jvec_ielem = jgrid->ComputeSurfaceElementIndices( mFaceLocationNeighbor );
 
   // Consistency check.
   if( ivec_ielem.size() != nei || jvec_ielem.size() != nej )
@@ -412,7 +441,7 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
 
 
   // Reserve memory for the elements on this interface.
-  mInterfaceFaces.reserve(nbElem);
+  mFaces.reserve(nbElem);
 
   // Loop over all the elements on this marker.
   for(std::size_t i=0; i<nbElem; i++)
@@ -425,26 +454,26 @@ void CInterfaceFacesFamily::InitializeInterfaceFaces
   	const std::size_t jElem = jvec_ielem[j];
   
     // Initialize the current element interface.
-    mInterfaceFaces.emplace_back( iElem, jElem );
+    mFaces.emplace_back( iElem, jElem );
   }
    
   // Ensure conformity of the markers.
-  CheckConformityMarkers( multizone_geometry_container ); 
+  CheckConformity( multizone_geometry_container ); 
 }
 
 //-----------------------------------------------------------------------------------
 
-void CInterfaceFacesFamily::CheckConformityMarkers
+void CInterfaceFaceBatch::CheckConformity
 (
  const CMultizoneGeometry *multizone_geometry_container
-)
+) const
  /*
-	* Function that processes each pair of markers, such that their common face coincides.
+	* Function that checks paired face coordinates, orientation and periodic translation.
 	*/
 {
   // Abbreviations.
-  const std::size_t iZone = mIndexZoneI;
-  const std::size_t jZone = mIndexZoneJ;
+  const std::size_t iZone = mIndexZoneOwner;
+  const std::size_t jZone = mIndexZoneNeighbor;
   
   const as3double tx = mTranslationVector[0];
   const as3double ty = mTranslationVector[1];
@@ -454,8 +483,8 @@ void CInterfaceFacesFamily::CheckConformityMarkers
 	const auto* jgrid = multizone_geometry_container->GetSinglezoneGeometry(jZone);
 
   // Get the node ndices on the ith and jth zone.
-  const auto ivec_inode = igrid->ComputeSurfaceNodeIndices( mFaceLocationI );
-  const auto jvec_inode = jgrid->ComputeSurfaceNodeIndices( mFaceLocationJ );
+  const auto ivec_inode = igrid->ComputeSurfaceNodeIndices( mFaceLocationOwner );
+  const auto jvec_inode = jgrid->ComputeSurfaceNodeIndices( mFaceLocationNeighbor );
 
   // Report an error, in case mismatch in number of nodes.
   if( ivec_inode.size() != jvec_inode.size() )
@@ -488,11 +517,11 @@ void CInterfaceFacesFamily::CheckConformityMarkers
 
 
   // Loop over every element on this interface.
-  for( const auto& interface : mInterfaceFaces )
+  for( const auto& interface : mFaces )
   {
     // Abbreviations for the element indices.
-    const std::size_t ie = interface.mIndexElementI;
-    const std::size_t je = interface.mIndexElementJ;
+    const std::size_t ie = interface.mIndexElementOwner;
+    const std::size_t je = interface.mIndexElementNeighbor;
 
     // Extract the entire element coordinates.
     const auto& icoor = igrid->GetElementGeometry( ie )->GetCoordSolDOFs();
@@ -520,21 +549,21 @@ void CInterfaceFacesFamily::CheckConformityMarkers
 
 
 //-----------------------------------------------------------------------------------
-// CBoundaryFacesFamily member functions.
+// CBoundaryFaceBatch member functions.
 //-----------------------------------------------------------------------------------
 
-CBoundaryFacesFamily::CBoundaryFacesFamily
+CBoundaryFaceBatch::CBoundaryFaceBatch
 (
  const CSinglezoneGeometry                    *singlezone_geometry_container,
  const CExternalFamilyMarker::CExternalMarker &marker,
  const std::string                            &name
 )
-  : mTypeFace( marker.GetTypeFace() ),
+  : mFaceDirection( marker.GetTypeFace() ),
     mFaceLocation( marker.mFaceLocation ), 
     mIndexZone( marker.mIndexZone ),
     mName( name )
  /*
-  *
+  * Constructor that builds the faces of one named physical boundary.
   */
 {
   // Consistency check.
@@ -548,30 +577,30 @@ CBoundaryFacesFamily::CBoundaryFacesFamily
     = ( mFaceLocation == EFaceLocation::IMAX || mFaceLocation == EFaceLocation::JMAX ) ? true : false;
 
   // Initialize the boundary faces.
-  InitializeBoundaryFaces(singlezone_geometry_container);
+  InitializeFaces(singlezone_geometry_container);
 }
 
 //-----------------------------------------------------------------------------------
 
-void CBoundaryFacesFamily::InitializeBoundaryFaces
+void CBoundaryFaceBatch::InitializeFaces
 (
  const CSinglezoneGeometry *singlezone_geometry_container
 )
  /*
-  *
+  * Function that enumerates the element faces along one physical boundary edge.
   */
 {
   // Extract the relevant information for an external face.
-  const size_t niElem = singlezone_geometry_container->GetniElem();
-  const size_t njElem = singlezone_geometry_container->GetnjElem();
+  const std::size_t niElem = singlezone_geometry_container->GetniElem();
+  const std::size_t njElem = singlezone_geometry_container->GetnjElem();
 
   // Initialize the faces, based on the respective class direction.
-  switch( mTypeFace )
+  switch( mFaceDirection )
   {
     case(ETypeFace::IFACE):
     {
 			// Reserve the needed amount of memory for the boundary i-faces.
-			mBoundaryFaces.reserve(njElem);
+			mFaces.reserve(njElem);
 
       // Deduce the iElem index.
       const std::size_t i = ( mFaceLocation == EFaceLocation::IMIN ) ? 0 : niElem-1;
@@ -583,13 +612,13 @@ void CBoundaryFacesFamily::InitializeBoundaryFaces
       } 
 
       // Loop over the i-faces in this zone.
-      for(size_t j=0; j<njElem; j++)
+      for(std::size_t j=0; j<njElem; j++)
       {
         // Deduce the owner flattened element index of this face.
-        const size_t ijElem = j * niElem + i;
+        const std::size_t ijElem = j * niElem + i;
 
         // Construct the current boundary i-face.
-        mBoundaryFaces.emplace_back( ijElem ); 
+        mFaces.emplace_back( ijElem ); 
       }
 
       break;
@@ -598,7 +627,7 @@ void CBoundaryFacesFamily::InitializeBoundaryFaces
     case(ETypeFace::JFACE):
     {
 			// Reserve the needed amount of memory for the boundary j-faces.
-			mBoundaryFaces.reserve(niElem);
+			mFaces.reserve(niElem);
 
       // Deduce the jElem index.
       const std::size_t j = ( mFaceLocation == EFaceLocation::JMIN ) ? 0 : njElem-1;
@@ -610,13 +639,13 @@ void CBoundaryFacesFamily::InitializeBoundaryFaces
       } 
 
       // Loop over the j-faces in this zone.
-  		for(size_t i=0; i<niElem; i++)
+  		for(std::size_t i=0; i<niElem; i++)
   		{
   		  // Deduce the owner flattened element index of this face.
-  		  const size_t ijElem = j * niElem + i;
+  		  const std::size_t ijElem = j * niElem + i;
   		
         // construct the current boundary j-face.
-				mBoundaryFaces.emplace_back( ijElem ); 
+				mFaces.emplace_back( ijElem ); 
   		}
 
       break;

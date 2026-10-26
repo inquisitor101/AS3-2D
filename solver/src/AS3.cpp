@@ -1,8 +1,14 @@
 #include "AS3.hpp"
 
+#include <memory>
+#include <sstream>
+
 
 
 int main(int argc, char **argv)
+ /*
+  * Entry point that reads the configuration filename and runs the simulation.
+  */
 {
 
   // Check if correct usage is executed.

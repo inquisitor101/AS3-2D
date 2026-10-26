@@ -1,5 +1,10 @@
 #include "interface_structure.hpp"
 
+#include <cstddef>
+#include <string>
+
+#include <algorithm>
+
 
 //-----------------------------------------------------------------------------------
 // IInterface member functions.
@@ -10,23 +15,23 @@ IInterface::IInterface
 (
  const CConfig               *config_container,
  const CMultizoneSolver      *multizone_solver_container,
- const CInterfaceFacesFamily &interface_family
+ const CInterfaceFaceBatch   &interface_batch
 )
  /*
-  *
+  * Constructor that records paired-zone metadata and creates interface operators.
   */
 {
   // Assign the general interface properties.
-  mIName = interface_family.GetiFaceName();
-  mJName = interface_family.GetjFaceName();
+  mIName = interface_batch.GetOwnerFaceName();
+  mJName = interface_batch.GetNeighborFaceName();
 
-  mIZone = interface_family.GetiZone();
-  mJZone = interface_family.GetjZone();
+  mIZone = interface_batch.GetOwnerZoneIndex();
+  mJZone = interface_batch.GetNeighborZoneIndex();
 
-  mIFace = interface_family.GetiFaceLocation();
-  mJFace = interface_family.GetjFaceLocation();
+  mIFace = interface_batch.GetOwnerFaceLocation();
+  mJFace = interface_batch.GetNeighborFaceLocation();
 
-  mNFace = interface_family.GetnFace(); 
+  mNFace = interface_batch.GetnFace(); 
 
 	mNPolyI = multizone_solver_container->GetSinglezoneSolver(mIZone)->GetStandardElement()->GetnPolySol();
 	mNPolyJ = multizone_solver_container->GetSinglezoneSolver(mJZone)->GetStandardElement()->GetnPolySol();
@@ -39,7 +44,7 @@ IInterface::~IInterface
  void
 )
  /*
-	* Destructor, which cleans up after the interface zone interface class.
+	* Destructor for IInterface.
 	*/
 {
 
@@ -56,14 +61,14 @@ CEEInterface::CEEInterface
 (
  const CConfig               *config_container,
  const CMultizoneSolver      *multizone_solver_container,
- const CInterfaceFacesFamily &interface_family
+ const CInterfaceFaceBatch   &interface_batch
 )
   :
     IInterface(config_container,
                multizone_solver_container,
-               interface_family)
+               interface_batch)
  /*
-  *
+  * Constructor that selects Euler interface interpolation and residual kernels.
   */
 {
   // Extract the relevant solvers.
@@ -71,8 +76,8 @@ CEEInterface::CEEInterface
   const auto* jsolver = multizone_solver_container->GetSinglezoneSolver(mJZone);
 
 	// Extract the number of integration points in each marker zone.
-	const unsigned short inint = isolver->GetStandardElement()->GetnInt1D();
-	const unsigned short jnint = jsolver->GetStandardElement()->GetnInt1D();
+	const std::size_t inint = isolver->GetStandardElement()->GetnInt1D();
+	const std::size_t jnint = jsolver->GetStandardElement()->GetnInt1D();
 
 	// Extract the type of DOFs in each zone.
 	const ETypeDOF itype_dof = isolver->GetStandardElement()->GetTypeDOFsSol();
@@ -133,7 +138,7 @@ void CEEInterface::InitializeComputeKernels
  void
 )
  /*
-  *
+  * Function that selects the local face interpolation and residual kernels.
   */
 {
   // Temporary lambda to determine which surface interpolation function to use.
@@ -207,7 +212,7 @@ CEEInterface::~CEEInterface
  void
 )
  /*
-	* Destructor, which cleans up after the Euler equations zone interface class.
+	* Destructor for CEEInterface.
 	*/
 {
 
@@ -218,27 +223,27 @@ CEEInterface::~CEEInterface
 void CEEInterface::ComputeInterfaceResidual
 (
  CMultizoneSolver            *multizone_solver_container,
- const CInterfaceFacesFamily &family_face,
+ const CInterfaceFaceBatch   &face_batch,
  CFlattenedFaceIndex          face_info,
  CPoolMatrixAS3<as3double>   &workarray,
  as3double                    localtime
 ) const
  /*
-	* Function that computes the residual on a single element interface face. 
+	* Function that computes and lifts one interface flux into both local face buffers.
 	*/
 {
   // Extract the relevant information.
-  const unsigned short iZoneM = family_face.GetiZone();
-  const unsigned short iZoneP = family_face.GetjZone();
+  const std::size_t iZoneM = face_batch.GetOwnerZoneIndex();
+  const std::size_t iZoneP = face_batch.GetNeighborZoneIndex();
 
   // Extract the actual face.
-  const auto& interface_face = family_face.GetInterfaceFace( face_info.mIndexFace ); 
+  const auto& interface_face = face_batch.GetFace( face_info.mIndexFace ); 
 
-  const size_t iElemM = interface_face.mIndexElementI;
-  const size_t iElemP = interface_face.mIndexElementJ;
+  const std::size_t iElemM = interface_face.mIndexElementOwner;
+  const std::size_t iElemP = interface_face.mIndexElementNeighbor;
 
-  const EFaceLocation face_location_m = family_face.GetiFaceLocation();
-  const EFaceLocation face_location_p = family_face.GetjFaceLocation();
+  const EFaceLocation face_location_m = face_batch.GetOwnerFaceLocation();
+  const EFaceLocation face_location_p = face_batch.GetNeighborFaceLocation();
 
 	// Get the solvers of this class.
 	auto* solver_m = multizone_solver_container->GetSinglezoneSolver(iZoneM);
@@ -249,10 +254,10 @@ void CEEInterface::ComputeInterfaceResidual
   const auto* standard_element_p = solver_p->GetStandardElement();
 
   // Get the respective number of integration points and weights on each face.
-  const size_t nInt1D = standard_element_m->GetnInt1D();
+  const std::size_t nInt1D = standard_element_m->GetnInt1D();
   auto&        wInt1D = standard_element_m->GetwInt1D();
   // Also the number of solution variables.
-  const size_t nVar   = solver_m->GetnVar();
+  const std::size_t nVar   = solver_m->GetnVar();
 
 	// Borrow memory for the solution on the two sides.
 	CWorkMatrixAS3<as3double> var_m = workarray.GetWorkMatrixAS3(nVar, nInt1D);
@@ -271,29 +276,12 @@ void CEEInterface::ComputeInterfaceResidual
 	auto& sol_p = elem_p->mSol2D;
 	
   // Reference to the owner element residual.
-  CMatrixAS3<as3double>* res_m;
-  if( family_face.GetisMaxFaceI() )
-  {
-    res_m = &elem_m->mResMinus;
-    res_m->reset();
-  }
-  else
-  {
-    res_m = &elem_m->mRes2D;
-  }
-
-  // Reference to the matching element residual.
-  CMatrixAS3<as3double>* res_p;
-  if( family_face.GetisMaxFaceJ() )
-  {
-    res_p = &elem_p->mResMinus;
-    res_p->reset();
-  }
-  else
-  {
-    res_p = &elem_p->mRes2D;
-  }
+  auto& res_m = elem_m->GetSurfaceResidual(face_location_m);
+  auto& res_p = elem_p->GetSurfaceResidual(face_location_p);
+  res_m.reset();
+  res_p.reset();
 	
+
   // Compute the solution on the integration nodes of the owner element.
 	mFInterpolateSurfaceI(sol_m.data(), var_m.data(), nullptr, nullptr); 
 
@@ -301,18 +289,38 @@ void CEEInterface::ComputeInterfaceResidual
 	mFInterpolateSurfaceJ(sol_p.data(), var_p.data(), nullptr, nullptr); 
 
 
+  // Match the neighbor states to the owner's quadrature-point ordering.
+  if( face_batch.IsNeighborReversed() )
+  {
+    for(std::size_t iVar=0; iVar<nVar; iVar++)
+    {
+      auto* row = var_p.data() + iVar*nInt1D;
+      std::reverse(row, row+nInt1D);
+    }
+  }
+
   // Compute the flux state, weighted by the integration nodes and metrics. 
   mRiemannSolverContainer->ComputeFlux(wInt1D, met_m, var_m, var_p, flux);
 
   // Compute the residual on the owned element, which is on the iface boundary.
-  mFComputeResidualFaceI(flux.data(), nullptr, nullptr, res_m->data());
+  mFComputeResidualFaceI(flux.data(), nullptr, nullptr, res_m.data());
 
 	// For local conservation, negate the flux, since it leaves the owner element 
 	// to enter the matching element.
-	for(size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+	for(std::size_t l=0; l<flux.size(); l++) flux[l] *= -C_ONE;
+
+  // Return the flux to the neighbor's native ordering before lifting it.
+  if( face_batch.IsNeighborReversed() )
+  {
+    for(std::size_t iVar=0; iVar<nVar; iVar++)
+    {
+      auto* row = flux.data() + iVar*nInt1D;
+      std::reverse(row, row+nInt1D);
+    }
+  }
 
 	// Compute the residual on the matching element, which is on the jface boundary.
-	mFComputeResidualFaceJ(flux.data(), nullptr, nullptr, res_p->data());
+	mFComputeResidualFaceJ(flux.data(), nullptr, nullptr, res_p.data());
 }
 
 

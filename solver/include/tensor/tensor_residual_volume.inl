@@ -1,3 +1,10 @@
+/*!
+ * @file
+ * @brief Compile-time tensor kernels for residual volume.
+ */
+
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -5,7 +12,21 @@
 //-----------------------------------------------------------------------------------
 
 
-template<size_t K, size_t M, size_t N>
+/*!
+ * @brief Function that lifts weighted inputs from the volume integration points to the solution DOFs.
+ *
+ * @tparam K number of solution points in 1D.
+ * @tparam M number of integration points in 1D.
+ * @tparam N number of variables.
+ *
+ * @param[in] B optional weighted value contribution [N][M*M]; nullptr omits this contribution.
+ * @param[in] BDerR optional weighted r-derivative contribution [N][M*M]; nullptr omits this contribution.
+ * @param[in] BDerS optional weighted s-derivative contribution [N][M*M]; nullptr omits this contribution.
+ * @param[out] C solution residual [N][K*K], overwritten by the volume contribution.
+ *
+ * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+ */
+template<std::size_t K, std::size_t M, std::size_t N>
 void CTensorProduct<K, M, N>::CompileTimeResidualVolume
 (
  const as3double *B,
@@ -27,12 +48,12 @@ void CTensorProduct<K, M, N>::CompileTimeResidualVolume
 	const as3double (*aDer)[K] = (const as3double (*)[K]) ADer;
 
 	// Total number of (volume) integration/solution points in 2D.
-	constexpr size_t M2 = M*M; 
-	constexpr size_t K2 = K*K;
+	constexpr std::size_t M2 = M*M; 
+	constexpr std::size_t K2 = K*K;
 
 
 	// Loop over each N entry.
-	for(size_t l=0; l<N; l++)
+	for(std::size_t l=0; l<N; l++)
 	{
 		// Create temporary storage and ensure tmpI is initialized to zero.
 		as3double tmpI[K][K] = {}; 
@@ -49,22 +70,24 @@ void CTensorProduct<K, M, N>::CompileTimeResidualVolume
 			const as3double (*b)[M] = (const as3double (*)[M]) &B[l*M2];
 
 			// Tensor product in the s-direction.
-			for(size_t i=0; i<M; i++)
+			for(std::size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
-				for(size_t jj=0; jj<M; jj++)
+  			for(std::size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
+				for(std::size_t jj=0; jj<M; jj++)
 				{
-    	    for(size_t j=0; j<K; j++)
+#pragma omp simd
+    	    for(std::size_t j=0; j<K; j++)
 						tmpJ[i][j] += a[jj][j] * b[jj][i];
 				}
 			}
 	
 			// Tensor product in the r-direction.
-			for(size_t j=0; j<K; j++)
+			for(std::size_t j=0; j<K; j++)
 			{
-				for(size_t ii=0; ii<M; ii++)
+				for(std::size_t ii=0; ii<M; ii++)
 				{
-    	    for(size_t i=0; i<K; i++)
+#pragma omp simd
+    	    for(std::size_t i=0; i<K; i++)
 						tmpI[j][i] += a[ii][i] * tmpJ[ii][j];
 				}
 			}
@@ -78,22 +101,24 @@ void CTensorProduct<K, M, N>::CompileTimeResidualVolume
 			const as3double (*bDerR)[M] = (const as3double (*)[M]) &BDerR[l*M2];
 
 			// Tensor product in the s-direction.
-			for(size_t i=0; i<M; i++)
+			for(std::size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
-				for(size_t jj=0; jj<M; jj++)
+  			for(std::size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
+				for(std::size_t jj=0; jj<M; jj++)
 				{
-    	    for(size_t j=0; j<K; j++)
+#pragma omp simd
+    	    for(std::size_t j=0; j<K; j++)
 						tmpJ[i][j] += a[jj][j] * bDerR[jj][i];
 				}
 			}
 
 			// Tensor product in the r-direction.
-			for(size_t j=0; j<K; j++)
+			for(std::size_t j=0; j<K; j++)
 			{
-				for(size_t ii=0; ii<M; ii++)
+				for(std::size_t ii=0; ii<M; ii++)
 				{
-    	    for(size_t i=0; i<K; i++)
+#pragma omp simd
+    	    for(std::size_t i=0; i<K; i++)
 						tmpI[j][i] += aDer[ii][i] * tmpJ[ii][j];
 				}
 			}
@@ -107,30 +132,32 @@ void CTensorProduct<K, M, N>::CompileTimeResidualVolume
 			const as3double (*bDerS)[M] = (const as3double (*)[M]) &BDerS[l*M2];
 
 			// Tensor product in the s-direction.
-			for(size_t i=0; i<M; i++)
+			for(std::size_t i=0; i<M; i++)
 			{
-  			for(size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
-				for(size_t jj=0; jj<M; jj++)
+  			for(std::size_t s=0; s<K; s++) tmpJ[i][s] = static_cast<as3double>(0.0);
+				for(std::size_t jj=0; jj<M; jj++)
 				{
-    	    for(size_t j=0; j<K; j++)
+#pragma omp simd
+    	    for(std::size_t j=0; j<K; j++)
 						tmpJ[i][j] += aDer[jj][j] * bDerS[jj][i];
 				}
 			}
 
 			// Tensor product in the r-direction.
-			for(size_t j=0; j<K; j++)
+			for(std::size_t j=0; j<K; j++)
 			{
-				for(size_t ii=0; ii<M; ii++)
+				for(std::size_t ii=0; ii<M; ii++)
 				{
-    	    for(size_t i=0; i<K; i++)
+#pragma omp simd
+    	    for(std::size_t i=0; i<K; i++)
 						tmpI[j][i] += a[ii][i] * tmpJ[ii][j];
 				}
 			}
 		}
 
 		// Copy values to C. Notice, this overrides the existing data in C.
-		for(unsigned short j=0; j<K; j++)
-			for(unsigned short i=0; i<K; i++)
+		for(std::size_t j=0; j<K; j++)
+			for(std::size_t i=0; i<K; i++)
 				c[j][i] = tmpI[j][i];
 	}
 }

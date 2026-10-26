@@ -1,5 +1,14 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Legacy binary VTK visualization of the multizone solution.
+ */
+
+
+#include <cstddef>
+#include <string>
+
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
@@ -13,26 +22,36 @@ class ISolver;
 class COpenMP;
 
 /*!
- * @brief An interface class used for writing VTK files. 
+ * @brief An interface class used for writing VTK files.
  */
 class IFileVTK
 {
 	public:
 	
+
 		/*!
 		 * @brief Constructor of IFileVTK, which serves as an interface for VTK-type formats.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
 		 */
 		IFileVTK(const CConfig            *config_container,
 				     const CMultizoneGeometry *multizone_geometry_container);
 		
+
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Virtual destructor for destruction through the component interface.
 		 */
 		virtual ~IFileVTK(void);
 
 		/*!
-		 * @brief Pure virtual function that writes VTK data a file. 
-		 * Must be implemented by a derived class.
+		 * @brief Pure virtual function that writes VTK data a file. Must be implemented by a derived
+		 *   class.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
+		 * @param[in] openmp_container OpenMP team configuration.
+		 * @param[in] multizone_solver_container solvers and residual storage for all zones.
 		 */
 		virtual void WriteFileVTK(const CConfig            *config_container,
 															const CMultizoneGeometry *multizone_geometry_container,
@@ -40,8 +59,8 @@ class IFileVTK
 															const CMultizoneSolver   *multizone_solver_container) = 0;
 
 	protected:
-		as3vector1d<std::string> mVariableNames;     ///< Variable names for writing.
-		unsigned long            mFileNumber;        ///< Written file index.
+		as3vector1d<std::string> mVariableNames;  ///< Variable names for writing.
+		std::size_t            mFileNumber;       ///< Written file index.
 
 		bool                     mWriteDensity;      ///< Option for writing a density variable.
 		bool                     mWriteMomentum;     ///< Option for writing a momentum variable.
@@ -65,22 +84,28 @@ class IFileVTK
 //-----------------------------------------------------------------------------------
 
 /*!
- * @brief A class used for writing VTK files in binary and legacy format. 
+ * @brief A class used for writing VTK files in binary and legacy format.
  */
 class CLegacyBinaryVTK final : public IFileVTK
 {
 	public:
 	
+
 		/*!
-		 * @brief Constructor of CLegacyBinaryVTK, which is reponsible for VTK in binary and legacy format.
+		 * @brief Constructor of CLegacyBinaryVTK, which is responsible for VTK in binary and legacy
+		 *   format.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] multizone_geometry_container geometry of all grid zones.
 		 */
 		CLegacyBinaryVTK(const CConfig            *config_container,
 				             const CMultizoneGeometry *multizone_geometry_container);
 		
+
 		/*!
-		 * @brief Destructor, which frees any allocated memory.
+		 * @brief Destructor that releases the resources owned by this object.
 		 */
-		~CLegacyBinaryVTK(void) final;
+		~CLegacyBinaryVTK(void) override;
 
 		/*!
 		 * @brief Function that writes VTK data to a file using a binary and legacy format.
@@ -88,12 +113,12 @@ class CLegacyBinaryVTK final : public IFileVTK
 		 * @param[in] config_container pointer to the configuration container.
 		 * @param[in] multizone_geometry_container pointer to the geometry container.
 		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] solver_container reference to the solver container.
+		 * @param[in] multizone_solver_container reference to the solver container.
 		 */
 		void WriteFileVTK(const CConfig            *config_container,
 											const CMultizoneGeometry *multizone_geometry_container,
 											const COpenMP            *openmp_container,
-											const CMultizoneSolver   *multizone_solver_container) final;
+											const CMultizoneSolver   *multizone_solver_container) override;
 
 	protected:
 
@@ -103,15 +128,16 @@ class CLegacyBinaryVTK final : public IFileVTK
 		// Disable default constructor.
 		CLegacyBinaryVTK(void) = delete;
 	
-		/*!
-		 * @brief Function that computes and stores the data required for writing a binary VTK file.
-		 *
-		 * @param[in] config_container pointer to the configuration container.
-		 * @param[in] multizone_geometry_container pointer to geometry container.
-		 * @param[in] openmp_container OpenMP shared parallelization container.
-		 * @param[in] multizone_solver_container pointer to the multizone solver container.
-		 * @param[in] vars_buf reference to the variables buffer data.
-		 */
+
+	  /*!
+	   * @brief Function that computes and stores the data required for writing a binary VTK file.
+	   *
+	   * @param[in] config_container pointer to the configuration container.
+	   * @param[in] multizone_geometry_container pointer to geometry container.
+	   * @param[in] openmp_container OpenMP shared parallelization container.
+	   * @param[in] multizone_solver_container pointer to the multizone solver container.
+	   * @param[out] vars_buf reference to the variables buffer data.
+	   */
 	  void DetermineVisualizationData(const CConfig            *config_container,
 				                            const CMultizoneGeometry *multizone_geometry_container,
 																		const COpenMP            *openmp_container,

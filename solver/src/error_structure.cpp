@@ -1,5 +1,11 @@
 #include "error_structure.hpp"
 
+#include <cstdlib>
+#include <cstddef>
+#include <iostream>
+#include <ostream>
+#include <string>
+
 
 //-----------------------------------------------------------------------------------
 // NError namespace functions.
@@ -14,7 +20,7 @@ void NError::Terminate
  const std::string &error
 )
  /*
-  * Function which prints an error message and exit from the program.
+  * Function that prints a source-located error message and terminates execution.
   */
 {
   // Insert a comment character and a space on places where a newline
@@ -22,11 +28,11 @@ void NError::Terminate
   // looks nicer.
   std::string  message = error;
   std::string  buffer  = message;
-  std::string::size_type off = 1;
+  std::size_t off = 1;
 
   for(;;)
   {
-    std::string::size_type loc = buffer.find("\n");
+    std::size_t loc = buffer.find("\n");
     if(loc == std::string::npos) break;
     message.insert(loc+off, "# ");
     off += loc+3;
@@ -66,7 +72,7 @@ void NError::Warning
  const std::string &warning
 )
  /*
-  * Function which prints a warning message, before resuming the program.
+  * Function that prints a source-located warning and continues execution.
   */
 {
   // Insert a comment character and a space on places where a newline
@@ -74,11 +80,11 @@ void NError::Warning
   // looks nicer.
   std::string  message = warning;
   std::string  buffer  = message;
-  std::string::size_type off = 1;
+  std::size_t off = 1;
 
   for(;;)
   {
-    std::string::size_type loc = buffer.find("\n");
+    std::size_t loc = buffer.find("\n");
     if(loc == std::string::npos) break;
     message.insert(loc+off, "# ");
     off += loc+3;
@@ -113,7 +119,7 @@ void NError::CheckFloatingError
   void
 )
  /*
-  * Function that determines if a floating-point error is encountered.
+  * Function that checks and reports floating-point exception flags.
   */
 {
   std::string message;

@@ -1,5 +1,13 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Error reporting, warnings and optional floating-point exception checks.
+ */
+
+
+#include <string>
+
 #include <iostream>
 #include <cstdlib>
 
@@ -9,11 +17,15 @@
 
 /*!
  * @brief Macro for an error log message, before terminating the program.
+ *
+ * @param[in] msg diagnostic message printed with its source location.
  */
 #define ERROR( msg ) NError::Terminate( __FUNCTION__, __FILE__, __LINE__, msg )
 
 /*!
- * @brief Macro for a warning log message, before resuming the program .
+ * @brief Macro that reports a warning and continues execution.
+ *
+ * @param[in] msg diagnostic message printed with its source location.
  */
 #define WARNING( msg ) NError::Warning( __FUNCTION__, __FILE__, __LINE__, msg )
 
@@ -55,6 +67,7 @@ namespace NError
 
 
 #ifdef ENABLE_NAN_CHECK
+
 	/*!
 	 * @brief Function that checks floating point errors.
 	 */

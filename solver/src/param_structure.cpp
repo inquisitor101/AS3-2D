@@ -1,3 +1,8 @@
+#include <cmath>
+#include <istream>
+#include <sstream>
+#include <string>
+
 #include "param_structure.hpp" 
 
 
@@ -10,6 +15,9 @@ namespace
   as3double ParseBoundaryValue(const std::string &token,
                                const std::string &markerName,
                                const char        *field)
+   /*
+    * Function that parses and validates one numeric boundary-condition parameter.
+    */
   {
     as3double value;
     std::istringstream input(token);
@@ -35,7 +43,7 @@ CPeriodicParamMarker::CPeriodicParamMarker
  as3vector1d<std::string> buffer
 )
  /*
-	* Constructor that initializes the parameters needed in an periodic BC.
+	* Constructor that reads a periodic marker pair and its translation.
 	*/
 {
 	// Deduce the translation vector from the buffer string and store it into tmp.
@@ -62,6 +70,9 @@ CStaticMassFlowInletRiemannParamMarker::CStaticMassFlowInletRiemannParamMarker
 (
  const as3vector1d<std::string> &buffer
 )
+ /*
+  * Constructor that reads the prescribed inlet density and velocity.
+  */
 {
   if( buffer.size() != 4 )
     ERROR("MARKER_BC_STATIC_MASS_FLOW_INLET_RIEMANN must specify (name, density, velocity_x, velocity_y).");
@@ -78,6 +89,9 @@ CPressureOutletRiemannParamMarker::CPressureOutletRiemannParamMarker
 (
  const as3vector1d<std::string> &buffer
 )
+ /*
+  * Constructor that reads the prescribed outlet pressure.
+  */
 {
   if( buffer.size() != 2 )
     ERROR("MARKER_BC_PRESSURE_OUTLET_RIEMANN must specify (name, pressure).");

@@ -1,5 +1,10 @@
 #include "initial_condition_structure.hpp"
 
+#include <cmath>
+#include <cstddef>
+#include <iostream>
+#include <ostream>
+
 
 //-----------------------------------------------------------------------------------
 // IInitialCondition member functions.
@@ -7,10 +12,10 @@
 
 IInitialCondition::IInitialCondition
 (
- CConfig *config_container
+ const CConfig *config_container
 )
  /*
-	* Constructor for the interface initial condition class.
+	* Constructor for the initial-condition interface.
 	*/
 {
 
@@ -23,7 +28,7 @@ IInitialCondition::~IInitialCondition
  void
 )
  /*
-	* Destructor, which cleans up after the interface initial condition class.
+	* Destructor for IInitialCondition.
 	*/
 {
 
@@ -37,12 +42,12 @@ IInitialCondition::~IInitialCondition
 
 CGaussianPressureIC::CGaussianPressureIC
 (
- CConfig *config_container
+ const CConfig *config_container
 )
 	:
 		IInitialCondition(config_container)
  /*
-	* Constructor for the Gaussian pressure initial condition class.
+	* Constructor that reads the Gaussian pulse and freestream parameters.
 	*/
 {
 	// Initialize the data, based on the user-specified values. Note, the unpacking
@@ -78,7 +83,7 @@ CGaussianPressureIC::~CGaussianPressureIC
  void
 )
  /*
-	* Destructor, which cleans up after the gaussian pressure class.
+	* Destructor for CGaussianPressureIC.
 	*/
 {
 
@@ -93,14 +98,14 @@ void CGaussianPressureIC::InitializeSolution
  ISolver             *solver_container
 )
  /*
-	* Function that initializes a Gaussian pressure pulse in a zone.
+	* Function that initializes a Gaussian pressure pulse on the zone solution nodes.
 	*/
 {
 	// Report output.
 	std::cout << "    initial condition.... ";
 	
 	// Extract the total number of elements in this zone.
-	const size_t nElem = singlezone_geometry->GetnElem();
+	const std::size_t nElem = singlezone_geometry->GetnElem();
 
 	// Explicitly extract the required information.
 	const as3double x0 = mXCenter;
@@ -121,7 +126,7 @@ void CGaussianPressureIC::InitializeSolution
 	const as3double ovgm1  = C_ONE/C_GM1;
 
 	// Loop over the elements and compute the solution.
-	for(size_t i=0; i<nElem; i++)
+	for(std::size_t i=0; i<nElem; i++)
 	{
 		// Extract solution in this element.
 		auto& sol  = solver_container->GetPhysicalElement(i)->mSol2D;
@@ -129,7 +134,7 @@ void CGaussianPressureIC::InitializeSolution
 		auto& coor = singlezone_geometry->GetElementGeometry(i)->GetCoordSolDOFs();
 
 		// Loop over the internal solution nodes and compute the initial condition.
-		for(size_t l=0; l<sol.col(); l++)
+		for(std::size_t l=0; l<sol.col(); l++)
 		{
 			// Extract the coordinates.
 			const as3double x = coor(0, l);
@@ -169,12 +174,12 @@ void CGaussianPressureIC::InitializeSolution
 
 CIsentropicVortexIC::CIsentropicVortexIC
 (
- CConfig *config_container
+ const CConfig *config_container
 )
 	:
 		IInitialCondition(config_container)
  /*
-	* Constructor for the isentropic vortex initial condition class.
+	* Constructor that reads the vortex and freestream parameters.
 	*/
 {
 	// Initialize the data, based on the user-specified values. Note, the unpacking
@@ -210,7 +215,7 @@ CIsentropicVortexIC::~CIsentropicVortexIC
  void
 )
  /*
-	* Destructor, which cleans up after the isentropic vortex class.
+	* Destructor for CIsentropicVortexIC.
 	*/
 {
 
@@ -225,14 +230,14 @@ void CIsentropicVortexIC::InitializeSolution
  ISolver             *solver_container
 )
  /*
-	* Function that initializes an isentropic vortex in a zone.
+	* Function that initializes an isentropic vortex on the zone solution nodes.
 	*/
 {
 	// Report output.
 	std::cout << "    initial condition.... ";
 	
 	// Extract the total number of elements in this zone.
-	const size_t nElem = singlezone_geometry->GetnElem();
+	const std::size_t nElem = singlezone_geometry->GetnElem();
 
 	// Explicitly extract the required information.
 	const as3double x0 = mXCenter;
@@ -255,7 +260,7 @@ void CIsentropicVortexIC::InitializeSolution
   const as3double omega = -C_HALF*C_GMA*alpha*alpha;
 
 	// Loop over the elements and compute the solution.
-	for(size_t i=0; i<nElem; i++)
+	for(std::size_t i=0; i<nElem; i++)
 	{
 		// Extract solution in this element.
 		auto& sol  = solver_container->GetPhysicalElement(i)->mSol2D;
@@ -263,7 +268,7 @@ void CIsentropicVortexIC::InitializeSolution
 		auto& coor = singlezone_geometry->GetElementGeometry(i)->GetCoordSolDOFs();
 
 		// Loop over the internal solution nodes and compute the initial condition.
-		for(size_t l=0; l<sol.col(); l++)
+		for(std::size_t l=0; l<sol.col(); l++)
 		{
 			// Extract the coordinates.
 			const as3double x = coor(0, l);

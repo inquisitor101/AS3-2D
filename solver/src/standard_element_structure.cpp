@@ -1,5 +1,8 @@
 #include "standard_element_structure.hpp"
 
+#include <cmath>
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -10,14 +13,13 @@
 CStandardElement::CStandardElement
 (
  ETypeDOF       typeDOFs,
- unsigned short nPoly,
- unsigned short nInt 
+ std::size_t nPoly,
+ std::size_t nInt 
 )
 	:
 		mTypeDOFsSol(typeDOFs), mNPolySol(nPoly), mNInt1D(nInt)
  /*
-	* Constructor for the standard element, which initiates an element in parametric
-	* space for an interface boundary.
+	* Constructor that initializes reference nodes, quadrature and basis operators.
 	*/
 {
 	// Deduce the number os solution and integration points.
@@ -64,7 +66,7 @@ CStandardElement::~CStandardElement
  void
 )
  /*
-	* Destructor, which cleans up after the standard element class.
+	* Destructor for CStandardElement.
 	*/
 {
 
@@ -74,13 +76,13 @@ CStandardElement::~CStandardElement
 
 void CStandardElement::InitializeQuadrature
 (
- unsigned int           nInt1D,
+ std::size_t           nInt1D,
  CMatrixAS3<as3double> &rInt1D,
  CMatrixAS3<as3double> &wInt1D,
  CMatrixAS3<as3double> &wInt2D
 )
  /*
-	* Function that computes the integration properties on the reference element.
+	* Function that computes one-dimensional quadrature data and tensor-product volume weights.
 	*/
 {
 	// Allocate memory for the integration points and weights in 1D.
@@ -96,7 +98,7 @@ void CStandardElement::InitializeQuadrature
 	CGaussJacobiQuadrature::GetQuadraturePoints(0.0, 0.0, -1.0, 1.0, rtmp, wtmp);
 
 	// Copy the temporary data to their correct vector, in the proper precision.
-	for(size_t i=0; i<nInt1D; i++)
+	for(std::size_t i=0; i<nInt1D; i++)
 	{
 		rInt1D[i] = static_cast<as3double>( rtmp[i] );
 		wInt1D[i] = static_cast<as3double>( wtmp[i] );
@@ -106,9 +108,9 @@ void CStandardElement::InitializeQuadrature
 	wInt2D.resize(mNInt2D);
 
 	// Form the integration weights in 2D, which are tensor-products of 1D vectors.
-	size_t s = 0;
-	for(size_t j=0; j<nInt1D; j++)
-		for(size_t i=0; i<nInt1D; i++)
+	std::size_t s = 0;
+	for(std::size_t j=0; j<nInt1D; j++)
+		for(std::size_t i=0; i<nInt1D; i++)
 			wInt2D[s++] = wInt1D[i]*wInt1D[j];
 }
 
@@ -117,11 +119,11 @@ void CStandardElement::InitializeQuadrature
 void CStandardElement::ComputeLocationDOFs1D
 (
  ETypeDOF               typeDOFs,
- unsigned int           nDOFs1D,
+ std::size_t           nDOFs1D,
  CMatrixAS3<as3double> &rDOFs1D
 )
  /*
-	* Function that computes the locations of the DOFs in 1D, over the interval [-1, +1].
+	* Function that computes the requested reference nodes on [-1,+1].
 	*/
 {
 	// Allocate memory for the nodes.
@@ -142,7 +144,7 @@ void CStandardElement::ComputeLocationDOFs1D
 			// Starting position.
 			const as3double r0 = -1.0;
 
-			for(unsigned int i=0; i<nDOFs1D; i++)
+			for(std::size_t i=0; i<nDOFs1D; i++)
 				rDOFs1D[i] = (as3double) i*dh + r0;
 
 			// Hard-enforce last node.
@@ -525,7 +527,7 @@ void CStandardElement::ComputeLocationDOFs1D
 
 	// Make sure DOFs are correct.
 	as3double tmp = 0.0;
-	for(unsigned int i=0; i<nDOFs1D; i++) tmp += rDOFs1D[i];
+	for(std::size_t i=0; i<nDOFs1D; i++) tmp += rDOFs1D[i];
 	if( fabs(tmp) > TOL ) ERROR("Precision errors in nodal point computation.");
 }
 

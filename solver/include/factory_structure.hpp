@@ -1,5 +1,14 @@
 #pragma once
 
+/*!
+ * @file
+ * @brief Construction of solver components and supported tensor specializations.
+ */
+
+
+#include <cstddef>
+#include <memory>
+
 #include "vtk_structure.hpp"
 #include "solver_structure.hpp"
 #include "tensor_structure.hpp"
@@ -25,20 +34,20 @@ class IBoundary;
 class IInitialCondition;
 
 /*!
- * @brief A class of factories that creates different containers. 
+ * @brief A class of factories that creates different containers.
  */
 class CGenericFactory
 {
 	public:
 
 		/*!
-		 * @brief Function that creates a specialized instance of a data monitoring container.
+		 * @brief Function that constructs the simulation monitoring data container.
 		 *
 		 * @param[in] config_container configuration/dictionary container.
 		 *
 		 * @return unique pointer to the specific data monitoring class.
 		 */
-		static std::unique_ptr<CMonitorData> CreateMonitoringContainer(CConfig *config_container);
+		static std::unique_ptr<CMonitorData> CreateMonitoringContainer(const CConfig *config_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a temporal container.
@@ -47,7 +56,7 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to the specific temporal class.
 		 */
-		static std::unique_ptr<ITemporal> CreateTemporalContainer(CConfig *config_container);
+		static std::unique_ptr<ITemporal> CreateTemporalContainer(const CConfig *config_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a vtk container.
@@ -67,7 +76,7 @@ class CGenericFactory
 		 *
 		 * @return unique pointer to the specific initial condition class.
 		 */
-		static std::unique_ptr<IInitialCondition> CreateInitialConditionContainer(CConfig *config_container);
+		static std::unique_ptr<IInitialCondition> CreateInitialConditionContainer(const CConfig *config_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a Riemann solver container.
@@ -81,15 +90,14 @@ class CGenericFactory
 				                                                                ETypeRiemannSolver  riemann);
 
 		/*!
-		 * @brief Function that creates a specialized instance of a standard element container.
+		 * @brief Function that constructs a runtime reference element from the zone geometry order and
+		 *   integration rule.
 		 *
-		 * @param[in] config_container configuration/dictionary container.
-		 * @param[in] iZone zone ID of this container.
+		 * @param[in] singlezone_geometry_container geometry of the current zone.
 		 *
 		 * @return unique pointer to specialized standard element class.
 		 */
-		static std::unique_ptr<CStandardElement> CreateStandardElement(const CConfig  *config_container,
-				                                                           unsigned short  iZone);
+		static std::unique_ptr<CStandardElement> CreateStandardElement(const CSinglezoneGeometry *singlezone_geometry_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a physical element container.
@@ -107,35 +115,59 @@ class CGenericFactory
 				                                                           CStandardElement *standard_element,
 																																	 ITensorProduct   *tensor_container,
 				                                                           CElementGeometry *element_geometry,
-				                                                           unsigned short    iZone,
-																																	 unsigned short    nVar);
+				                                                           std::size_t    iZone,
+																																	 std::size_t    nVar);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a templated tensor container.
 		 *
 		 * @param[in] standard_element pointer to the relevant standard element container.
+		 * @param[in] nVar number of solution variables.
 		 *
 		 * @return unique pointer to specialized template tensor-product class.
 		 */
 		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element,
-                                                                 unsigned short    nVar);
+                                                                 std::size_t    nVar);
 
 
 		/*!
 		 * @brief Function that creates a specialized instance of a boundary container.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] zone_geometry geometry of the current zone.
+		 * @param[in] zone_solver solver for the current zone.
+		 * @param[in] boundary_batch physical boundary face batch.
+		 *
 		 * @return unique pointer to the specific boundary class.
 		 */
 		static std::unique_ptr<IBoundary> CreateBoundaryContainer(const CConfig              *config_container,
 				                                                      const CSinglezoneGeometry  *zone_geometry,
                                                               const ISolver              *zone_solver,
-																															const CBoundaryFacesFamily &boundary_family);
+																															const CBoundaryFaceBatch   &boundary_batch);
 
 
+		/*!
+		 * @brief Function that constructs the interface evaluator for a paired face batch.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] multizone_solver_container solvers and residual storage for all zones.
+		 * @param[in] interface_batch paired-zone interface face batch.
+		 *
+		 * @return newly constructed object or matrix with ownership transferred to the caller.
+		 */
 		static std::unique_ptr<IInterface> CreateInterfaceContainer(const CConfig               *config_container,
 																													      CMultizoneSolver            *multizone_solver_container,
-                                                                const CInterfaceFacesFamily &interface_family);
+                                                                const CInterfaceFaceBatch   &interface_batch);
 
 
+		/*!
+		 * @brief Function that constructs a zone solver for the configured equations.
+		 *
+		 * @param[in] config_container configuration/dictionary container.
+		 * @param[in] singlezone_geometry geometry of the current zone.
+		 *
+		 * @return newly constructed object or matrix with ownership transferred to the caller.
+		 */
 		static std::unique_ptr<ISolver> CreateSolverContainer(const CConfig             *config_container,
 				                                                  const CSinglezoneGeometry *singlezone_geometry);
 

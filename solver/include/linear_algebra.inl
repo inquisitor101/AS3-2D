@@ -1,13 +1,29 @@
+/*!
+ * @file
+ * @brief Inline implementations for dense matrix operations and tensor-product matrix utilities.
+ */
+
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
 // Implementation of the templated function in NLinearAlgebra.
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that creates an identity matrix of dimension n and type T.
+ *
+ * @tparam T matrix scalar type.
+ *
+ * @param[in] n dimension of the square identity matrix.
+ *
+ * @return identity matrix of size n-by-n.
+ */
 template<typename T>
 CMatrixAS3<T> NLinearAlgebra::CreateIdentityMatrix
 (
- size_t n
+ std::size_t n
 )
  /*
 	* Function that creates an identity matrix and returns it via RVO.
@@ -16,11 +32,11 @@ CMatrixAS3<T> NLinearAlgebra::CreateIdentityMatrix
 	// Allocate the matrix.
 	CMatrixAS3<T> matrix(n,n);
 
-	// Avoid floating-precision, by casting the data types onces.
+	// Avoid floating-precision, by casting the data types once.
 	const T one = static_cast<T>( 1.0 );
 
 	// Specify ones on its diagonal.
-	for(size_t i=0; i<n; i++) matrix(i,i) = one;
+	for(std::size_t i=0; i<n; i++) matrix(i,i) = one;
 
 	// Return the matrix via copy elision (RVO).
 	return matrix;
@@ -28,6 +44,16 @@ CMatrixAS3<T> NLinearAlgebra::CreateIdentityMatrix
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that computes the Kronecker product of two matrices.
+ *
+ * @tparam T matrix scalar type.
+ *
+ * @param[in] A input matrix.
+ * @param[in] B right input matrix.
+ *
+ * @return Kronecker product of A and B.
+ */
 template<typename T>
 CMatrixAS3<T> NLinearAlgebra::KroneckerProduct
 (
@@ -39,26 +65,26 @@ CMatrixAS3<T> NLinearAlgebra::KroneckerProduct
 	*/
 {
 	// Obtain the dimensions of the input matrices 
-	const size_t ma = A.row();
-	const size_t na = A.col();
-	const size_t mb = B.row();
-	const size_t nb = B.col();
+	const std::size_t ma = A.row();
+	const std::size_t na = A.col();
+	const std::size_t mb = B.row();
+	const std::size_t nb = B.col();
 
 	// Deduce the dimensions of the outer-product matrix C = kron(A,B).
-	const size_t mc = ma*mb;
-	const size_t nc = na*nb;
+	const std::size_t mc = ma*mb;
+	const std::size_t nc = na*nb;
 
 	// Allocate the matrix.
 	CMatrixAS3<T> C(mc,nc);
 
 	// Perform the actual outer-product.
-	for(size_t ia=0; ia<ma; ia++)
+	for(std::size_t ia=0; ia<ma; ia++)
 	{
-		for(size_t ib=0; ib<mb; ib++)
+		for(std::size_t ib=0; ib<mb; ib++)
 		{
-			for(size_t ja=0; ja<na; ja++)
+			for(std::size_t ja=0; ja<na; ja++)
 			{
-				for(size_t jb=0; jb<nb; jb++)
+				for(std::size_t jb=0; jb<nb; jb++)
 				{
 					C(ia*mb+ib, ja*nb+jb) = A(ia,ja)*B(ib,jb);
 				}
@@ -72,6 +98,15 @@ CMatrixAS3<T> NLinearAlgebra::KroneckerProduct
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that creates the output of the transpose of an AS3-type matrix.
+ *
+ * @tparam T matrix scalar type.
+ *
+ * @param[in] A input matrix.
+ *
+ * @return transpose of A.
+ */
 template<typename T>
 CMatrixAS3<T> NLinearAlgebra::TransposeAS3Matrix
 (
@@ -82,16 +117,16 @@ CMatrixAS3<T> NLinearAlgebra::TransposeAS3Matrix
 	*/
 {
 	// Extract the dimensions.
-	const size_t m = A.row();
-	const size_t n = A.col();
+	const std::size_t m = A.row();
+	const std::size_t n = A.col();
 
 	// Allocate memory for the transposed matrix.
 	CMatrixAS3<T> At( n, m );
 
 	// Transpose the matrix.
-	for(size_t i=0; i<m; i++)
+	for(std::size_t i=0; i<m; i++)
 	{
-		for(size_t j=0; j<n; j++)
+		for(std::size_t j=0; j<n; j++)
 		{
 			At(j,i) = A(i,j);
 		}

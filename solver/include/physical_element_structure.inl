@@ -1,3 +1,10 @@
+/*!
+ * @file
+ * @brief Inline implementations for element solution storage, metric transformations and mass matrices.
+ */
+
+#include <cstddef>
+
 
 
 //-----------------------------------------------------------------------------------
@@ -5,6 +12,13 @@
 //-----------------------------------------------------------------------------------
 
 
+/*!
+ * @brief Function that computes the Cartesian gradient from the parametric gradient at the volume integration
+ *   points.
+ *
+ * @param[in,out] dVarDr r-derivative on input and x-derivative on output.
+ * @param[in,out] dVarDs s-derivative on input and y-derivative on output.
+ */
 void CPhysicalElement::ConvertGradParamToCartVolInt
 (
  CWorkMatrixAS3<as3double> &dVarDr,
@@ -16,13 +30,13 @@ void CPhysicalElement::ConvertGradParamToCartVolInt
 	*/
 {
 	// Determine inner and outer loops.
-	const size_t nVar = dVarDr.row();
-	const size_t nInt = dVarDr.col();
+	const std::size_t nVar = dVarDr.row();
+	const std::size_t nInt = dVarDr.col();
 
 	// Convert the gradient from parametric to Cartesian coordinates.
-	for(size_t i=0; i<nVar; i++)
+	for(std::size_t i=0; i<nVar; i++)
 	{
-		for(size_t l=0; l<nInt; l++)
+		for(std::size_t l=0; l<nInt; l++)
 		{
 			// Parametric derivatives.
 			const as3double dudr = dVarDr(i,l);
@@ -45,6 +59,13 @@ void CPhysicalElement::ConvertGradParamToCartVolInt
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMIN surface
+ *   integration points.
+ *
+ * @param[in,out] dVarDr r-derivative on input and x-derivative on output.
+ * @param[in,out] dVarDs s-derivative on input and y-derivative on output.
+ */
 void CPhysicalElement::ConvertGradParamToCartSurfIMinInt
 (
  CWorkMatrixAS3<as3double> &dVarDr,
@@ -56,13 +77,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfIMinInt
 	*/
 {
 	// Determine inner and outer loops.
-	const size_t nVar = dVarDr.row();
-	const size_t nInt = dVarDr.col();
+	const std::size_t nVar = dVarDr.row();
+	const std::size_t nInt = dVarDr.col();
 
 	// Convert the gradient from parametric to Cartesian coordinates.
-	for(size_t i=0; i<nVar; i++)
+	for(std::size_t i=0; i<nVar; i++)
 	{
-		for(size_t l=0; l<nInt; l++)
+		for(std::size_t l=0; l<nInt; l++)
 		{
 			// Parametric derivatives.
 			const as3double dudr = dVarDr(i,l);
@@ -85,6 +106,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfIMinInt
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that computes the Cartesian gradient from the parametric gradient at the IMAX surface
+ *   integration points.
+ *
+ * @param[in,out] dVarDr r-derivative on input and x-derivative on output.
+ * @param[in,out] dVarDs s-derivative on input and y-derivative on output.
+ */
 void CPhysicalElement::ConvertGradParamToCartSurfIMaxInt
 (
  CWorkMatrixAS3<as3double> &dVarDr,
@@ -96,13 +124,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfIMaxInt
 	*/
 {
 	// Determine inner and outer loops.
-	const size_t nVar = dVarDr.row();
-	const size_t nInt = dVarDr.col();
+	const std::size_t nVar = dVarDr.row();
+	const std::size_t nInt = dVarDr.col();
 
 	// Convert the gradient from parametric to Cartesian coordinates.
-	for(size_t i=0; i<nVar; i++)
+	for(std::size_t i=0; i<nVar; i++)
 	{
-		for(size_t l=0; l<nInt; l++)
+		for(std::size_t l=0; l<nInt; l++)
 		{
 			// Parametric derivatives.
 			const as3double dudr = dVarDr(i,l);
@@ -125,6 +153,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfIMaxInt
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMIN surface
+ *   integration points.
+ *
+ * @param[in,out] dVarDr r-derivative on input and x-derivative on output.
+ * @param[in,out] dVarDs s-derivative on input and y-derivative on output.
+ */
 void CPhysicalElement::ConvertGradParamToCartSurfJMinInt
 (
  CWorkMatrixAS3<as3double> &dVarDr,
@@ -136,13 +171,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfJMinInt
 	*/
 {
 	// Determine inner and outer loops.
-	const size_t nVar = dVarDr.row();
-	const size_t nInt = dVarDr.col();
+	const std::size_t nVar = dVarDr.row();
+	const std::size_t nInt = dVarDr.col();
 
 	// Convert the gradient from parametric to Cartesian coordinates.
-	for(size_t i=0; i<nVar; i++)
+	for(std::size_t i=0; i<nVar; i++)
 	{
-		for(size_t l=0; l<nInt; l++)
+		for(std::size_t l=0; l<nInt; l++)
 		{
 			// Parametric derivatives.
 			const as3double dudr = dVarDr(i,l);
@@ -165,6 +200,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfJMinInt
 
 //-----------------------------------------------------------------------------------
 
+/*!
+ * @brief Function that computes the Cartesian gradient from the parametric gradient at the JMAX surface
+ *   integration points.
+ *
+ * @param[in,out] dVarDr r-derivative on input and x-derivative on output.
+ * @param[in,out] dVarDs s-derivative on input and y-derivative on output.
+ */
 void CPhysicalElement::ConvertGradParamToCartSurfJMaxInt
 (
  CWorkMatrixAS3<as3double> &dVarDr,
@@ -176,13 +218,13 @@ void CPhysicalElement::ConvertGradParamToCartSurfJMaxInt
 	*/
 {
 	// Determine inner and outer loops.
-	const size_t nVar = dVarDr.row();
-	const size_t nInt = dVarDr.col();
+	const std::size_t nVar = dVarDr.row();
+	const std::size_t nInt = dVarDr.col();
 
 	// Convert the gradient from parametric to Cartesian coordinates.
-	for(size_t i=0; i<nVar; i++)
+	for(std::size_t i=0; i<nVar; i++)
 	{
-		for(size_t l=0; l<nInt; l++)
+		for(std::size_t l=0; l<nInt; l++)
 		{
 			// Parametric derivatives.
 			const as3double dudr = dVarDr(i,l);

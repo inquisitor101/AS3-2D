@@ -1,3 +1,9 @@
+#include <cmath>
+#include <cstddef>
+#include <cstdlib>
+#include <iostream>
+#include <vector>
+
 ///////////////////////////////////////
 // TODO: This file needs refactoring...
 ///////////////////////////////////////
@@ -14,14 +20,18 @@ void CGaussJacobiQuadrature::GetQuadraturePoints
  std::vector<double> &GJPoints, 
  std::vector<double> &GJWeights
 )
+ /*
+  * Function that computes Gauss-Jacobi nodes and weights on the supplied interval.
+  */
 {
   /*--- Determine the number of integration points. Check if the number makes sense. ---*/
-  unsigned int nIntPoints = static_cast<unsigned int>( GJPoints.size() );
-  if(nIntPoints < 1 || nIntPoints > 100) ERROR("Invalid number of Gauss Jacobi integration points");
+  const std::size_t nIntPoints = GJPoints.size();
+  if(nIntPoints < 1 || nIntPoints > 100 || GJWeights.size() != nIntPoints) ERROR("Invalid number of Gauss Jacobi integration points");
 
   /*--- Call the function cgqf to do the actual work. ---*/
   int kind = 4;
-  cgqf(nIntPoints, kind, alpha, beta, a, b, GJPoints.data(), GJWeights.data());
+  // The imported IQPACK routines require int; the range was checked above.
+  cgqf(static_cast<int>(nIntPoints), kind, alpha, beta, a, b, GJPoints.data(), GJWeights.data());
 }
 
 //****************************************************************************80
@@ -88,6 +98,9 @@ void CGaussJacobiQuadrature::cdgqf(int nt, int kind, double alpha, double beta,
 //
 //    Output, double WTS[NT], the weights.
 //
+ /*
+  * Function that constructs a classical quadrature rule on its default interval.
+  */
 {
   double *aj;
   double *bj;
@@ -97,8 +110,9 @@ void CGaussJacobiQuadrature::cdgqf(int nt, int kind, double alpha, double beta,
 //
 //  Get the Jacobi matrix and zero-th moment.
 //
-  aj = new double[nt];
-  bj = new double[nt];
+  if(nt <= 0) ERROR("Invalid quadrature dimension.");
+  aj = new double[static_cast<std::size_t>(nt)];
+  bj = new double[static_cast<std::size_t>(nt)];
 
   zemu = class_matrix ( kind, nt, alpha, beta, aj, bj );
 //
@@ -177,6 +191,9 @@ void CGaussJacobiQuadrature::cgqf(int nt, int kind, double alpha, double beta,
 //
 //    Output, double WTS[NT], the weights.
 //
+ /*
+  * Function that constructs a classical quadrature rule for the supplied domain parameters.
+  */
 {
   int i;
   int *mlt;
@@ -189,12 +206,12 @@ void CGaussJacobiQuadrature::cgqf(int nt, int kind, double alpha, double beta,
 //  Prepare to scale the quadrature formula to other weight function with 
 //  valid A and B.
 //
-  mlt = new int[nt];
+  mlt = new int[static_cast<std::size_t>(nt)];
   for ( i = 0; i < nt; i++ )
   {
     mlt[i] = 1;
   }
-  ndx = new int[nt];
+  ndx = new int[static_cast<std::size_t>(nt)];
   for ( i = 0; i < nt; i++ )
   {
     ndx[i] = i + 1;
@@ -275,6 +292,9 @@ double CGaussJacobiQuadrature::class_matrix(int kind, int m, double alpha,
 //
 //    Output, double CLASS_MATRIX, the zero-th moment.
 //
+ /*
+  * Function that builds Jacobi recurrence coefficients and returns the zeroth moment.
+  */
 {
   double a2b2;
   double ab;
@@ -509,6 +529,9 @@ void CGaussJacobiQuadrature::imtqlx(int n, double d[], double e[], double z[])
 //    the value of Q' * Z, where Q is the matrix that diagonalizes the
 //    input symmetric tridiagonal matrix.
 //
+ /*
+  * Function that diagonalizes a symmetric tridiagonal matrix and transforms a vector.
+  */
 {
   double b;
   double c;
@@ -688,6 +711,9 @@ void CGaussJacobiQuadrature::parchk(int kind, int m, double alpha, double beta)
 //    Input, double ALPHA, BETA, the parameters, if required
 //    by the value of KIND.
 //
+ /*
+  * Function that validates the parameters required for the requested quadrature moments.
+  */
 {
   double tmp;
 
@@ -768,6 +794,9 @@ double CGaussJacobiQuadrature::r8_epsilon( )
 //
 //    Output, double R8_EPSILON, the R8 round-off unit.
 //
+ /*
+  * Function that returns the double-precision machine epsilon.
+  */
 {
   const double value = 2.220446049250313E-016;
 
@@ -801,6 +830,9 @@ double CGaussJacobiQuadrature::r8_sign(double x)
 //
 //    Output, double R8_SIGN, the sign of X.
 //
+ /*
+  * Function that returns -1.0 for negative input and +1.0 otherwise.
+  */
 {
   double value;
 
@@ -890,6 +922,9 @@ void CGaussJacobiQuadrature::scqf(int nt, double t[], int mlt[], double wts[],
 //
 //    Input, double A, B, the interval endpoints.
 //
+ /*
+  * Function that scales quadrature knots and weights for the selected rule.
+  */
 {
   double al;
   double be;
@@ -1106,6 +1141,9 @@ void CGaussJacobiQuadrature::sgqf(int nt, double aj[], double bj[],
 //
 //    Output, double WTS[NT], the weights.
 //
+ /*
+  * Function that constructs quadrature knots and weights from Jacobi recurrence coefficients.
+  */
 {
   int i;
 //

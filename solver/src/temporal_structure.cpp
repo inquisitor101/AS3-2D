@@ -1,5 +1,7 @@
 #include "temporal_structure.hpp"
 
+#include <cstddef>
+
 
 //-----------------------------------------------------------------------------------
 // ITemporal member functions.
@@ -11,7 +13,7 @@ ITemporal::ITemporal
  const CConfig *config_container
 )
  /*
-	* Constructor for the interface temporal class.
+	* Constructor for the temporal-method interface.
 	*/
 {
 
@@ -24,7 +26,7 @@ ITemporal::~ITemporal
  void
 )
  /*
-	* Destructor, which cleans up after the interface temporal class.
+	* Destructor for ITemporal.
 	*/
 {
 
@@ -43,7 +45,7 @@ CSSPRK3Temporal::CSSPRK3Temporal
 	:
 		ITemporal(config_container)
  /*
-	* Constructor for the strong-stability-preserving 3rd-order Runge-Kutta (SSP-RK3) temporal class.
+	* Constructor that sets the SSP-RK3 stage coefficients.
 	*/
 {
 	// Initialize the SSP-RK3 coefficients. 
@@ -67,7 +69,7 @@ CSSPRK3Temporal::~CSSPRK3Temporal
  void
 )
  /*
-	* Destructor, which cleans up after the SSP-RK3 temporal class.
+	* Destructor for CSSPRK3Temporal.
 	*/
 {
 
@@ -86,144 +88,57 @@ void CSSPRK3Temporal::UpdateTime
  as3double           timestep
 )
  /*
-	* Function that computes the upcoming solution in time, based on a SSP-RK3.
+	* Function that advances one time step through the three SSP-RK3 stages.
 	*/
 {
 	// Loop over all Runge-Kutta stages.
-	for(unsigned short iStageRK=0; iStageRK<mNStageRK; iStageRK++)
+	for(std::size_t iStageRK=0; iStageRK<mNStageRK; iStageRK++)
 	{
 		// Local physical time.
 		const as3double localtime = physicaltime + mRk3c[iStageRK]*timestep;
 
-    // Perform a single stage evaluation, based on a SSP-RK3 .
-    EvaluateSSPRK3(config_container,
-				           multizone_geometry_container,
-               		 iteration_container,
-									 openmp_container,
-               		 multizone_solver_container,
-               		 localtime, timestep,
-									 iStageRK);
+    // The iteration owns traversal, workspace, and synchronization for this stage.
+    iteration_container->AdvanceStage(multizone_geometry_container,
+                                       multizone_solver_container,
+                                       this, localtime, timestep, iStageRK);
 	}
 }
 
 //-----------------------------------------------------------------------------------
 
-void CSSPRK3Temporal::EvaluateSSPRK3
+void CSSPRK3Temporal::UpdateElementSolution
 (
- CConfig            *config_container,
- CMultizoneGeometry *multizone_geometry_container,
- CIteration         *iteration_container,
- COpenMP            *openmp_container,
- CMultizoneSolver   *multizone_solver_container,
- as3double           localtime,
- as3double           timestep,
- unsigned short      iStageRK
-)
+ CPhysicalElement *physical_element,
+ as3double         timestep,
+ std::size_t    iStageRK
+) const
  /*
-	* Function that does a single stage SSP-RK3 evaluation.
+	* Function that applies one SSP-RK3 stage formula to one element.
 	*/
 {
 	// Local RK coefficients.
 	const as3double alpha = mRk3a[iStageRK];
 	const as3double beta  = mRk3b[iStageRK];
+	const as3double bdt   = beta*timestep;
 
-#ifdef HAVE_OPENMP
-#pragma omp parallel
-#endif
+	// Extract the solution, spatial residual, and temporal history.
+	auto& sol = physical_element->mSol2D;
+	auto& res = physical_element->mRes2D;
+	auto& old = physical_element->mSolOld2D;
+
+	// Preserve the first-stage distinction and the original update expressions.
+	if( iStageRK == 0 )
 	{
-		// First, compute the residual.
-		iteration_container->GridSweep(config_container,
-				                           multizone_geometry_container,
-																	 openmp_container,
-																	 multizone_solver_container,
-																	 localtime);
-
-		// Get the total number of elements in all zones.
-		const size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
-
-
-		// Update the solution in time. For computational efficiency, make a distinction 
-		// between the first stage (iStage=0) and the remaining ones.
-		if( iStageRK == 0 )
+		for(std::size_t l=0; l<sol.size(); l++)
 		{
-			// Abbreviation.
-			const as3double bdt = beta*timestep;
-
-			// Loop over each solver in every zone.
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-			for(size_t i=0; i<nElemTotal; i++)
-			{
-				// Extract the element indices.
-				const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
-
-				// Deduce the current element's zone and index.
-				const auto iZone = elem_info.mIndexZone; 
-				const auto iElem = elem_info.mIndexElem; 
-
-				// Extract the relevant solver.
-				auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
-				// Extract the relevant physical element.
-				auto* element = solver->GetPhysicalElement(iElem);
-
-				// Extract current solution and residual.
-				auto& sol = element->mSol2D;
-				auto& res = element->mRes2D;
-			
-				// Extract the tentative (sol) solution state.
-				auto& old = element->mSolOld2D;
-
-				// Loop over each node and compute its updated value.
-				for(size_t l=0; l<sol.size(); l++)
-				{
-					old[l]  = sol[l];
-					sol[l] += bdt*res[l];
-				}
-			}
+			old[l]  = sol[l];
+			sol[l] += bdt*res[l];
 		}
-		else
-		{
-			// Abbreviation.
-			const as3double bdt = beta*timestep;
-			const as3double oma = C_ONE - alpha;
-
-			// Loop over each solver in every zone.	
-#ifdef HAVE_OPENMP
-#pragma omp for schedule(static)
-#endif
-			for(size_t i=0; i<nElemTotal; i++)
-			{
-				// Extract the element indices.
-				const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
-
-				// Deduce the current element's zone and index.
-				const auto iZone = elem_info.mIndexZone; 
-				const auto iElem = elem_info.mIndexElem; 
-
-				// Extract the relevant solver.
-				auto* solver  = multizone_solver_container->GetSinglezoneSolver(iZone);
-				// Extract the relevant physical element.
-				auto* element = solver->GetPhysicalElement(iElem);
-
-
-				// Extract current solution and residual.
-				auto& sol = element->mSol2D;
-				auto& res = element->mRes2D;
-			
-				// Extract the tentative (sol) solution state.
-				auto& old = element->mSolOld2D;
-
-				// Loop over each node and compute its updated value.
-				for(size_t l=0; l<sol.size(); l++)
-				{
-					sol[l] = oma*sol[l] + alpha*old[l] + bdt*res[l];
-				}
-			}
-		}
-	} // End of OpenMP parallel region.
+	}
+	else
+	{
+		const as3double oma = C_ONE - alpha;
+		for(std::size_t l=0; l<sol.size(); l++)
+			sol[l] = oma*sol[l] + alpha*old[l] + bdt*res[l];
+	}
 }
-
-
-
-

@@ -1,6 +1,23 @@
+/*!
+ * @file
+ * @brief Inline implementations for aS3 binary grid metadata, marker records and coordinate import.
+ */
+
+#include <cstddef>
+#include <cstdio>
+#include <type_traits>
 
 
 
+
+/*!
+ * @brief Function that reads element coordinates directly or converts them through a reusable precision buffer.
+ *
+ * @tparam InputPrecision floating-point precision stored in the coordinate payload.
+ *
+ * @param[in] file open AS3 binary file and its byte-order information.
+ * @param[in,out] grid zone geometry whose element coordinates are filled.
+ */
 template<class InputPrecision>
 void NImportFile::NAS3BinaryFile::ReadElementCoordinates
 (
