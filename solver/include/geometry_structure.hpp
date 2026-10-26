@@ -354,22 +354,6 @@ class CSinglezoneGeometry
 		 */
 		~CSinglezoneGeometry(void);
 
-
-		/*!
-		 * @brief Function that initializes and defines all the element geometry in this zone.
-		 *
-		 * @param[in] xcoor x-coordinates grouped by element.
-		 * @param[in] ycoor y-coordinates grouped by element.
-		 * @param[in] niElem number of elements in the logical i-direction.
-		 * @param[in] njElem number of elements in the logical j-direction.
-		 *
-		 * @todo remove
-		 */
-		void InitializeElements(as3vector2d<double> &xcoor, 
-				                    as3vector2d<double> &ycoor,
-														std::size_t         niElem,
-														std::size_t         njElem);
-
     /*!
      * @brief Getter function which returns the value of mZoneID.
      *
@@ -442,30 +426,6 @@ class CSinglezoneGeometry
      */
     ETypeDOF GetTypeNodalDistribution(void) const {return mNodalDistribution;}
 
-		/*!
-		 * @brief Function that returns the vector containing the nodal indices of the specified face.
-		 *
-		 * @param[in] face type of face.
-		 *
-		 * @return mFaceNodalIndices[matching index].
-		 *
-		 * @todo remove?
-		 */
-		const as3vector1d<std::size_t> &GetFaceNodalIndices(EFaceLocation face) const
-		{
-			switch( face )
-			{
-				case(EFaceLocation::IMIN): {return mFaceNodalIndices[0]; break;}
-				case(EFaceLocation::IMAX): {return mFaceNodalIndices[1]; break;}
-				case(EFaceLocation::JMIN): {return mFaceNodalIndices[2]; break;}
-				case(EFaceLocation::JMAX): {return mFaceNodalIndices[3]; break;}
-				default: ERROR("Face is unknown.");
-			}
-
-			// The program should not reach this far. Issue something to avoid compiler issues.
-			throw std::exception();
-		}
-
     /*!
      * @brief Function that returns zone-local element indices in increasing traversal order along a zone edge.
      *
@@ -488,18 +448,16 @@ class CSinglezoneGeometry
 	protected:
 
 	private:
-    std::size_t mZoneID;                    ///< Current zone index.
-		std::string	mGridFile;  ///< Associated grid file name of this zone.
-    std::size_t mNPolyGrid;                 ///< Polynomial order of the grid element.
-		std::size_t mNiElem = 0;    ///< Number of elements in i-direction.
-    std::size_t mNjElem = 0;                ///< Number of elements in j-direction.	
-    bool        mIsAffine = false;          ///< Whether the imported grid declares affine element mappings.
+    std::size_t mZoneID;           ///< Current zone index.
+		std::string	mGridFile;         ///< Associated grid file name of this zone.
+    std::size_t mNPolyGrid;        ///< Polynomial order of the grid element.
+		std::size_t mNiElem = 0;       ///< Number of elements in i-direction.
+    std::size_t mNjElem = 0;       ///< Number of elements in j-direction.	
+    bool        mIsAffine = false; ///< Whether the imported grid declares affine element mappings.
 
-    ETypeDOF    mNodalDistribution;                                               ///< Distribution of geometry nodes within each element.
-		as3vector2d<std::size_t> mFaceNodalIndices;                       ///< Reference-element node indices for IMIN, IMAX, JMIN and JMAX.
+    ETypeDOF    mNodalDistribution;                                   ///< Distribution of geometry nodes within each element.
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
-		
 
 		/*!
 		 * @brief Function that generates all 4 nodal indices on a quadrilateral in this zone.
@@ -524,15 +482,6 @@ class CSinglezoneGeometry
 class CElementGeometry
 {
 	public:
-
-		/*!
-		 * @brief Constructor of CElementGeometry, which is responsible for a single element geometry.
-		 *
-		 * @param[in] x x-coordinate data or scalar argument.
-		 * @param[in] y y-coordinate data.
-		 */
-		CElementGeometry(as3vector1d<double> &x, as3vector1d<double> &y); // TODO: remove
-	
 
     /*!
      * @brief Constructor that initializes CElementGeometry from the specified data.

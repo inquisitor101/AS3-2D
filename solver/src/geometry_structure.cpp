@@ -334,8 +334,7 @@ CSinglezoneGeometry::CSinglezoneGeometry
   const std::size_t nNode2D = nNode1D * nNode1D;
   const std::size_t nElem = std::size_t(mNiElem) * mNjElem;
 
-  GenerateNodalFaceIndices(); // TODO: make it explicitly depend on nPoly as input
-
+  // Generate the elements.
   mElementGeometry.reserve(nElem);
   for(std::size_t iElem=0; iElem<nElem; iElem++)
   {
@@ -354,84 +353,6 @@ CSinglezoneGeometry::~CSinglezoneGeometry
 	*/
 {
 
-}
-
-//-----------------------------------------------------------------------------------
-
-void CSinglezoneGeometry::GenerateNodalFaceIndices
-(
- void
-)
- /*
-	* Function that builds reference-node indices for the four local quadrilateral edges.
-	*/
-{
-	// Deduce the number of solution points in 1D in this zone.
-	const std::size_t nSol1D = mNPolyGrid+1;
-
-	// TODO: change to a contiguous array, using CMatrixAS3.
-  // Allocate memory for the nodal indices on all sides.
-	mFaceNodalIndices.resize( 4, as3vector1d<std::size_t>(nSol1D) );
-
-	// Offsets in the i- and j-direction.
-	const std::size_t di = mNPolyGrid;
-	const std::size_t dj = nSol1D*(nSol1D-1);
-	
-	// Loop over the face nodes and generate their local indices.
-	for(std::size_t i=0; i<nSol1D; i++)
-	{
-		// Face: IMIN.
-		mFaceNodalIndices[0][i] = i*nSol1D;
-		// Face: IMAX.
-		mFaceNodalIndices[1][i] = mFaceNodalIndices[0][i] + di;
-		// Face: JMIN.
-		mFaceNodalIndices[2][i] = i;
-		// Face: JMAX.
-		mFaceNodalIndices[3][i] = mFaceNodalIndices[2][i] + dj;
-	}
-}
-
-//-----------------------------------------------------------------------------------
-
-void CSinglezoneGeometry::InitializeElements
-(
- as3vector2d<double> &xcoor,
- as3vector2d<double> &ycoor,
- std::size_t         niElem,
- std::size_t         njElem
-)
- /*
-	* Function that constructs element geometries from per-element coordinate vectors.
-	*/
-{
-	// Deduce the number of elements and ensure consistency.
-	if( xcoor.size() != ycoor.size() ) ERROR("Number of coordinates in x and y is not identical.");
-
-	// Ensure the total number of elements is correct.
-	if( niElem*njElem != xcoor.size() ) ERROR("Inconsistency in number of elements.");
-
-	// Set the number of elements in each dimension.
-	mNiElem = niElem;
-	mNjElem = njElem;
-
-	// Allocate memory for the total elements.
-	mElementGeometry.resize( xcoor.size() );
-
-	// Total number of grid nodes in 2D, as user-specified.
-	const std::size_t nNode2D = (mNPolyGrid+1)*(mNPolyGrid+1);
-
-	// Loop over each element and instantiate its coordinates.
-	for(std::size_t i=0; i<xcoor.size(); i++)
-	{
-		// Ensure the polynomial order is correct.
-		if( (xcoor[i].size() != nNode2D) || (ycoor[i].size() != nNode2D) )
-    {
-      ERROR("Elements do not match polynomial order.");
-    }
-
-		// Instantiate the current element.
-		mElementGeometry[i] = std::make_unique<CElementGeometry>( xcoor[i], ycoor[i] );
-	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -551,31 +472,6 @@ CElementGeometry::CElementGeometry
   */
 {
 
-}
-
-//-----------------------------------------------------------------------------------
-
-CElementGeometry::CElementGeometry
-(
- as3vector1d<double> &x,
- as3vector1d<double> &y
-)
- /*
-	* Constructor that copies the geometry-node coordinates.
-	*/
-{
-	// Ensure consistency.
-	if( x.size() != y.size() ) ERROR("Inconsistent size in coordinates.");
-
-	// Allocate memory for the coordinates.
-	mCoordSolDOFs.resize( 2, x.size() );
-
-	// Copy the coordinates.
-	for(std::size_t i=0; i<x.size(); i++)
-	{
-		mCoordSolDOFs(0,i) = x[i];
-		mCoordSolDOFs(1,i) = y[i];
-	}
 }
 
 //-----------------------------------------------------------------------------------
