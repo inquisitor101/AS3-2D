@@ -114,6 +114,35 @@ void NError::Warning
 //-----------------------------------------------------------------------------------
 
 #ifdef ENABLE_NAN_CHECK
+
+NError::CLibraryFloatingPointScope::CLibraryFloatingPointScope
+(
+ void
+)
+ /*
+  * Constructor that saves the caller's floating-point environment before a library call.
+  */
+{
+  // Save the current environment and clear exception flags for the library call.
+  if( std::feholdexcept(&mEnvironment) != 0 ) ERROR("Could not save the floating-point environment.");
+}
+
+//-----------------------------------------------------------------------------------
+
+NError::CLibraryFloatingPointScope::~CLibraryFloatingPointScope
+(
+ void
+)
+ /*
+  * Destructor that restores the caller's floating-point environment after a library call.
+  */
+{
+  // Restore the saved environment, including any exception flags raised by the caller.
+  if( std::fesetenv(&mEnvironment) != 0 ) ERROR("Could not restore the floating-point environment.");
+}
+
+//-----------------------------------------------------------------------------------
+
 void NError::CheckFloatingError
 (
   void
@@ -124,13 +153,16 @@ void NError::CheckFloatingError
 {
   std::string message;
   // Check what error has been raised.
-  if( fetestexcept(FE_DIVBYZERO) ) message += "Error... FE_DIVBYZERO,";
+  if( std::fetestexcept(FE_DIVBYZERO) ) message += "Error... FE_DIVBYZERO,";
   // if( fetestexcept(FE_INEXACT)   ) message += "Error... FE_INEXACT,";
-  if( fetestexcept(FE_INVALID)   ) message += "Error... FE_INVALID,";
-  if( fetestexcept(FE_OVERFLOW)  ) message += "Error... FE_OVERFLOW,";
+  if( std::fetestexcept(FE_INVALID)   ) message += "Error... FE_INVALID,";
+  if( std::fetestexcept(FE_OVERFLOW)  ) message += "Error... FE_OVERFLOW,";
   //if( fetestexcept(FE_UNDERFLOW) ) message += "Error... FE_UNDERFLOW,";
 
   if( !message.empty() ) ERROR(message);
+
+  // Clear the checked flags before the next solver operation.
+  std::feclearexcept(FE_ALL_EXCEPT);
 }
 #endif
 

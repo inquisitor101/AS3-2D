@@ -437,6 +437,9 @@ void CDriver::ExecuteTimeSyncStep
 	{
 		// Compute the time step.
 		as3double dt = ComputeTimeStep();
+		// Ensure the computed stability step is finite and positive.
+		if( !std::isfinite(dt) || dt <= C_ZERO )
+			ERROR("The stable time step must be finite and greater than zero.");
 
 		// If the stable time step is larger than the synchronization step, issue a warning.
 		if( dt > ts )
@@ -454,6 +457,10 @@ void CDriver::ExecuteTimeSyncStep
 			dt = tf - time; issync = true;
 		}
 
+
+		// Ensure the selected time step advances the current floating-point time.
+		if( !std::isfinite(dt) || dt <= C_ZERO || time + dt <= time )
+			ERROR("The time step cannot advance the current physical time.");
 
 		// Update the solution in time.
 		mTemporalContainer->UpdateTime( mConfigContainer.get(),

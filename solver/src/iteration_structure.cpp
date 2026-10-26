@@ -150,6 +150,11 @@ void CIteration::AdvanceStage
       // The temporal method supplies the update formula for this element.
       temporal_container->UpdateElementSolution(element, timestep, iStageRK);
     }
+#ifdef ENABLE_NAN_CHECK
+    // Floating-point status is thread-local; checking only the driver thread
+    // would miss exceptions raised by the other OpenMP workers.
+    NError::CheckFloatingError();
+#endif
   } // The parallel-region barrier completes all solution updates before the next stage.
 }
 
@@ -177,4 +182,8 @@ void CIteration::GridSweep
 									 multizone_solver_container,
 									 workarray,
 									 localtime);
+#ifdef ENABLE_NAN_CHECK
+	// Check floating-point errors raised by the current worker during the grid sweep.
+	NError::CheckFloatingError();
+#endif
 }

@@ -249,19 +249,19 @@ class CConfig
 		as3double                       mStartTime;          ///< Simulation starting time.
 		as3double                       mTimeStep;           ///< Time step.
 		as3double                       mCFL;                ///< CFL stability number.
-		std::size_t                          mMaxIterTime;   ///< Maximum temporal iterations during the simulation.
-		std::size_t                          mWriteVisFreq;  ///< Visualization file writing frequency.
+		std::size_t                     mMaxIterTime;        ///< Maximum temporal iterations during the simulation.
+		std::size_t                     mWriteVisFreq;       ///< Visualization file writing frequency.
 		std::string                     mOutputSolFilename;  ///< Output solution filename.
 		std::string                     mOutputVisFilename;  ///< Output visualization filename.
 		std::size_t                     mNZone;              ///< Total number of zones.
 		as3vector1d<as3double>          mDataIC;             ///< Compressed (floating-type) data for the IC.
-    as3vector1d<EWriteVariable>     mWriteVisVar;                    ///< Vector of visualization variables to write.
+    as3vector1d<EWriteVariable>     mWriteVisVar;        ///< Vector of visualization variables to write.
 		as3vector1d<ETypeSolver>        mTypeSolver;         ///< Type of PDEs in each zone.
-    as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;                ///< Type of buffer layer in each zone.
+    as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;    ///< Type of buffer layer in each zone.
 		as3vector1d<ETypeDOF>           mTypeDOF;            ///< Type of DOFs in each zone.
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;  ///< Type of Riemann solver per each zone.
 
-    std::string mGridDirectory;                                                            ///< Directory containing the configured AS3 grid file.
+    std::string mGridDirectory;                          ///< Directory containing the configured AS3 grid file.
 		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.
 		as3vector1d<std::unique_ptr<CPeriodicParamMarker>>  mPeriodicParamMarker;  ///< Container of periodic marker parameters.
 		as3vector1d<std::unique_ptr<IBoundaryParamMarker>>  mBoundaryParamMarker;  ///< Container of boundary marker parameters.

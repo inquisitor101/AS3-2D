@@ -1,6 +1,7 @@
 #include "config_structure.hpp"
 
 #include <cstddef>
+#include <cmath>
 #include <fstream>
 #include <ios>
 #include <iostream>
@@ -198,7 +199,9 @@ bool CConfig::ReadOutputOptions
 
 	// Read the writing frequency of the visualization files.
 	NInputUtility::AddScalarOption(paramfile, "WRITE_VIS_FREQ", mWriteVisFreq, true);
-	// Read the output visualization filename.
+	// Ensure the writing frequency is not zero.
+  if( mWriteVisFreq == 0 ) ERROR("WRITE_VIS_FREQ must be greater than zero.");
+  // Read the output visualization filename.
 	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FILENAME", mOutputVisFilename, true);
 	// Read the output solution filename.
 	NInputUtility::AddScalarOption(paramfile, "OUTPUT_SOL_FILENAME", mOutputSolFilename, true);
@@ -251,8 +254,15 @@ bool CConfig::ReadTemporalOptions
 	// Read the CFL number for temporal stability.
 	NInputUtility::AddScalarOption(paramfile, "CFL_NUMBER", mCFL, true);
 
-	// Ensure the CFL makes sense.
-	if( mCFL < C_ZERO ) ERROR("CFL numbner must be positive.");
+	// Ensure the starting time is finite.
+	if( !std::isfinite(mStartTime) ) ERROR("START_TIME must be finite.");
+	// Ensure the synchronization time step can advance physical time.
+	if( !std::isfinite(mTimeStep) || mTimeStep <= C_ZERO )
+		ERROR("TIME_STEP must be finite and greater than zero.");
+	// Ensure the CFL number produces a positive stability step.
+	if( !std::isfinite(mCFL) || mCFL <= C_ZERO )
+		ERROR("CFL_NUMBER must be finite and greater than zero.");
+
 
 	// Close file.
   paramfile.close();

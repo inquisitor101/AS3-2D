@@ -1,6 +1,7 @@
 #include "linear_algebra.hpp"
 
 #include <cstddef>
+#include <cmath>
 #include <limits>
 
 
@@ -68,12 +69,22 @@ void NLinearAlgebra::InverseMatrix
   // Call the appropriate Lapack functions to compute the inverse.
   int ierr;
 
+#ifdef ENABLE_NAN_CHECK
+  // Keep library-internal exception flags separate from the caller's solver flags.
+  NError::CLibraryFloatingPointScope libraryScope;
+#endif
+
 	// Note, this assumes double-precision.
   dgetrf_(&n, &n, AA, &n, ipiv, &ierr);
   if(ierr != 0) ERROR("Matrix is singular");
 
   dgetri_(&n, AA, &n, ipiv, work, &n, &ierr);
   if(ierr != 0) ERROR("Matrix inversion failed");
+#ifdef ENABLE_NAN_CHECK
+  // Ensure every entry returned by the inversion is finite.
+  for(std::size_t i=0; i<A.size(); ++i)
+    if( !std::isfinite(A[i]) ) ERROR("LAPACK inversion returned a non-finite matrix.");
+#endif
 }
 
 //-----------------------------------------------------------------------------------
@@ -127,7 +138,16 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
 	as3double *C = matC.data();
 
 	// Call the generalized matrix-matrix routine (double-precision).
+#ifdef ENABLE_NAN_CHECK
+	// Preserve the caller's floating-point environment around the library call.
+	NError::CLibraryFloatingPointScope libraryScope;
+#endif
 	dgemm_(&tA, &tB, &m, &n, &c, &one, A, &m, B, &c, &zero, C, &m);
+#ifdef ENABLE_NAN_CHECK
+	// Ensure every entry returned by the multiplication is finite.
+	for(std::size_t i=0; i<matC.size(); ++i)
+		if( !std::isfinite(matC[i]) ) ERROR("BLAS multiplication returned a non-finite matrix.");
+#endif
 
 	// Return the matrix C via copy elision (RVO).
 	return matC;
