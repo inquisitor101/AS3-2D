@@ -1,6 +1,0 @@
-CXX=/opt/homebrew/opt/llvm/bin/clang++
-CPPFLAGS=  -Iinclude -DNDEBUG -DHAVE_OPENMP -I/opt/homebrew/opt/libomp/include
-CXXFLAGS=  -std=c++20 -Wall -Wextra -Wconversion -O2 -fopenmp
-LDFLAGS=   -fopenmp -L/opt/homebrew/opt/libomp/lib -Wl,-rpath,/opt/homebrew/opt/libomp/lib
-LDLIBS=-llapack -lblas
-SRCS=src/AS3.cpp src/boundary_structure.cpp src/collective_residual_computation.cpp src/config_structure.cpp src/driver_structure.cpp src/error_structure.cpp src/face_structure.cpp src/factory_structure.cpp src/geometry_structure.cpp src/import_structure.cpp src/initial_condition_structure.cpp src/input_structure.cpp src/interface_structure.cpp src/iteration_structure.cpp src/linear_algebra.cpp src/load_balance_faces.cpp src/log_structure.cpp src/marker_structure.cpp src/monitoring_structure.cpp src/openmp_structure.cpp src/option_structure.cpp src/output_structure.cpp src/param_structure.cpp src/physical_element_structure.cpp src/polynomial_structure.cpp src/quadrature_structure.cpp src/riemann_solver_structure.cpp src/solver_structure.cpp src/standard_element_structure.cpp src/temporal_structure.cpp src/tensor_structure.cpp src/vtk_structure.cpp

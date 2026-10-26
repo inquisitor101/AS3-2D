@@ -11,13 +11,16 @@
 # Compiler version / loaded module changes require a clean rebuild.
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
+
 # Capture the main makefile before dependency files are included.
 THIS_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
+
 # Toolchain. Command-line overrides work: make CXX=/path/to/icpx
 ifeq ($(origin CXX),default)
 CXX := icpx
 endif
 CXX ?= icpx
+
 # Build choices: MODE=release|debug, OPENMP=0|1, LTO=off|thin|full,
 # NATIVE=0|1, FP=precise|fast|strict, MKL=sequential|parallel|off.
 # Each combination has its own objects and executable.
@@ -31,45 +34,49 @@ LTO    ?= thin
 NATIVE ?= 0
 FP     ?= precise
 MKL    ?= sequential
+
 # Used only when LTO is enabled. Set LINKER=default to use the compiler's
 # default linker with its LLVM LTO plugin, or LINKER=/path/to/ld.lld.
 LINKER ?= lld
+
 ifneq ($(words $(MODE)),1)
 $(error MODE must be release or debug)
 endif
-ifeq ($(filter $(MODE),release debug),)
+ifeq ($(filter release debug,$(MODE)),)
 $(error MODE must be release or debug)
 endif
 ifneq ($(words $(OPENMP)),1)
 $(error OPENMP must be 0 or 1)
 endif
-ifeq ($(filter $(OPENMP),0 1),)
+ifeq ($(filter 0 1,$(OPENMP)),)
 $(error OPENMP must be 0 or 1)
 endif
 ifneq ($(words $(LTO)),1)
 $(error LTO must be off, thin, or full)
 endif
-ifeq ($(filter $(LTO),off thin full),)
+ifeq ($(filter off thin full,$(LTO)),)
 $(error LTO must be off, thin, or full)
 endif
 ifneq ($(words $(NATIVE)),1)
 $(error NATIVE must be 0 or 1)
 endif
-ifeq ($(filter $(NATIVE),0 1),)
+ifeq ($(filter 0 1,$(NATIVE)),)
 $(error NATIVE must be 0 or 1)
 endif
 ifneq ($(words $(FP)),1)
 $(error FP must be one of: precise fast strict)
 endif
-ifeq ($(filter $(FP),precise fast strict),)
+ifeq ($(filter precise fast strict,$(FP)),)
 $(error FP must be one of: precise fast strict)
 endif
 ifneq ($(words $(MKL)),1)
 $(error MKL must be one of: sequential parallel off)
 endif
-ifeq ($(filter $(MKL),sequential parallel off),)
+ifeq ($(filter sequential parallel off,$(MKL)),)
 $(error MKL must be one of: sequential parallel off)
 endif
+
+# Keep Intel objects and binaries separate from the other toolchains.
 SRC_DIR    := src
 BIN_DIR    := bin/intel
 BUILD_ROOT := build/intel
@@ -79,9 +86,11 @@ OBJ_DIR    := $(BUILD_DIR)/obj
 DEP_DIR    := $(BUILD_DIR)/dep
 EXE        := $(BIN_DIR)/$(BUILD_TAG)/AS3
 CONFIG     := $(BUILD_DIR)/flags.txt
+
 SRCS := $(sort $(wildcard $(SRC_DIR)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
+
 # User flags are separate from required build flags. Examples:
 # make CPPFLAGS=-DMY_OPTION CXXFLAGS=-Wshadow
 # make EXTRA_CXXFLAGS=-pg EXTRA_LDFLAGS=-pg
@@ -97,9 +106,11 @@ endif
 EXTRA_CPPFLAGS ?=
 EXTRA_CXXFLAGS ?=
 EXTRA_LDFLAGS  ?=
+
 PROJECT_CPPFLAGS := -Iinclude
 PROJECT_CXXFLAGS := -std=c++20 -Wall -Wextra -Wconversion
 PROJECT_LDFLAGS  :=
+
 ifeq ($(MODE),debug)
 # -UNDEBUG keeps assertions active even if a preceding user flag defines it.
 PROJECT_CPPFLAGS += -UNDEBUG -DDEBUG -DENABLE_NAN_CHECK
@@ -108,16 +119,19 @@ else
 PROJECT_CPPFLAGS += -DNDEBUG
 PROJECT_CXXFLAGS += -O2
 endif
+
 # Preserve NaN checks and assertions in debug builds even if FP=fast.
 ifeq ($(MODE),debug)
 PROJECT_CXXFLAGS += -fp-model=precise
 else
 PROJECT_CXXFLAGS += -fp-model=$(FP)
 endif
+
 ifeq ($(NATIVE),1)
 # Targets the build host's instruction set: use only for compatible nodes.
 PROJECT_CXXFLAGS += -xHost
 endif
+
 ifeq ($(OPENMP),1)
 PROJECT_CPPFLAGS += -DHAVE_OPENMP
 # Use Intel's OpenMP runtime; Homebrew libomp paths do not apply on Linux.
@@ -126,12 +140,14 @@ PROJECT_LDFLAGS  += -qopenmp
 else
 PROJECT_CPPFLAGS += -UHAVE_OPENMP
 endif
+
 ifneq ($(MKL),off)
 # Required on both compile and link commands on Linux. The link command
 # below also includes COMPILE_CXXFLAGS, so the driver sees -qmkl at both steps.
 # Dynamic linking is the default: load Intel/MKL modules in the job as well.
 PROJECT_CXXFLAGS += -qmkl=$(MKL)
 endif
+
 ifneq ($(LTO),off)
 # icpx supports both full LTO (-ipo is an alias) and ThinLTO.
 PROJECT_CXXFLAGS += -flto=$(LTO)
@@ -140,12 +156,16 @@ ifneq ($(LINKER),default)
 PROJECT_LDFLAGS  += -fuse-ld=$(LINKER)
 endif
 endif
+
 COMPILE_CPPFLAGS = $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(PROJECT_CPPFLAGS)
 COMPILE_CXXFLAGS = $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(PROJECT_CXXFLAGS)
 LINK_FLAGS       = $(LDFLAGS) $(EXTRA_LDFLAGS) $(PROJECT_LDFLAGS)
+
 .PHONY: all debug release debug-serial debug-parallel release-serial \
         release-parallel print clean FORCE
+
 all: $(EXE)
+
 # Recursive invocations select their configuration before parsing rules.
 # They inherit command-line options and GNU Make's parallel jobserver.
 debug:
@@ -160,6 +180,7 @@ release-serial:
 	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=0 all
 release-parallel:
 	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=1 all
+
 # Record effective flags and source membership. Update the timestamp only
 # when something changes, avoiding both stale objects and needless rebuilds.
 # As with most Makefiles, flag values should not contain literal apostrophes.
@@ -169,3 +190,33 @@ $(CONFIG): FORCE
 	    'CPPFLAGS=$(COMPILE_CPPFLAGS)' \
 	    'CXXFLAGS=$(COMPILE_CXXFLAGS)' \
 	    'LDFLAGS=$(LINK_FLAGS)' 'LDLIBS=$(LDLIBS)' \
+	    'SRCS=$(SRCS)' > $@.tmp
+	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
+
+# Track project headers and .inl files; tolerate removed headers with -MP.
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(CONFIG)
+	@mkdir -p $(OBJ_DIR) $(DEP_DIR)
+	$(CXX) $(COMPILE_CPPFLAGS) $(COMPILE_CXXFLAGS) \
+	    -MMD -MP -MF $(DEP_DIR)/$*.d -MT $@ -c $< -o $@
+
+# Keep libraries after objects for linkers that resolve symbols left to right.
+$(EXE): $(OBJS) $(CONFIG)
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(strip $(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS)) \' \
+	    $(foreach obj,$(OBJS),'    $(obj) \') \
+	    '    $(LDLIBS) -o $@'
+	@$(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS) $(OBJS) $(LDLIBS) -o $@
+
+print:
+	@printf '%s\n' 'Executable: $(EXE)' 'Compiler: $(CXX)' \
+	    'CPPFLAGS: $(COMPILE_CPPFLAGS)' 'CXXFLAGS: $(COMPILE_CXXFLAGS)' \
+	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
+	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
+
+# Remove only Intel outputs, preserving GCC and Clang configurations.
+clean:
+	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)
+
+FORCE:
+
+-include $(DEPS)

@@ -1,4 +1,10 @@
 # GNU Make; Homebrew LLVM on macOS by default.
+# Run from this directory (containing src/ and include/).
+#   make -f Makefile.clang -j8
+#   make -f Makefile.clang debug-parallel
+#   make -f Makefile.clang release-serial LTO=thin
+# Defaults: -O2, OpenMP, no LTO, portable CPU target.
+# Compiler upgrades / loaded module changes require a clean rebuild.
 .DEFAULT_GOAL := all
 .DELETE_ON_ERROR:
 
@@ -22,25 +28,25 @@ NATIVE ?= 0
 ifneq ($(words $(MODE)),1)
 $(error MODE must be release or debug)
 endif
-ifeq ($(filter $(MODE),release debug),)
+ifeq ($(filter release debug,$(MODE)),)
 $(error MODE must be release or debug)
 endif
 ifneq ($(words $(OPENMP)),1)
 $(error OPENMP must be 0 or 1)
 endif
-ifeq ($(filter $(OPENMP),0 1),)
+ifeq ($(filter 0 1,$(OPENMP)),)
 $(error OPENMP must be 0 or 1)
 endif
 ifneq ($(words $(LTO)),1)
 $(error LTO must be off, thin, or full)
 endif
-ifeq ($(filter $(LTO),off thin full),)
+ifeq ($(filter off thin full,$(LTO)),)
 $(error LTO must be off, thin, or full)
 endif
 ifneq ($(words $(NATIVE)),1)
 $(error NATIVE must be 0 or 1)
 endif
-ifeq ($(filter $(NATIVE),0 1),)
+ifeq ($(filter 0 1,$(NATIVE)),)
 $(error NATIVE must be 0 or 1)
 endif
 
@@ -83,10 +89,13 @@ PROJECT_CXXFLAGS += -O2
 endif
 
 ifeq ($(NATIVE),1)
+# Targets the build host's instruction set: use only on compatible CPUs.
 PROJECT_CXXFLAGS += -march=native -mtune=native
 endif
 
 ifeq ($(OPENMP),1)
+# Homebrew LLVM uses the separately installed libomp headers and runtime.
+# The rpath lets the executable find that runtime without DYLD_LIBRARY_PATH.
 OMP_PREFIX ?= /opt/homebrew/opt/libomp
 PROJECT_CPPFLAGS += -DHAVE_OPENMP -I$(OMP_PREFIX)/include
 PROJECT_CXXFLAGS += -fopenmp
@@ -143,11 +152,13 @@ $(CONFIG): FORCE
 	    'SRCS=$(SRCS)' > $@.tmp
 	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
+# Track project headers and .inl files; tolerate removed headers with -MP.
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(CONFIG)
 	@mkdir -p $(OBJ_DIR) $(DEP_DIR)
 	$(CXX) $(COMPILE_CPPFLAGS) $(COMPILE_CXXFLAGS) \
 	    -MMD -MP -MF $(DEP_DIR)/$*.d -MT $@ -c $< -o $@
 
+# Keep libraries after objects for linkers that resolve symbols left to right.
 $(EXE): $(OBJS) $(CONFIG)
 	@mkdir -p $(dir $@)
 	@printf '%s\n' '$(strip $(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS)) \' \
@@ -161,10 +172,12 @@ print:
 	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
 	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
-# Removes only the directories managed by this Makefile. Old obj/ and dep/
-# directories from the previous Makefile are left alone.
+# Match Clang configuration directories, preserving build/gnu and build/intel.
+# Old obj/ and dep/ directories from the previous Makefile are left alone.
 clean:
-	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)/debug-omp*-lto*-native* \
+	$(RM) -r $(BUILD_ROOT)/debug-omp*-lto*-native* \
+	    $(BUILD_ROOT)/release-omp*-lto*-native* \
+	    $(BIN_DIR)/debug-omp*-lto*-native* \
 	    $(BIN_DIR)/release-omp*-lto*-native*
 
 FORCE:

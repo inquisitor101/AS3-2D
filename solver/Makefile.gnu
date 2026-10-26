@@ -1,99 +1,186 @@
-# Binary exetutable directory.
-BIN_DIR := bin
-# Source file directory.
-SRC_DIR := src
-# Object file directory.
-OBJ_DIR := obj
-# Dependency file directory.
-DEP_DIR := dep
+# GNU Make; GCC with system LAPACK/BLAS.
+# Run from this directory (containing src/ and include/).
+#   make -f Makefile.gnu -j8
+#   make -f Makefile.gnu debug-parallel
+#   make -f Makefile.gnu release-serial LTO=full NATIVE=1
+#   make -f Makefile.gnu CXX=g++-16      # Homebrew GCC on macOS
+# Defaults: -O2, OpenMP, no LTO, portable CPU target.
+# On macOS, /usr/bin/g++ is Apple Clang; select an installed GCC explicitly.
+# Compiler upgrades / loaded module changes require a clean rebuild.
+.DEFAULT_GOAL := all
+.DELETE_ON_ERROR:
 
+# Capture the main makefile before dependency files are included.
+THIS_MAKEFILE := $(abspath $(firstword $(MAKEFILE_LIST)))
 
-# Executable name
-EXE := $(BIN_DIR)/AS3
+# Replace Make's built-in CXX default while preserving user overrides.
+ifeq ($(origin CXX),default)
+CXX := g++
+endif
+CXX ?= g++
 
-# Compiler and standard.
-CXX = g++ --std=c++20 -fopenmp
+# Each configuration has separate objects and an executable. GCC supports
+# full LTO, so the Clang/Intel LTO=thin setting is not accepted here.
+MODE   ?= release
+OPENMP ?= 1
+LTO    ?= off
+NATIVE ?= 0
 
-# OpenMP flag.
-CXX_OMP = -DHAVE_OPENMP
+ifneq ($(words $(MODE)),1)
+$(error MODE must be release or debug)
+endif
+ifeq ($(filter release debug,$(MODE)),)
+$(error MODE must be release or debug)
+endif
+ifneq ($(words $(OPENMP)),1)
+$(error OPENMP must be 0 or 1)
+endif
+ifeq ($(filter 0 1,$(OPENMP)),)
+$(error OPENMP must be 0 or 1)
+endif
+ifneq ($(words $(LTO)),1)
+$(error LTO must be off or full; GCC does not support ThinLTO)
+endif
+ifeq ($(filter off full,$(LTO)),)
+$(error LTO must be off or full; GCC does not support ThinLTO)
+endif
+ifneq ($(words $(NATIVE)),1)
+$(error NATIVE must be 0 or 1)
+endif
+ifeq ($(filter 0 1,$(NATIVE)),)
+$(error NATIVE must be 0 or 1)
+endif
 
-# MPI flag.
-CXX_MPI = 
+# Keep GCC objects and binaries separate from Clang and Intel outputs.
+SRC_DIR    := src
+BIN_DIR    := bin/gnu
+BUILD_ROOT := build/gnu
+BUILD_TAG  := $(MODE)-omp$(OPENMP)-lto$(LTO)-native$(NATIVE)
+BUILD_DIR  := $(BUILD_ROOT)/$(BUILD_TAG)
+OBJ_DIR    := $(BUILD_DIR)/obj
+DEP_DIR    := $(BUILD_DIR)/dep
+EXE        := $(BIN_DIR)/$(BUILD_TAG)/AS3
+CONFIG     := $(BUILD_DIR)/flags.txt
 
-
-# Extract source files.
-SRCS := $(wildcard $(SRC_DIR)/*.cpp)
-# Specify object files.
+SRCS := $(sort $(wildcard $(SRC_DIR)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
-# Dependency files.
 DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
 
+# User flags are separate from required build flags. Examples:
+# make CXXFLAGS=-Wshadow
+# make EXTRA_CXXFLAGS=-pg EXTRA_LDFLAGS=-pg
+# LAPACK/BLAS must use the LP64 interface (32-bit Fortran integers).
+CPPFLAGS ?=
+CXXFLAGS ?=
+LDFLAGS  ?=
+LDLIBS   ?= -llapack -lblas
+EXTRA_CPPFLAGS ?=
+EXTRA_CXXFLAGS ?=
+EXTRA_LDFLAGS  ?=
 
-# Header files directory.
-INCLUDE = -Iinclude 
+PROJECT_CPPFLAGS := -Iinclude
+PROJECT_CXXFLAGS := -std=c++20 -Wall -Wextra -Wconversion
+PROJECT_LDFLAGS  :=
 
-# Linker flags.
-LDFLAG = -Llib -flto
+ifeq ($(MODE),debug)
+# Enable assertions and solver NaN checks without dropping OpenMP settings.
+PROJECT_CPPFLAGS += -UNDEBUG -DDEBUG -DENABLE_NAN_CHECK
+PROJECT_CXXFLAGS += -O0 -g
+else
+PROJECT_CPPFLAGS += -DNDEBUG
+PROJECT_CXXFLAGS += -O2
+endif
 
-# Linker libraries.
-LDLIBS = -llapack -lblas $(CXX_PGOFLAGS)
+ifeq ($(NATIVE),1)
+# Targets the build host's instruction set: use only on compatible CPUs.
+# AArch64 selects architecture and tuning together with -mcpu; this also
+# avoids GCC's conflicting native architecture/tuning expansion on macOS.
+GCC_TARGET := $(shell $(CXX) -dumpmachine)
+ifneq ($(filter aarch64% arm64%,$(GCC_TARGET)),)
+PROJECT_CXXFLAGS += -mcpu=native
+else
+PROJECT_CXXFLAGS += -march=native -mtune=native
+endif
+endif
 
-# Dependency flags.
-DEPFLAGS = -MMD -MT $@ -MP -MF $(DEP_DIR)/$*.d
+ifeq ($(OPENMP),1)
+# GCC supplies its own OpenMP headers and libgomp runtime. Enable both the
+# solver's guarded code and compiler support, including at link time.
+PROJECT_CPPFLAGS += -DHAVE_OPENMP
+PROJECT_CXXFLAGS += -fopenmp
+PROJECT_LDFLAGS  += -fopenmp
+else
+PROJECT_CPPFLAGS += -UHAVE_OPENMP
+endif
 
-# Compiler debug flags.
-CXX_DBGFLAGS = -g -DDEBUG -Wall -DENABLE_NAN_CHECK -Wconversion -Wextra -Wno-unused-parameter #-Wpadded -Werror #-fanalyzer 
+ifeq ($(LTO),full)
+# GCC uses -flto, not Clang's -flto=full. Generate LTO data while compiling
+# and enable interprocedural optimization when linking through g++.
+PROJECT_CXXFLAGS += -flto
+PROJECT_LDFLAGS  += -flto
+endif
 
-# Preprocessor flags.
-CPPFLAGS = $(INCLUDE) $(DEPFLAGS)
+COMPILE_CPPFLAGS = $(CPPFLAGS) $(EXTRA_CPPFLAGS) $(PROJECT_CPPFLAGS)
+COMPILE_CXXFLAGS = $(CXXFLAGS) $(EXTRA_CXXFLAGS) $(PROJECT_CXXFLAGS)
+LINK_FLAGS       = $(LDFLAGS) $(EXTRA_LDFLAGS) $(PROJECT_LDFLAGS)
 
-# Optimization flags.
-CXX_OPTFLAGS = -O2 -funroll-loops -ftree-vectorize -march=native -mtune=native -DNDEBUG 
-
-# Guided-profiling flag.
-CXX_PGOFLAGS = #-pg
-
-# C++ flags.
-CXXFLAGS = $(CXX_OPTFLAGS) $(CXX_PGOFLAGS) $(CXX_OMP) $(CXX_MPI)  
-
-
-# Hey Make, these aren't real directories.
-.PHONY: all clean debug
-default: all
+.PHONY: all debug release debug-serial debug-parallel release-serial \
+        release-parallel print clean FORCE
 
 all: $(EXE)
 
-$(EXE): $(OBJS)
-	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) $(LDFLAG) $^ -o $@ $(LDLIBS) 
+# Select the configuration before parsing its output paths. Recursive make
+# inherits command-line overrides and the parallel jobserver.
+debug:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug all
+release:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release all
+debug-serial:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug OPENMP=0 all
+debug-parallel:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=debug OPENMP=1 all
+release-serial:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=0 all
+release-parallel:
+	+$(MAKE) --file="$(THIS_MAKEFILE)" MODE=release OPENMP=1 all
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(DEP_DIR)/%.d | $(DEP_DIR)
-	@mkdir -p $(OBJ_DIR)
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -o $@ -c $< 
+# Track effective flags and source membership so incremental builds cannot
+# reuse objects after a configuration change. Keep the timestamp unchanged
+# when settings match. Flag values should not contain literal apostrophes.
+$(CONFIG): FORCE
+	@mkdir -p $(BUILD_DIR)
+	@printf '%s\n' 'CXX=$(CXX)' \
+	    'CPPFLAGS=$(COMPILE_CPPFLAGS)' \
+	    'CXXFLAGS=$(COMPILE_CXXFLAGS)' \
+	    'LDFLAGS=$(LINK_FLAGS)' 'LDLIBS=$(LDLIBS)' \
+	    'SRCS=$(SRCS)' > $@.tmp
+	@cmp -s $@.tmp $@ && rm -f $@.tmp || mv -f $@.tmp $@
 
-debug: CXXFLAGS = $(CXX_DBGFLAGS)
-debug: $(EXE)
+# Dependency files include project headers and .inl files; -MP tolerates
+# headers that have been removed or renamed since the previous build.
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(CONFIG)
+	@mkdir -p $(OBJ_DIR) $(DEP_DIR)
+	$(CXX) $(COMPILE_CPPFLAGS) $(COMPILE_CXXFLAGS) \
+	    -MMD -MP -MF $(DEP_DIR)/$*.d -MT $@ -c $< -o $@
 
-
-$(DEPS):
-
-$(DEP_DIR): ; @mkdir -p $@
-
-.PRECIOUS: $(DEP_DIR)/%.d
-
-
-clean:
-	$(RM) $(OBJ_DIR)/*.o $(DEP_DIR)/*.d $(EXE)
-
-
-
+# Keep libraries after objects for linkers that resolve symbols left to right.
+$(EXE): $(OBJS) $(CONFIG)
+	@mkdir -p $(dir $@)
+	@printf '%s\n' '$(strip $(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS)) \' \
+	    $(foreach obj,$(OBJS),'    $(obj) \') \
+	    '    $(LDLIBS) -o $@'
+	@$(CXX) $(COMPILE_CXXFLAGS) $(LINK_FLAGS) $(OBJS) $(LDLIBS) -o $@
 
 print:
-	@echo "srcs:"
-	@$(foreach file,$(SRCS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
-	@echo "objs:"
-	@$(foreach file,$(OBJS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
-	@echo "deps:"
-	@$(foreach file,$(DEPS),$(if $(shell grep "aaa" "$(file)"),,echo "" $(file);))
+	@printf '%s\n' 'Executable: $(EXE)' 'Compiler: $(CXX)' \
+	    'CPPFLAGS: $(COMPILE_CPPFLAGS)' 'CXXFLAGS: $(COMPILE_CXXFLAGS)' \
+	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
+	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
--include $(wildcard $(DEPS))
+# Remove only GCC outputs. Legacy obj/, dep/ and bin/AS3 are left alone.
+clean:
+	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)
+
+FORCE:
+
+-include $(DEPS)
