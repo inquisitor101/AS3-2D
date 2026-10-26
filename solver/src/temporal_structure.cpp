@@ -129,6 +129,7 @@ void CSSPRK3Temporal::UpdateElementSolution
 	// Preserve the first-stage distinction and the original update expressions.
 	if( iStageRK == 0 )
 	{
+#pragma omp simd
 		for(std::size_t l=0; l<sol.size(); l++)
 		{
 			old[l]  = sol[l];
@@ -138,7 +139,8 @@ void CSSPRK3Temporal::UpdateElementSolution
 	else
 	{
 		const as3double oma = C_ONE - alpha;
-		for(std::size_t l=0; l<sol.size(); l++)
+#pragma omp simd
+    for(std::size_t l=0; l<sol.size(); l++)
 			sol[l] = oma*sol[l] + alpha*old[l] + bdt*res[l];
 	}
 }
