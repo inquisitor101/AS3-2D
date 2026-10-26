@@ -1,6 +1,0 @@
-#!/bin/bash
-
-rm vis/*.vtk
-#rm data/*.bin
-#rm logs/*.log
-#rm gnuplot/*.dat
