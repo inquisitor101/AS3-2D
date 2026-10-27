@@ -22,7 +22,9 @@ jobs:
           sudo apt-get install -y doxygen graphviz
 
       - name: Generate documentation
-        run: doxygen Doxyfile
+        run: |
+          mkdir -p build/docs
+          doxygen Doxyfile
 
       - name: Check generated homepage
         run: test -s build/docs/html/index.html
