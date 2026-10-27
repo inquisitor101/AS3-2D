@@ -132,13 +132,6 @@ bool CConfig::ReadZoneConfigurationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeBufferLayer = GenericVectorMap(MapTypeBufferLayer, buffervec, "TYPE_BUFFER_LAYER");
 
-	// Read the type of DOFs in each zone.
-	NInputUtility::AddVectorOption(paramfile, "TYPE_DOF", buffervec, true);
-  // Pad entries for the buffer vector.
-  PadEntriesVectorData(buffervec, "TYPE_DOF", mNZone, 1, 2);
-	// Deduce the type from the buffer, based on the mapping.
-	mTypeDOF = GenericVectorMap(MapTypeDOF, buffervec, "TYPE_DOF");
-
 	// Read the type of Riemann solver specified in each zone.
 	NInputUtility::AddVectorOption(paramfile, "RIEMANN_SOLVER", buffervec, true);
 	// Pad entries for the mTypeRiemannSolver vector.

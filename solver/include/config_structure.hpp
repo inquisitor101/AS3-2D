@@ -96,15 +96,6 @@ class CConfig
 		ETemporalScheme GetTemporalScheme(void)                     const {return mTemporalScheme;}
 
 		/*!
-		 * @brief Getter function which returns the value of mTypeDOF, per input zone.
-		 *
-		 * @param[in] iZone zone ID.
-		 *
-		 * @return mTypeDOF[iZone]
-		 */   
-		ETypeDOF GetTypeDOF(std::size_t iZone)                           const {return mTypeDOF[iZone];}
-
-		/*!
 		 * @brief Getter function which returns the numerical flux method.
 		 *
 		 * @param[in] iZone zone ID.
@@ -258,7 +249,6 @@ class CConfig
     as3vector1d<EWriteVariable>     mWriteVisVar;        ///< Vector of visualization variables to write.
 		as3vector1d<ETypeSolver>        mTypeSolver;         ///< Type of PDEs in each zone.
     as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;    ///< Type of buffer layer in each zone.
-		as3vector1d<ETypeDOF>           mTypeDOF;            ///< Type of DOFs in each zone.
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;  ///< Type of Riemann solver per each zone.
 
     std::string mGridDirectory;                          ///< Directory containing the configured AS3 grid file.

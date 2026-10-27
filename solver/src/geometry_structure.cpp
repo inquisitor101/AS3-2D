@@ -91,6 +91,12 @@ void CMultizoneGeometry::ImportGrid
   // Deduce the number of zones.
   mNZone = metadata.mZones.size();
 
+  // Consistency check.
+  if( mNZone != config_container->GetnZone() )
+  {
+    ERROR("Number of zones in imported grid does not match input by user in configuration.");
+  }
+
   // Reserve the correct amount of memory for the grid.
   mSinglezoneGeometry.reserve( mNZone );
 
