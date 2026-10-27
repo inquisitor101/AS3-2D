@@ -1,0 +1,12 @@
+PROJECT_NAME       = "AS3-2D"
+OUTPUT_DIRECTORY   = build/docs
+INPUT              = solver/include solver/src solver/docs
+RECURSIVE          = YES
+FILE_PATTERNS      = *.hpp *.cpp *.inl *.md
+EXTENSION_MAPPING  = inl=C++
+GENERATE_HTML      = YES
+HTML_OUTPUT        = html
+GENERATE_LATEX     = NO
+SOURCE_BROWSER     = YES
+HAVE_DOT           = YES
+QUIET              = YES
