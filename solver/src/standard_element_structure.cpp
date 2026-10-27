@@ -12,7 +12,7 @@
 
 CStandardElement::CStandardElement
 (
- ETypeDOF       typeDOFs,
+ ETypeDOF    typeDOFs,
  std::size_t nPoly,
  std::size_t nInt 
 )
@@ -76,7 +76,7 @@ CStandardElement::~CStandardElement
 
 void CStandardElement::InitializeQuadrature
 (
- std::size_t           nInt1D,
+ std::size_t            nInt1D,
  CMatrixAS3<as3double> &rInt1D,
  CMatrixAS3<as3double> &wInt1D,
  CMatrixAS3<as3double> &wInt2D
@@ -119,7 +119,7 @@ void CStandardElement::InitializeQuadrature
 void CStandardElement::ComputeLocationDOFs1D
 (
  ETypeDOF               typeDOFs,
- std::size_t           nDOFs1D,
+ std::size_t            nDOFs1D,
  CMatrixAS3<as3double> &rDOFs1D
 )
  /*
