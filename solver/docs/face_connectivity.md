@@ -1,3 +1,5 @@
+# Face connectivity {#face_connectivity}
+
 The face data describe connectivity. Coordinates, normals, and metric terms live
 with the element geometry. `face_structure.hpp` keeps the existing project naming
 style while giving each level a specific meaning.

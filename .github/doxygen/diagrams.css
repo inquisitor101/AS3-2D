@@ -1,0 +1,28 @@
+.as3-diagram {
+    margin: 1rem 0 2rem;
+}
+
+.as3-diagram iframe {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    background: #fff;
+    border: 1px solid var(--separator-color);
+    border-radius: var(--border-radius-small);
+}
+
+.as3-diagram figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.9em;
+}
+
+html.dark-mode .as3-diagram iframe {
+    filter: brightness(89%) hue-rotate(180deg) invert();
+}
+
+@media (prefers-color-scheme: dark) {
+    html:not(.light-mode) .as3-diagram iframe {
+        filter: brightness(89%) hue-rotate(180deg) invert();
+    }
+}

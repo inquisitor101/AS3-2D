@@ -1,12 +1,40 @@
-PROJECT_NAME       = "AS3-2D"
-OUTPUT_DIRECTORY   = build/docs
-INPUT              = solver/include solver/src solver/docs
-RECURSIVE          = YES
-FILE_PATTERNS      = *.hpp *.cpp *.inl *.md
-EXTENSION_MAPPING  = inl=C++
-GENERATE_HTML      = YES
-HTML_OUTPUT        = html
-GENERATE_LATEX     = NO
-SOURCE_BROWSER     = YES
-HAVE_DOT           = YES
-QUIET              = YES
+# Run from the repository root after creating build/docs.
+PROJECT_NAME           = "AS3-2D"
+PROJECT_BRIEF          = "A Simple Structured Solver in Two Dimensions"
+OUTPUT_DIRECTORY       = build/docs
+
+INPUT                  = solver/include solver/src solver/docs
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.cpp *.inl *.md
+EXTENSION_MAPPING      = inl=C++
+BUILTIN_STL_SUPPORT    = YES
+EXTRACT_PRIVATE        = YES
+USE_MDFILE_AS_MAINPAGE  = solver/docs/index.md
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+GENERATE_LATEX         = NO
+SOURCE_BROWSER         = YES
+QUIET                  = YES
+
+# Doxygen Awesome v2.5.0: sidebar navigation and automatic light/dark theme.
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 335
+DISABLE_INDEX          = NO
+FULL_SIDEBAR           = NO
+HTML_COLORSTYLE        = LIGHT
+HTML_EXTRA_STYLESHEET  = .github/doxygen-awesome/doxygen-awesome.css \
+                         .github/doxygen-awesome/doxygen-awesome-sidebar-only.css
+
+HTML_EXTRA_STYLESHEET += .github/doxygen/diagrams.css
+
+# Inheritance and collaboration diagrams with zooming and panning.
+HAVE_DOT               = YES
+CLASS_GRAPH            = YES
+GRAPHICAL_HIERARCHY    = YES
+COLLABORATION_GRAPH    = YES
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+DIRECTORY_GRAPH        = YES
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES

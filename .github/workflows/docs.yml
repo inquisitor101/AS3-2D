@@ -25,6 +25,7 @@ jobs:
         run: |
           mkdir -p build/docs
           doxygen Doxyfile
+          python3 .github/doxygen/build_graph_gallery.py build/docs/html
 
       - name: Check generated homepage
         run: test -s build/docs/html/index.html

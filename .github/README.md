@@ -4,6 +4,11 @@ This project, code-named **AS3-2D**, stands for: A Simple Structured Solver (AS3
 > [!NOTE]
 > As of writing this document, AS3-2D is still under development. Additional information will be provided as the project progresses.
 
+# Documentation
+
+Visit the [AS3-2D documentation website](https://inquisitor101.github.io/AS3-2D/)
+for build instructions, the API reference, and class hierarchy and dependency diagrams.
+
 # Overview
 
 AS3-2D uses a nodal discontinuous Galerkin finite element method (DG-FEM) as its spatial discretization strategy. It is restricted to quadrilateral-type elements, utilizing a tensor-product formulation of their 1D counterparts. The temporal discretization uses explicit time-marching schemes only. The solver is capable of handling curvilinear grids with multizone or multiblock configurations.
@@ -23,6 +28,6 @@ AS3-2D uses a nodal discontinuous Galerkin finite element method (DG-FEM) as its
 
 * To contribute, please read the following [document](./contributing.md).
 * For an overview of the coding style used in AS3-2D, see [guidelines](./coding_style.md).
-* Documentation will be provided as the project matures.
+* To build and run the solver, see the [Getting started guide](https://inquisitor101.github.io/AS3-2D/getting_started.html).
 
 
