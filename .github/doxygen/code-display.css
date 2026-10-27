@@ -1,0 +1,26 @@
+/* Documentation display only: width matches the C++ EditorConfig settings. */
+:root {
+    --as3-code-tab-width: 2;
+}
+
+div.fragment,
+div.fragment .line,
+pre {
+    font-family: var(--font-family-monospace, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+    font-variant-ligatures: none;
+    tab-size: var(--as3-code-tab-width);
+}
+
+div.fragment,
+pre {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+}
+
+div.fragment .line,
+pre {
+    white-space: pre;
+    text-wrap: nowrap;
+    overflow-wrap: normal;
+    word-break: normal;
+}

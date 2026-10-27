@@ -16,6 +16,7 @@ HTML_OUTPUT            = html
 GENERATE_LATEX         = NO
 SOURCE_BROWSER         = YES
 QUIET                  = YES
+TAB_SIZE               = 2
 
 # Doxygen Awesome v2.5.0: sidebar navigation and automatic light/dark theme.
 GENERATE_TREEVIEW      = YES
@@ -38,3 +39,6 @@ INCLUDED_BY_GRAPH      = YES
 DIRECTORY_GRAPH        = YES
 DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
+
+# Preserve code columns on desktop and narrow mobile screens.
+HTML_EXTRA_STYLESHEET += .github/doxygen/code-display.css
