@@ -5,7 +5,9 @@
 #include <iomanip>
 #include <ios>
 #include <iostream>
+#include <map>
 #include <ostream>
+#include <sstream>
 #include <string>
 
 
@@ -85,123 +87,130 @@ void NLogger::DisplayBoundaryConditions
 	* Function that prints the configured physical and periodic boundary conditions.
 	*/
 {
-  // TODO: finish this.
-  WARNING("FINISH ME.");
-	//// Report output.
-	//std::cout << "----------------------------------------------"
-	//						 "----------------------------------------------\n";
-	//std::cout << "Reporting boundary conditions specified:" << std::endl;
+  struct CBoundarySummary
+  {
+    ETypeBC mType;
+    std::size_t mFaces;
+  };
+  std::map<std::string, CBoundarySummary> physical;
 
-	//// Max length of marker names, used for output format.
-	//std::size_t maxlen = 0;
-	//
-	//// Determine the maximum length of the interface marker names.
-	//for( auto& [name, bc]: config_container->GetMarkerTag() )
-	//{
-	//	maxlen = std::max( maxlen, name.size() );
-	//}
+  // Aggregate initialized boundary batches across zones and both directions.
+  // This reports the conditions actually used by the solver, once per name.
+  for(std::size_t direction=0; direction<2; ++direction)
+  {
+    const auto& batches = direction == 0
+      ? multizone_geometry_container->GetBoundaryBatchesIFace()
+      : multizone_geometry_container->GetBoundaryBatchesJFace();
+    for(std::size_t batch=0; batch<batches.size(); ++batch)
+    {
+      const auto index = direction == 0
+        ? multizone_solver_container->GetIndexBoundaryIFace(batch)
+        : multizone_solver_container->GetIndexBoundaryJFace(batch);
+      const auto type = multizone_solver_container->GetBoundary(index)->GetTypeBC();
+      const auto& faces = batches[batch];
+      auto [entry, inserted] = physical.emplace(faces.GetName(), CBoundarySummary{type, 0});
+      if( !inserted && entry->second.mType != type )
+        ERROR("Inconsistent boundary types for marker: " + faces.GetName());
+      entry->second.mFaces += faces.GetnFace();
+    }
+  }
 
+  struct CReportRow
+  {
+    std::string mName, mCondition;
+    std::size_t mFaces;
+    std::string mParameters;
+  };
+  as3vector1d<CReportRow> rows;
+  for(const auto& [name, boundary] : physical)
+  {
+    const auto* parameters = config_container->GetBoundaryParamMarker(name);
+    if( parameters->GetTypeBC() != boundary.mType )
+      ERROR("Boundary parameters do not match solver for marker: " + name);
+    std::string condition;
+    std::ostringstream brief;
+    brief << std::setprecision(8);
+    switch( boundary.mType )
+    {
+      case ETypeBC::SYMMETRY:
+        condition = "Symmetry";
+        brief << '-';
+        break;
+      case ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN:
+      {
+        condition = "Static mass-flow inlet (Riemann)";
+        const auto* inlet = static_cast<const CStaticMassFlowInletRiemannParamMarker*>(parameters);
+        brief << "density=" << inlet->mDensity
+              << ", velocity=(" << inlet->mVelocity[0] << ", " << inlet->mVelocity[1] << ')';
+        break;
+      }
+      case ETypeBC::PRESSURE_OUTLET_RIEMANN:
+      {
+        condition = "Pressure outlet (Riemann)";
+        const auto* outlet = static_cast<const CPressureOutletRiemannParamMarker*>(parameters);
+        brief << "pressure=" << outlet->mPressure;
+        break;
+      }
+      default: ERROR("Unsupported physical boundary type for marker: " + name);
+    }
+    rows.push_back({name, condition, boundary.mFaces, brief.str()});
+  }
 
-	//// Loop over each grid zone.
-	//for( auto& zone: multizone_geometry_container->GetSinglezoneGeometry() )
-	//{
-	//	// Extract the marker information in this zone.
-	//	auto& marker = zone->GetMarker();
+  // Periodic markers are interfaces rather than physical boundary evaluators.
+  // Count each paired face once and retain the configured translation direction.
+  const auto& periodic = config_container->GetPeriodicParamMarker();
+  for(const auto& parameters : periodic)
+  {
+    std::size_t pairs = 0;
+    for(const auto& family : multizone_geometry_container->GetPeriodicFamilyMarkers())
+      for(const auto& marker : family.GetMarkers())
+        if( marker.mNameI == parameters->mName && marker.mNameJ == parameters->mNameMatching )
+        {
+          const auto* zone = multizone_geometry_container->GetSinglezoneGeometry(marker.mIndexZoneI);
+          pairs += marker.GetiTypeFace() == ETypeFace::IFACE ? zone->GetnjElem() : zone->GetniElem();
+        }
+    std::ostringstream brief;
+    brief << std::setprecision(8) << "translation=(" << parameters->mVectorTrans[0]
+          << ", " << parameters->mVectorTrans[1] << ')';
+    rows.push_back({parameters->mName + " -> " + parameters->mNameMatching,
+                    "Periodic", pairs, brief.str()});
+  }
 
-	//	// Display the zone ID and number of boundaries.
-	//	std::cout << "  zone: " << zone->GetZoneID() << ")\n";
-	//	std::cout << "   ... has " 
-	//		        << marker.size() << " markers with BCs:" << std::endl;
+  std::size_t nameWidth = std::string("Marker").size();
+  std::size_t conditionWidth = std::string("Condition").size();
+  std::size_t faceWidth = std::string("Faces").size();
+  std::size_t parameterWidth = std::string("Parameters").size();
+  for(const auto& row : rows)
+  {
+    nameWidth = std::max(nameWidth, row.mName.size());
+    conditionWidth = std::max(conditionWidth, row.mCondition.size());
+    faceWidth = std::max(faceWidth, std::to_string(row.mFaces).size());
+    parameterWidth = std::max(parameterWidth, row.mParameters.size());
+  }
 
-	//	// Counter for the number of boundaries in this zone.
-	//	std::size_t n = 0;
-
-	//	// Loop over each marker and deduce its type and information.
-	//	for( auto& m: marker )
-	//	{
-	//		// Distinguish between regular boundaries and periodic BCs.
-	//		if( m->GetTypeBC() == ETypeBC::PERIODIC )
-	//		{
-	//			// Flag whether the marker is found or not.
-	//			bool found = false;
-
-  //      // Get the interfaces.
-  //      const auto& interface_container = multizone_solver_container->GetMultizoneInterface();
-
-	//			// Loop over each interface and search for our marker.
-	//			for( const auto& interface: interface_container )
-	//			{
-	//				// Check if this marker is an owner on this face.
-	//				if( interface->GetIName() == m->GetNameMarker() )
-	//				{
-	//					// Extract zone indices.
-	//					auto  izone = interface->GetIZone();
-	//					auto  jzone = interface->GetJZone();
-
-	//					// Extract marker names.
-	//					auto& iname = interface->GetIName();
-	//					auto& jname = interface->GetJName();
-
-	//					// Copy the name tags to a fixed-length string.
-	//					std::string tmp = iname;
-	//					std::string inamepad(maxlen, ' ');
-	//					for(std::size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
-
-	//					// Report output concerning the interface markers.
-	//					std::cout << "     "    << izone    << "." 
-	//						        << n++                    << ") PERIODIC: "
-	//										<< " iZone: " << izone    << ", " 
-	//										<< " iName: " << inamepad << " ==> " 
-	//										<< " jZone: " << jzone    << ", "
-	//										<< " jName: " << jname    << std::endl; 
-	//					
-	//					// Flag that we found our marker and break from the loop.
-	//					found = true; break;
-	//				}
-
-	//				// Check if this marker is a matching pair on this face.
-	//				if( interface->GetJName() == m->GetNameMarker() )
-	//				{
-	//					// Extract zone indices.
-	//					auto  izone = interface->GetJZone();
-	//					auto  jzone = interface->GetIZone();
-
-	//					// Extract marker names.
-	//					auto& iname = interface->GetJName();
-	//					auto& jname = interface->GetIName();
-
-	//					// Copy the name tags to a fixed-length string.
-	//					std::string tmp = iname;
-	//					std::string inamepad(maxlen, ' ');
-	//					for(std::size_t ii=0; ii<tmp.size(); ii++) inamepad[ii] = tmp[ii];
-
-	//					// Report output concerning the interface markers.
-	//					std::cout << "     "    << izone    << "." 
-	//						        << n++                    << ") PERIODIC: "
-	//										<< " iZone: " << izone    << ", " 
-	//										<< " iName: " << inamepad << " ==> " 
-	//										<< " jZone: " << jzone    << ", "
-	//										<< " jName: " << jname    << std::endl; 
-	//					
-	//					// Flag that we found our marker and break from the loop.
-	//					found = true; break;
-	//				}
-	//			}
-
-	//			// If we couldn't find the marker, issue an error.
-	//			if( !found ) ERROR("Interface marker could not be located.");
-	//		}
-	//		else
-	//		{
-	//			// This is a regular boundary condition.
-	//			ERROR("Not implemented yet.");
-	//		}
-	//	}
-	//}
-
-
-	//// Report output.
-	//std::cout << "Done." << std::endl;
+  // A local stream keeps this report independent of earlier scientific output
+  // and preserves the caller's precision, fill character and alignment.
+  std::ostringstream report;
+  report << std::string(92, '-') << "\nBoundary conditions:\n";
+  if( rows.empty() ) report << "  None.\n";
+  else
+  {
+    const auto row = [&](const auto& name, const auto& condition,
+                         const auto& faces, const auto& parameters)
+    {
+      report << "  " << std::left << std::setw(static_cast<int>(nameWidth + 2)) << name
+             << std::setw(static_cast<int>(conditionWidth + 2)) << condition
+             << std::right << std::setw(static_cast<int>(faceWidth)) << faces
+             << "  " << parameters << '\n';
+    };
+    row("Marker", "Condition", "Faces", "Parameters");
+    report << "  " << std::string(nameWidth + conditionWidth + faceWidth + parameterWidth + 6, '-') << '\n';
+    for(const auto& entry : rows)
+      row(entry.mName, entry.mCondition, entry.mFaces, entry.mParameters);
+    if( !periodic.empty() )
+      report << "  Periodic rows count face pairs; translation maps the first marker to the second.\n";
+  }
+  std::cout << report.str();
 }
 
 //-----------------------------------------------------------------------------------
@@ -272,30 +281,30 @@ void NLogger::DisplayOpenMPInfo
  const CMultizoneSolver   *multizone_solver_container
 )
  /*
-	* Function that prints thread counts and estimated static work distribution.
-	*/
+  * Function that prints thread counts and estimated static work distribution.
+  */
 {
+  (void)openmp_container;
   // Report output.
-	std::cout << "----------------------------------------------"
-							 "----------------------------------------------\n";
+  std::cout << "----------------------------------------------"
+               "----------------------------------------------\n";
 #ifdef HAVE_OPENMP
-  // Get max number of threads specified.
+  // Allocate for the maximum team; report the actual team observed below.
   const std::size_t nThreads = static_cast<std::size_t>(omp_get_max_threads());
-  std::cout << "This is a parallel implementation using: "
-            << nThreads << " threads." << std::endl;
+  std::size_t actualThreads = 1;
 
-	// Get the total number of elements in all zones.
-	const std::size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
-	// Get the total number of i-faces in all zones.
-	const std::size_t nIFace     = multizone_geometry_container->GetnIFace();
-	// Get the total number of j-faces in all zones.
-	const std::size_t nJFace     = multizone_geometry_container->GetnJFace();
+  // Get the total number of elements in all zones.
+  const std::size_t nElemTotal = multizone_geometry_container->GetnElemTotal();
+  // Get the total number of i-faces in all zones.
+  const std::size_t nIFace     = multizone_geometry_container->GetnIFace();
+  // Get the total number of j-faces in all zones.
+  const std::size_t nJFace     = multizone_geometry_container->GetnJFace();
 
   // Estimate computational work load of each thread.
   as3vector1d<std::size_t> workloadDOFs(nThreads, 0);
-	as3vector1d<std::size_t> workloadElem(nThreads, 0);
-	as3vector1d<std::size_t> workloadIFace(nThreads, 0);
-	as3vector1d<std::size_t> workloadJFace(nThreads, 0);
+  as3vector1d<std::size_t> workloadElem(nThreads, 0);
+  as3vector1d<std::size_t> workloadIFace(nThreads, 0);
+  as3vector1d<std::size_t> workloadJFace(nThreads, 0);
 
   as3vector1d<std::size_t> workloadIFaceInternal_standard(nThreads,  0);
   as3vector1d<std::size_t> workloadIFaceBoundary_standard(nThreads,  0);
@@ -313,131 +322,175 @@ void NLogger::DisplayOpenMPInfo
   as3vector1d<std::size_t> workloadJFaceBoundary_balanced(nThreads,  0);
   as3vector1d<std::size_t> workloadJFaceInterface_balanced(nThreads, 0);
 
-	// Estimate the i-surface workload.
-#pragma omp parallel for schedule(static)
-	for(std::size_t i=0; i<nIFace; i++)
-	{
-    // Thread index.
-    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
+  // Use one actual team for all three static loops and the before/after counts.
+#pragma omp parallel
+  {
+#pragma omp single
+    actualThreads = static_cast<std::size_t>(omp_get_num_threads());
 
-		// Accumulate the number of elements per thread.
-		workloadIFace[iThread]++;
-
-    // Get the relevant face information for the standard and load-balanced partitions.
-    const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexIFace(i);
-    const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
-
-    // Estimate the work load for the standard approach.
-    switch( face_info_standard.mFaceType )
+    // Estimate the i-surface workload.
+#pragma omp for schedule(static)
+    for(std::size_t i=0; i<nIFace; i++)
     {
-      case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_standard[iThread]++;  break; }
-      case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_standard[iThread]++;  break; }
-      case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_standard[iThread]++; break; }
-      default: ERROR("Unknown face type.");
+      // Thread index.
+      const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
+
+      // Accumulate the number of elements per thread.
+      workloadIFace[iThread]++;
+
+      // Get the relevant face information for the standard and load-balanced partitions.
+      const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexIFace(i);
+      const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexIFaceLoadBalanced(i);
+
+      // Estimate the work load for the standard approach.
+      switch( face_info_standard.mFaceType )
+      {
+        case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_standard[iThread]++;  break; }
+        case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_standard[iThread]++;  break; }
+        case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_standard[iThread]++; break; }
+        default: ERROR("Unknown face type.");
+      }
+
+      // Then, estimate the workload for the load-balanced approach.
+      switch( face_info_balanced.mFaceType )
+      {
+        case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_balanced[iThread]++;  break; }
+        case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_balanced[iThread]++;  break; }
+        case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_balanced[iThread]++; break; }
+        default: ERROR("Unknown face type.");
+      }
     }
 
-    // Then, estimate the workload for the load-balanced approach.
-    switch( face_info_balanced.mFaceType )
+    // Estimate the j-surface workload.
+#pragma omp for schedule(static)
+    for(std::size_t i=0; i<nJFace; i++)
     {
-      case( ETypeFaceGeometry::INTERNAL ):  { workloadIFaceInternal_balanced[iThread]++;  break; }
-      case( ETypeFaceGeometry::BOUNDARY ):  { workloadIFaceBoundary_balanced[iThread]++;  break; }
-      case( ETypeFaceGeometry::INTERFACE ): { workloadIFaceInterface_balanced[iThread]++; break; }
-      default: ERROR("Unknown face type.");
+      // Thread index.
+      const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
+
+      // Accumulate the number of elements per thread.
+      workloadJFace[iThread]++;
+  
+      // Get the relevant face information for the standard and load-balanced partitions.
+      const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexJFace(i);
+      const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
+
+      // Estimate the work load for the standard approach.
+      switch( face_info_standard.mFaceType )
+      {
+        case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_standard[iThread]++;  break; }
+        case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_standard[iThread]++;  break; }
+        case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_standard[iThread]++; break; }
+        default: ERROR("Unknown face type.");
+      }
+
+      // Then, estimate the workload for the load-balanced approach.
+      switch( face_info_balanced.mFaceType )
+      {
+        case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_balanced[iThread]++;  break; }
+        case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_balanced[iThread]++;  break; }
+        case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_balanced[iThread]++; break; }
+        default: ERROR("Unknown face type.");
+      }
     }
-	}
 
-	// Estimate the j-surface workload.
-#pragma omp parallel for schedule(static)
-	for(std::size_t i=0; i<nJFace; i++)
-	{
-    // Thread index.
-    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
-
-		// Accumulate the number of elements per thread.
-		workloadJFace[iThread]++;
-	
-    // Get the relevant face information for the standard and load-balanced partitions.
-    const auto face_info_standard = multizone_geometry_container->GetFlattenedIndexJFace(i);
-    const auto face_info_balanced = multizone_geometry_container->GetFlattenedIndexJFaceLoadBalanced(i);
-
-    // Estimate the work load for the standard approach.
-    switch( face_info_standard.mFaceType )
+    // Estimate the elements' workload.
+#pragma omp for schedule(static)
+    for(std::size_t i=0; i<nElemTotal; i++)
     {
-      case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_standard[iThread]++;  break; }
-      case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_standard[iThread]++;  break; }
-      case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_standard[iThread]++; break; }
-      default: ERROR("Unknown face type.");
+      // Extract the element indices.
+      const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
+
+      // Deduce the current element's zone and index.
+      const auto iZone = elem_info.mIndexZone; 
+
+      // Thread index.
+      const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
+
+      // Accumulate the number of elements per thread.
+      workloadElem[iThread]++;
+
+      // Accumulate the number of solution DOFs per thread.
+      workloadDOFs[iThread] += multizone_solver_container->GetSinglezoneSolver(iZone)->GetStandardElement()->GetnSol2D(); 
     }
 
-    // Then, estimate the workload for the load-balanced approach.
-    switch( face_info_balanced.mFaceType )
+
+  } // End of the parallel region.
+
+  const auto& iPlan = multizone_geometry_container->GetIFaceLoadBalancedPermutation();
+  const auto& jPlan = multizone_geometry_container->GetJFaceLoadBalancedPermutation();
+  const auto load = [](const CLoadBalancedFacePermutation& plan,
+                       std::size_t internal, std::size_t boundary, std::size_t interface)
+  {
+    return static_cast<double>(internal)*plan.GetFaceWeight(ETypeFaceGeometry::INTERNAL)
+         + static_cast<double>(boundary)*plan.GetFaceWeight(ETypeFaceGeometry::BOUNDARY)
+         + static_cast<double>(interface)*plan.GetFaceWeight(ETypeFaceGeometry::INTERFACE);
+  };
+  const auto number = [](double value)
+  {
+    std::ostringstream text;
+    text << value;
+    return text.str();
+  };
+
+  // Build the table independently of std::cout's current precision, alignment,
+  // fill character, or scientific formatting. No tabs: all rows share widths.
+  std::ostringstream report;
+  report << "OpenMP threads: " << actualThreads;
+  if( actualThreads != nThreads ) report << " (configured maximum: " << nThreads << ')';
+  report << "\nFace load balancing: ";
+  if( iPlan.GetStrategy() == jPlan.GetStrategy() ) report << iPlan.GetStrategyName();
+  else report << "I-faces: " << iPlan.GetStrategyName() << "; J-faces: " << jPlan.GetStrategyName();
+  report << "\nEstimated work distribution:\n";
+
+  constexpr int labelWidth = 22;
+  for(std::size_t i=0; i<actualThreads; ++i)
+  {
+    const auto iStandard = number(load(iPlan, workloadIFaceInternal_standard[i],
+                         workloadIFaceBoundary_standard[i], workloadIFaceInterface_standard[i]));
+    const auto iBalanced = number(load(iPlan, workloadIFaceInternal_balanced[i],
+                         workloadIFaceBoundary_balanced[i], workloadIFaceInterface_balanced[i]));
+    const auto jStandard = number(load(jPlan, workloadJFaceInternal_standard[i],
+                         workloadJFaceBoundary_standard[i], workloadJFaceInterface_standard[i]));
+    const auto jBalanced = number(load(jPlan, workloadJFaceInternal_balanced[i],
+                         workloadJFaceBoundary_balanced[i], workloadJFaceInterface_balanced[i]));
+    const auto width = std::max({std::size_t{8}, std::to_string(workloadIFace[i]).size(),
+                 std::to_string(workloadJFace[i]).size(), iStandard.size(), iBalanced.size(),
+                 jStandard.size(), jBalanced.size()});
+    const int columnWidth = static_cast<int>(width) + 2;
+
+    const auto row = [&](const char* label, const auto& standard, const auto& balanced)
     {
-      case( ETypeFaceGeometry::INTERNAL ):  { workloadJFaceInternal_balanced[iThread]++;  break; }
-      case( ETypeFaceGeometry::BOUNDARY ):  { workloadJFaceBoundary_balanced[iThread]++;  break; }
-      case( ETypeFaceGeometry::INTERFACE ): { workloadJFaceInterface_balanced[iThread]++; break; }
-      default: ERROR("Unknown face type.");
-    }
+      report << "  " << std::left << std::setw(labelWidth) << label
+             << std::right << std::setw(columnWidth) << standard
+             << std::setw(columnWidth) << balanced << '\n';
+    };
+    
+    report << std::string(2 + labelWidth + 2 * columnWidth, '-') << '\n';
+    report << "(*) iThread: " << i << '\n';
+
+    row("", "Standard", "Balanced");
+    row("", "--------", "--------"); 
+    
+    row("(->) IFaces", workloadIFace[i], workloadIFace[i]);
+    row("       Internal", workloadIFaceInternal_standard[i], workloadIFaceInternal_balanced[i]);
+    row("       Boundary", workloadIFaceBoundary_standard[i], workloadIFaceBoundary_balanced[i]);
+    row("       Interface", workloadIFaceInterface_standard[i], workloadIFaceInterface_balanced[i]);
+    row("       Weighted load", iStandard, iBalanced);
+    
+    row("(->) JFaces", workloadJFace[i], workloadJFace[i]);
+    row("       Internal", workloadJFaceInternal_standard[i], workloadJFaceInternal_balanced[i]);
+    row("       Boundary", workloadJFaceBoundary_standard[i], workloadJFaceBoundary_balanced[i]);
+    row("       Interface", workloadJFaceInterface_standard[i], workloadJFaceInterface_balanced[i]);
+    row("       Weighted load", jStandard, jBalanced);
+    
+    report << "  (->) nElem: " << workloadElem[i] << '\n'
+           << "  (->) nDOFs: " << workloadDOFs[i] << '\n';
+
   }
-
-	// Estimate the elements' workload.
-#pragma omp parallel for schedule(static)
-  for(std::size_t i=0; i<nElemTotal; i++)
-	{
-		// Extract the element indices.
-		const auto elem_info = multizone_geometry_container->GetFlattenedIndexVolumeElement(i);
-
-		// Deduce the current element's zone and index.
-		const auto iZone = elem_info.mIndexZone; 
-
-    // Thread index.
-    const std::size_t iThread = static_cast<std::size_t>(omp_get_thread_num());
-
-		// Accumulate the number of elements per thread.
-		workloadElem[iThread]++;
-
-    // Accumulate the number of solution DOFs per thread.
-		workloadDOFs[iThread] += multizone_solver_container->GetSinglezoneSolver(iZone)->GetStandardElement()->GetnSol2D(); 
-  }
-
-
-  // Compute the number of max digits needed for the output.
-  std::size_t nDigits = 0;
-  for( auto& work: workloadDOFs ) nDigits = std::max( nDigits, work );
-  // Deduce the max value needed for the digits width.
-  nDigits = std::to_string(nDigits).size();
-
-  // Total number of work load.
-  std::cout << "The estimated workload shared among each thread is:\n";
-  for(std::size_t i=0; i<workloadDOFs.size(); i++)
-    std::cout << "  Thread(" << i << ") has:\n" 
-			        << "   (*) " << std::setw(static_cast<int>(nDigits))
-			        << workloadIFace[i] << " [nIFace/thread]\n"
-							<< "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadIFaceInternal_standard[i]  << " [nInternalIFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))  
-              << workloadIFaceInternal_balanced[i]  << " [nInternalIFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
-              << "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadIFaceBoundary_standard[i]  << " [nBoundaryIFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))
-              << workloadIFaceBoundary_balanced[i]  << " [nBoundaryIFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
-              << "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadIFaceInterface_standard[i] << " [nInterfaceIFace/thread] (standard)\t" << std::setw(static_cast<int>(nDigits))
-              << workloadIFaceInterface_balanced[i] << " [nInterfaceIFace/thread] (balanced)\n" << std::setw(static_cast<int>(nDigits))
-              << "   (*) " << std::setw(static_cast<int>(nDigits))
-							<< workloadJFace[i] << " [nJFace/thread]\n"
-							<< "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadJFaceInternal_standard[i]  << " [nInternalJFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits)) 
-              << workloadJFaceInternal_balanced[i]  << " [nInternalJFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
-              << "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadJFaceBoundary_standard[i]  << " [nBoundaryJFace/thread]  (standard)\t" << std::setw(static_cast<int>(nDigits))
-              << workloadJFaceBoundary_balanced[i]  << " [nBoundaryJFace/thread]  (balanced)\n" << std::setw(static_cast<int>(nDigits))
-              << "      -> " << std::setw(static_cast<int>(nDigits))
-              << workloadJFaceInterface_standard[i] << " [nInterfaceJFace/thread] (standard)\t" << std::setw(static_cast<int>(nDigits))
-              << workloadJFaceInterface_balanced[i] << " [nInterfaceJFace/thread] (balanced)\n" << std::setw(static_cast<int>(nDigits))
-							<< "   (*) " << std::setw(static_cast<int>(nDigits))
-			        << workloadElem[i] << " [nElement/thread]\n"
-							<< "   (*) " << std::setw(static_cast<int>(nDigits))
-              << workloadDOFs[i] << " [nSolDOFs/thread]" << std::endl;
+  std::cout << report.str();
 #else
-	std::cout << "This is a serial implementation." << std::endl;
+  std::cout << "This is a serial implementation." << std::endl;
 #endif
 }
 
