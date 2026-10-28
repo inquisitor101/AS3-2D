@@ -292,6 +292,43 @@ class CMatrixAS3
 			return mData[r*mNCol+c];
 		}
 
+		/*!
+		 * @brief Begin a mutable traversal of the contiguous entries in row-major order.
+		 * @return pointer to the first entry; equals end() when empty.
+		 */
+    T* begin() noexcept
+    {
+      return mData;
+    }
+    
+		/*!
+		 * @brief End a mutable traversal of the active entries.
+		 * @return pointer past the last entry; equals begin() when empty.
+		 */
+    T* end() noexcept
+    {
+      const std::size_t n = size();
+      return n ? mData + n : mData;
+    }
+    
+		/*!
+		 * @brief Begin a read-only traversal of the contiguous entries in row-major order.
+		 * @return pointer to the first entry; equals end() when empty.
+		 */
+    const T* begin() const noexcept
+    {
+      return mData;
+    }
+    
+		/*!
+		 * @brief End a read-only traversal of the active entries.
+		 * @return pointer past the last entry; equals begin() when empty.
+		 */
+    const T* end() const noexcept
+    {
+      const std::size_t n = size();
+      return n ? mData + n : mData;
+    }
 
 	private:
 		/*!

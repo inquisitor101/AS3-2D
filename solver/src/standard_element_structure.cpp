@@ -4,7 +4,6 @@
 #include <cstddef>
 
 
-
 //-----------------------------------------------------------------------------------
 // CStandardElement member functions.
 //-----------------------------------------------------------------------------------
@@ -12,34 +11,68 @@
 
 CStandardElement::CStandardElement
 (
- ETypeDOF    typeDOFs,
- std::size_t nPoly,
- std::size_t nInt 
+ ETypeDOF        typeSolutionDistribution,
+ std::size_t     nPolySolution,
+ std::size_t     nBonusQuadratureFactor,
+ ETypeQuadrature typeQuadrature,
+ ETypeDGMethod   typeDGMethod
 )
 	:
-		mTypeDOFsSol(typeDOFs), mNPolySol(nPoly), mNInt1D(nInt)
+		mTypeDOFsSol(typeSolutionDistribution), mNPolySol(nPolySolution)
  /*
 	* Constructor that initializes reference nodes, quadrature and basis operators.
 	*/
 {
-	// Deduce the number os solution and integration points.
-	mNSol1D = mNPolySol+1;
-	mNSol2D = mNSol1D*mNSol1D;
-	mNInt2D = mNInt1D*mNInt1D;
+	// Deduce the number of solution points in 1D and 2D.
+	mNSol1D = mNPolySol + 1;
+	mNSol2D = mNSol1D * mNSol1D;
+
+	// Determine the required quadrature exactness for the configured DG method.
+	std::size_t nPolyIntegrand = 0;
+	switch( typeDGMethod )
+	{
+		case(ETypeDGMethod::DG_SEM):
+		{
+			if( nBonusQuadratureFactor   != 0 ||
+			    typeSolutionDistribution != ETypeDOF::LGL ||
+			    typeQuadrature           != ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO )
+			{
+				ERROR("DG-SEM requires zero bonus quadrature, LGL solution nodes and LGL quadrature.");
+			}
+
+			// Request LGL exactness through degree 2*p - 1 to obtain p + 1 points
+			// collocated with the solution nodes. Degree-2*p basis products are underintegrated.
+			nPolyIntegrand = 2 * nPolySolution - 1;
+			break;
+		}
+
+		case(ETypeDGMethod::NODAL_DG):
+		{
+			// Products of two degree-p reference basis functions have degree 2*p.
+			// The bonus adds nb*p as over-integration. Geometry and nonlinear fluxes
+			// can require higher quadrature exactness.
+			nPolyIntegrand = (2 + nBonusQuadratureFactor) * nPolySolution;
+			break;
+		}
+
+		default: ERROR("Unknown DG method.");
+	}
+
+	// Initialize the integration rule and extract its reference nodes.
+	mIntegrationRuleContainer = std::make_unique<CIntegrationRule>(typeQuadrature, nPolyIntegrand);
+	const auto &rInt1D = mIntegrationRuleContainer->GetrInt1D();
 
 	// Compute the solution DOFs in 1D and in parametric space.
 	ComputeLocationDOFs1D(mTypeDOFsSol, mNSol1D, mRSol1D);
 
-	// Compute the integration data.
-	InitializeQuadrature(mNInt1D, mRInt1D, mWInt1D, mWInt2D);
 
 	// Initialize the Vandermonde matrices in 1D. Note, the bases are the orthonormal Legendre polynomials.
 	NPolynomialUtility::OrthonormalLegendreBasis1D( mNSol1D, mRSol1D, mVandermondeSol1D ); // At solution    points.
-	NPolynomialUtility::OrthonormalLegendreBasis1D( mNSol1D, mRInt1D, mVandermondeInt1D ); // At integration points.
+	NPolynomialUtility::OrthonormalLegendreBasis1D( mNSol1D,  rInt1D, mVandermondeInt1D ); // At integration points.
 
 	// Initialize the derivative of the Vandermonde matrices in 1D.
 	NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D( mNSol1D, mRSol1D, mDerVandermondeSol1D ); // Solution    points.
-	NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D( mNSol1D, mRInt1D, mDerVandermondeInt1D ); // Integration points.
+	NPolynomialUtility::DerivativeOrthonormalLegendreBasis1D( mNSol1D,  rInt1D, mDerVandermondeInt1D ); // Integration points.
 
 	// Initialize the Lagrange polynomials in 1D.
 	NPolynomialUtility::LagrangeBasis1D( mVandermondeInt1D, mVandermondeSol1D, mLagrangeInt1D );
@@ -57,6 +90,13 @@ CStandardElement::CStandardElement
 	NLinearAlgebra::TransposeAS3Matrix(mDerLagrangeInt1D, mDerLagrangeInt1DTrans);
 	// Compute the transpose of the derivative Lagrange polynomial at solution points in 1D.
 	NLinearAlgebra::TransposeAS3Matrix(mDerLagrangeSol1D, mDerLagrangeSol1DTrans);
+
+
+	// TODO: Complete the DG-SEM consistency checks before enabling this method.
+	if( typeDGMethod == ETypeDGMethod::DG_SEM )
+	{
+		ERROR("Not completed yet.");
+	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -70,48 +110,6 @@ CStandardElement::~CStandardElement
 	*/
 {
 
-}
-
-//-----------------------------------------------------------------------------------
-
-void CStandardElement::InitializeQuadrature
-(
- std::size_t            nInt1D,
- CMatrixAS3<as3double> &rInt1D,
- CMatrixAS3<as3double> &wInt1D,
- CMatrixAS3<as3double> &wInt2D
-)
- /*
-	* Function that computes one-dimensional quadrature data and tensor-product volume weights.
-	*/
-{
-	// Allocate memory for the integration points and weights in 1D.
-	rInt1D.resize(nInt1D);
-	wInt1D.resize(nInt1D);
-
-	// Allocate memory for temporary vectors, since they are double-precision only in 
-	// the quadrature structure. NOTE, CGaussJacobiQuadrature must be refactored.
-	as3vector1d<double> rtmp(nInt1D);
-	as3vector1d<double> wtmp(nInt1D);
-
-	// Compute the quadrature points and weights in 1D.
-	CGaussJacobiQuadrature::GetQuadraturePoints(0.0, 0.0, -1.0, 1.0, rtmp, wtmp);
-
-	// Copy the temporary data to their correct vector, in the proper precision.
-	for(std::size_t i=0; i<nInt1D; i++)
-	{
-		rInt1D[i] = static_cast<as3double>( rtmp[i] );
-		wInt1D[i] = static_cast<as3double>( wtmp[i] );
-	}
-
-	// Allocate the memory for the integration weights in 2D.
-	wInt2D.resize(mNInt2D);
-
-	// Form the integration weights in 2D, which are tensor-products of 1D vectors.
-	std::size_t s = 0;
-	for(std::size_t j=0; j<nInt1D; j++)
-		for(std::size_t i=0; i<nInt1D; i++)
-			wInt2D[s++] = wInt1D[i]*wInt1D[j];
 }
 
 //-----------------------------------------------------------------------------------

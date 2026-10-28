@@ -72,59 +72,75 @@ CEEInterface::CEEInterface
   */
 {
   // Extract the relevant solvers.
-  const auto* isolver = multizone_solver_container->GetSinglezoneSolver(mIZone);
-  const auto* jsolver = multizone_solver_container->GetSinglezoneSolver(mJZone);
+  const auto* i_solver = multizone_solver_container->GetSinglezoneSolver(mIZone);
+  const auto* j_solver = multizone_solver_container->GetSinglezoneSolver(mJZone);
 
 	// Extract the number of integration points in each marker zone.
-	const std::size_t inint = isolver->GetStandardElement()->GetnInt1D();
-	const std::size_t jnint = jsolver->GetStandardElement()->GetnInt1D();
+	const std::size_t i_nint = i_solver->GetStandardElement()->GetnInt1D();
+	const std::size_t j_nint = j_solver->GetStandardElement()->GetnInt1D();
 
 	// Extract the type of DOFs in each zone.
-	const ETypeDOF itype_dof = isolver->GetStandardElement()->GetTypeDOFsSol();
-	const ETypeDOF jtype_dof = jsolver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeDOF i_type_dof = i_solver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeDOF j_type_dof = j_solver->GetStandardElement()->GetTypeDOFsSol();
+
+  // Extract the integration rule containers in each zone.
+  const auto* i_integrationrule = i_solver->GetStandardElement()->GetIntegrationRule();
+  const auto* j_integrationrule = j_solver->GetStandardElement()->GetIntegrationRule();
+
+  // For now, only use the same integration rules.
+  if( *i_integrationrule != *j_integrationrule )
+  {
+    ERROR("Currently, only same integration rules are supported at interfaces.");
+  }
 
 	// For now, only use the same type of nodal points.
-	if( itype_dof != jtype_dof )
+	if( i_type_dof != j_type_dof )
   {
-    ERROR("Currently, only same nodal points are supported.");
+    ERROR("Currently, only same nodal solution points are supported at interfaces.");
   }
-  const ETypeDOF type_dof = itype_dof; // since i and j have the same distribution (for now).
 
-	// Take the integration rule based on the highest polynomial.
-	mNInt1D = std::max( inint, jnint );
+	// Use the common integration-point count validated above.
+	mNInt1D = std::max( i_nint, j_nint );
+
+  // Extract the bonus quadrature factor in 1D.
+  const auto nBonusQuadratureFactor = config_container->GetBonusQuadratureFactor();
+  // Extract the quadrature method.
+  const auto typeQuadrature = config_container->GetTypeQuadrature();
+  // Extract the type of DG method specified.
+  const auto typeDGMethod = config_container->GetTypeDGMethod();
 
 	// Instantiate the appropriate (temporary) standard element containers in each zone.
-	CStandardElement ielement(type_dof, mNPolyI, mNInt1D);
-	CStandardElement jelement(type_dof, mNPolyJ, mNInt1D);
+	CStandardElement i_element(i_type_dof, mNPolyI, nBonusQuadratureFactor, typeQuadrature, typeDGMethod);
+	CStandardElement j_element(j_type_dof, mNPolyJ, nBonusQuadratureFactor, typeQuadrature, typeDGMethod);
 
 	// Obtain the integration weights on this interface.
-	mWInt1D = ielement.GetwInt1D();
+	mWInt1D = i_element.GetwInt1D();
 
 	// Instantiate the tensor-product containers in iZone and jZone.
-	mITensorProductContainer = CGenericFactory::CreateTensorContainer( &ielement, isolver->GetnVar() );
-	mJTensorProductContainer = CGenericFactory::CreateTensorContainer( &jelement, jsolver->GetnVar() );
+	mITensorProductContainer = CGenericFactory::CreateTensorContainer( &i_element, i_solver->GetnVar() );
+	mJTensorProductContainer = CGenericFactory::CreateTensorContainer( &j_element, j_solver->GetnVar() );
 
 	// Extract the type of Riemann solver in each zone.
-	const auto iriemann = isolver->GetRiemannSolver()->GetTypeRiemannSolver(); 
-	const auto jriemann = jsolver->GetRiemannSolver()->GetTypeRiemannSolver();
+	const auto i_type_riemann = i_solver->GetRiemannSolver()->GetTypeRiemannSolver(); 
+	const auto j_type_riemann = j_solver->GetRiemannSolver()->GetTypeRiemannSolver();
 	
 	// For now, force the Riemann solvers in both zones to be identical.
-	if( iriemann != jriemann )
+	if( i_type_riemann != j_type_riemann )
 	{
 		ERROR("For now, Riemann solvers at an interface must be identical.");
 	}
 
 	// Instantiate a Riemann solver on this interface.
-	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer( config_container, iriemann );
+	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer( config_container, i_type_riemann );
 
 	// Ensure the number of working variables in the iZone is as expected.
-	if( isolver->GetnVar() != jsolver->GetnVar() )
+	if( i_solver->GetnVar() != j_solver->GetnVar() )
 	{
 		ERROR("Number of variables mismatches in iZone: " + std::to_string(mIZone) + " and jZone: " + std::to_string(mJZone) );
 	}
 
   // Set the number of variables for this class.
-  mNVar = isolver->GetnVar(); // since i and j have the same nVar (for now).
+  mNVar = i_solver->GetnVar(); // since i and j have the same nVar (for now).
 
 
   // Initialize the compute kernerls for the solution interpolation and residual computation.

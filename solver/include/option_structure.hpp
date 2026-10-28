@@ -150,6 +150,48 @@ MapTypeDOF =
 //--------------------------------------
 
 /*!
+ * @brief Enumerated type for the supported quadratures.
+ */
+enum class ETypeQuadrature
+{
+	LEGENDRE_GAUSS_LOBATTO,  ///< Legendre-Gauss-Lobatto.
+	GAUSS_LEGENDRE           ///< Gauss-Legendre.
+};
+
+/*!
+ * @brief Map for the type of quadrature.
+ */
+inline const std::map<std::string, ETypeQuadrature>
+MapTypeQuadrature = 
+{
+	{ "LEGENDRE_GAUSS_LOBATTO", ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO },
+	{ "GAUSS_LEGENDRE",         ETypeQuadrature::GAUSS_LEGENDRE }
+}; ///< Map for the type of the quadratures.
+
+//--------------------------------------
+
+/*!
+ * @brief Enumerated type for the supported DG methods.
+ */
+enum class ETypeDGMethod
+{
+	NODAL_DG, ///< Standard nodal DG.
+  DG_SEM    ///< Collocated: Legendre-Gauss-Lobatto.
+};
+
+/*!
+ * @brief Map for the type of DG method.
+ */
+inline const std::map<std::string, ETypeDGMethod>
+MapTypeDGMethod = 
+{
+	{ "NODAL_DG", ETypeDGMethod::NODAL_DG },
+	{ "DG_SEM",   ETypeDGMethod::DG_SEM }
+}; ///< Map for the type of the DG methods.
+
+//--------------------------------------
+
+/*!
  * @brief Enumerated type for the available BCs.
  */
 enum class ETypeBC

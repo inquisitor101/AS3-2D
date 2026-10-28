@@ -9,23 +9,6 @@
 //-----------------------------------------------------------------------------------
 
 
-std::size_t NPolynomialUtility::IntegrationRule1D
-(
- std::size_t npoly
-)
- /*
-	* Function that selects the one-dimensional over-integration point count.
-	*/
-{
-	// The (over-)integration rule specified.
-	const std::size_t nd = 3; 	
-	
-	// Return the number of integration points without narrowing it.
-	return nd*npoly/2 + 1;
-}
-
-//-----------------------------------------------------------------------------------
-
 void NPolynomialUtility::LagrangeBasis1D
 (
  CMatrixAS3<as3double> &V1,
@@ -101,7 +84,7 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
 	{
 		as3double tmp = 0.0;
 		for(std::size_t j=0; j<nCol; j++) tmp += dL1D(i,j);
-		if( fabs(tmp) > 1.0e-10 )    ERROR("Results of the Lagrange differentiation matrix are incorrect.");
+		if( fabs(tmp) > 1.0e-10 ) ERROR("Results of the Lagrange differentiation matrix are incorrect.");
 	}
 }
 

@@ -16,16 +16,6 @@
  */
 namespace NPolynomialUtility
 {
-
-  /*!
-   * @brief Function that computes the integration rule in 1D.
-   *
-   * @param[in] npoly input polynomial order.
-   *
-   * @return number of integration nodes in 1D.
-   */
-  std::size_t IntegrationRule1D(std::size_t npoly);
-
 	/*!
 	 * @brief Function that computes the Lagrange basis functions in 1D via 2 Vandermonde matrices: L =
 	 *   V1*inv(V2).

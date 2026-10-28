@@ -196,7 +196,8 @@ ISolver::ISolver
 	*/
 {
 	// Instantiate a standard element object.
-	mStandardElementContainer = CGenericFactory::CreateStandardElement(singlezone_geometry_container);
+	mStandardElementContainer = CGenericFactory::CreateStandardElement(config_container,
+                                                                     singlezone_geometry_container);
 
 	// Instantiate a tensor-product object.
 	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(), nVar);

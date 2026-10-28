@@ -459,13 +459,6 @@ class CSinglezoneGeometry
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
 
-		/*!
-		 * @brief Function that generates all 4 nodal indices on a quadrilateral in this zone.
-		 *
-		 * @todo remove?
-		 */
-		void GenerateNodalFaceIndices(void);
-
 		// Disable default constructor.
 		CSinglezoneGeometry(void) = delete;
 		// Disable default copy constructor.

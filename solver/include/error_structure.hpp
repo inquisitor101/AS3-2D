@@ -12,7 +12,7 @@
 #include <cstdlib>
 
 #ifdef ENABLE_NAN_CHECK
-#include <fenv.h>
+#include <cfenv>
 #endif
 
 /*!
@@ -67,6 +67,21 @@ namespace NError
 
 
 #ifdef ENABLE_NAN_CHECK
+
+	/*!
+	 * @brief Preserve solver exception flags across external numerical library calls.
+	 */
+	class CLibraryFloatingPointScope
+	{
+	  public:
+	  	CLibraryFloatingPointScope();
+	  	~CLibraryFloatingPointScope();
+	  	CLibraryFloatingPointScope(const CLibraryFloatingPointScope&) = delete;
+	  	CLibraryFloatingPointScope& operator=(const CLibraryFloatingPointScope&) = delete;
+
+	  private:
+	  	std::fenv_t mEnvironment;
+	};
 
 	/*!
 	 * @brief Function that checks floating point errors.

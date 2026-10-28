@@ -146,6 +146,7 @@ CGenericFactory::CreateRiemannSolverContainer
 std::unique_ptr<CStandardElement> 
 CGenericFactory::CreateStandardElement
 (
+ const CConfig             *config_container,
  const CSinglezoneGeometry *singlezone_geometry_container
 )
  /*
@@ -153,14 +154,24 @@ CGenericFactory::CreateStandardElement
 	*/
 {
 	// Deduce the polynomial order of the solution and type of DOFs. 
-	const auto nPoly      = singlezone_geometry_container->GetnPolyGrid();
-	const auto type_nodes = singlezone_geometry_container->GetTypeNodalDistribution(); 
-	
-	// Get the number of (over-)integration points in 1D.
-	const auto nInt1D = NPolynomialUtility::IntegrationRule1D(nPoly); 
+	const auto nPolySolution            = singlezone_geometry_container->GetnPolyGrid();
+	const auto typeSolutionDistribution = singlezone_geometry_container->GetTypeNodalDistribution(); 
+
+  // Extract the bonus quadrature factor in 1D.
+  const auto nBonusQuadratureFactor = config_container->GetBonusQuadratureFactor();
+
+  // Extract the quadrature method.
+  const auto typeQuadrature = config_container->GetTypeQuadrature();
+
+  // Extract the type of DG method specified.
+  const auto typeDGMethod = config_container->GetTypeDGMethod();
 
 	// Return the correct instantiation of this object.
-	return std::make_unique<CStandardElement>(type_nodes, nPoly, nInt1D);
+	return std::make_unique<CStandardElement>(typeSolutionDistribution, 
+                                            nPolySolution, 
+                                            nBonusQuadratureFactor,
+                                            typeQuadrature,
+                                            typeDGMethod);
 }
 
 //-----------------------------------------------------------------------------------

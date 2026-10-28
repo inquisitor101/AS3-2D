@@ -43,7 +43,7 @@ class CConfig
 		 *
 		 * @return mNZone
 		 */ 
-		std::size_t GetnZone(void)                               const {return mNZone;}
+		std::size_t GetnZone(void)                                  const {return mNZone;}
 
 		/*!
 		 * @brief Getter function which returns the configured CFL stability number.
@@ -102,7 +102,7 @@ class CConfig
 		 *
 		 * @return mTypeRiemannSolver[iZone]
 		 */   
-		ETypeRiemannSolver GetTypeRiemannSolver(std::size_t iZone)       const {return mTypeRiemannSolver[iZone];}
+		ETypeRiemannSolver GetTypeRiemannSolver(std::size_t iZone)  const {return mTypeRiemannSolver[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the governing-equation type.
@@ -111,7 +111,7 @@ class CConfig
 		 *
 		 * @return mTypeSolver[iZone]
 		 */   
-		ETypeSolver GetTypeSolver(std::size_t iZone)                     const {return mTypeSolver[iZone];}
+		ETypeSolver GetTypeSolver(std::size_t iZone)                const {return mTypeSolver[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the value of mTypeBufferLayer, per input zone.
@@ -120,7 +120,7 @@ class CConfig
 		 *
 		 * @return mTypeBufferLayer[iZone]
 		 */   
-		ETypeBufferLayer GetTypeBufferLayer(std::size_t iZone)           const {return mTypeBufferLayer[iZone];}
+		ETypeBufferLayer GetTypeBufferLayer(std::size_t iZone)      const {return mTypeBufferLayer[iZone];}
 
 		/*!
 		 * @brief Getter function which returns the value of mTypeIC.
@@ -155,14 +155,14 @@ class CConfig
 		 *
 		 * @return mMaxIterTime
 		 */
-		std::size_t GetMaxIterTime(void)                                 const {return mMaxIterTime;}
+		std::size_t GetMaxIterTime(void)                            const {return mMaxIterTime;}
 
 		/*!
 		 * @brief Getter function which returns the writing frequency of the visualization files.
 		 *
 		 * @return mWriteVisFreq
 		 */
-		std::size_t GetWriteVisFreq(void)                                const {return mWriteVisFreq;}
+		std::size_t GetWriteVisFreq(void)                           const {return mWriteVisFreq;}
 
 		/*!
 		 * @brief Getter function which returns the value of mGridDirectory.
@@ -229,6 +229,27 @@ class CConfig
 			return nullptr;
 		}
 
+		/*!
+		 * @brief Getter function which returns the bonus factor for quadrature exactness.
+		 *
+		 * @return non-negative nb in the nodal-DG target degree (2 + nb)*p; defaults to zero.
+		 */
+		std::size_t GetBonusQuadratureFactor(void) const {return mBonusQuadratureFactor;}
+
+		/*!
+		 * @brief Getter function which returns the configured quadrature rule.
+		 *
+		 * @return mTypeQuadrature; defaults to Gauss-Legendre.
+		 */
+		ETypeQuadrature GetTypeQuadrature(void) const {return mTypeQuadrature;}
+
+		/*!
+		 * @brief Getter function which returns the configured DG formulation.
+		 *
+		 * @return mTypeDGMethod; defaults to standard nodal DG.
+		 */
+		ETypeDGMethod GetTypeDGMethod(void) const {return mTypeDGMethod;}
+
 	protected:
 
 	private:
@@ -250,6 +271,10 @@ class CConfig
 		as3vector1d<ETypeSolver>        mTypeSolver;         ///< Type of PDEs in each zone.
     as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;    ///< Type of buffer layer in each zone.
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;  ///< Type of Riemann solver per each zone.
+
+		std::size_t     mBonusQuadratureFactor; ///< Non-negative nb in the nodal-DG target degree (2 + nb)*p.
+		ETypeQuadrature mTypeQuadrature;        ///< Quadrature rule on the reference interval.
+		ETypeDGMethod   mTypeDGMethod;          ///< DG formulation.
 
     std::string mGridDirectory;                          ///< Directory containing the configured AS3 grid file.
 		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.
@@ -300,6 +325,16 @@ class CConfig
      * @return bool whether the operation succeeded.
      */
     bool ReadBoundaryConditionOptions(const char *filename);
+
+    /*!
+     * @brief Function that reads the spatial discretization options.
+     *
+     * @param[in] filename input configuration file.
+     *
+     * @return bool whether the operation succeeded.
+     */
+    bool ReadSpatialDiscretizationOptions(const char *filename);
+
 
 		/*!
 		 * @brief Function that extracts the parameters relevant to a Gaussian pressure initial

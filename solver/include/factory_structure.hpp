@@ -93,11 +93,13 @@ class CGenericFactory
 		 * @brief Function that constructs a runtime reference element from the zone geometry order and
 		 *   integration rule.
 		 *
+     * @param[in] config_container configuration/dictionary container.
 		 * @param[in] singlezone_geometry_container geometry of the current zone.
 		 *
 		 * @return unique pointer to specialized standard element class.
 		 */
-		static std::unique_ptr<CStandardElement> CreateStandardElement(const CSinglezoneGeometry *singlezone_geometry_container);
+		static std::unique_ptr<CStandardElement> CreateStandardElement(const CConfig             *config_container,
+                                                                   const CSinglezoneGeometry *singlezone_geometry_container);
 
 		/*!
 		 * @brief Function that creates a specialized instance of a physical element container.

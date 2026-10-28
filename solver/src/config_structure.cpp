@@ -74,7 +74,14 @@ CConfig::CConfig
 		message << "Failed to extract boundary condition options from " << filename;
 		ERROR(message.str());
 	}
-	
+
+  // Read the specific spatial discretization options.
+  if( !ReadSpatialDiscretizationOptions(filename) )
+  {
+    message << "Failed to extract spatial discretization options from " << filename;
+    ERROR(message.str());
+  }
+
 
 	// Report output.
 	std::cout << "Done." << std::endl;
@@ -255,6 +262,60 @@ bool CConfig::ReadTemporalOptions
 	// Ensure the CFL number produces a positive stability step.
 	if( !std::isfinite(mCFL) || mCFL <= C_ZERO )
 		ERROR("CFL_NUMBER must be finite and greater than zero.");
+
+
+	// Close file.
+  paramfile.close();
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadSpatialDiscretizationOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the spatial discretization specification.
+	*/
+{
+	// Report output.
+  std::cout << "  reading spatial information............. ";
+
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffer for storing temporary strings.
+	std::string buffer;
+
+	// Read the quadrature method specified. Default: Gauss-Legendre.
+	std::string dvalue = "GAUSS_LEGENDRE";
+	NInputUtility::AddScalarOption(paramfile, "TYPE_QUADRATURE", buffer, dvalue, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeQuadrature = GenericScalarMap(MapTypeQuadrature, buffer, "TYPE_QUADRATURE");
+
+	// Read the bonus quadrature factor. Default: zero.
+	dvalue = "0";
+	NInputUtility::AddScalarOption(paramfile, "BONUS_QUADRATURE_FACTOR", buffer, dvalue, true);
+	// Parse a complete signed integer token before converting to unsigned storage.
+	std::ptrdiff_t nBonusQuadratureFactor;
+	std::istringstream bonusInput(buffer);
+	if( !(bonusInput >> nBonusQuadratureFactor) || nBonusQuadratureFactor < 0 )
+		ERROR("BONUS_QUADRATURE_FACTOR must be a non-negative integer.");
+	bonusInput >> std::ws;
+	if( !bonusInput.eof() ) ERROR("BONUS_QUADRATURE_FACTOR must be a non-negative integer.");
+	mBonusQuadratureFactor = static_cast<std::size_t>(nBonusQuadratureFactor);
+
+	// Read the DG method specified. Default: standard nodal DG.
+	dvalue = "NODAL_DG";
+	NInputUtility::AddScalarOption(paramfile, "TYPE_DG_METHOD", buffer, dvalue, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeDGMethod = GenericScalarMap(MapTypeDGMethod, buffer, "TYPE_DG_METHOD");
 
 
 	// Close file.
