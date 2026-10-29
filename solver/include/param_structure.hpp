@@ -135,3 +135,30 @@ struct CPressureOutletRiemannParamMarker : public IBoundaryParamMarker
 
   as3double mPressure; ///< Prescribed static pressure.
 };
+
+//-----------------------------------------------------------------------------------
+
+/*!
+ * @brief Parameters for a farfield boundary.
+ */
+struct CFarfieldParamMarker : public IBoundaryParamMarker
+{
+
+  /*!
+   * @brief Constructor that initializes CFarfieldParamMarker from the specified data.
+   *
+   * @param[in] buffer marker name, density, velocity_x, velocity_y and pressure.
+   */
+  explicit CFarfieldParamMarker(const as3vector1d<std::string> &buffer);
+
+  /*!
+   * @brief Getter function which returns the boundary-condition type implemented by this marker or boundary.
+   *
+   * @return boundary-condition type implemented by this object.
+   */
+  ETypeBC GetTypeBC(void) const override {return ETypeBC::FARFIELD;}
+
+  as3double                mDensity;   ///< Prescribed static density.
+  std::array<as3double, 2> mVelocity;  ///< Prescribed velocity components.
+  as3double                mPressure;  ///< Prescribed static pressure.
+};

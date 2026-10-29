@@ -198,6 +198,7 @@ enum class ETypeBC
 {
   PERIODIC,                        ///< Periodically paired zone edges.
   SYMMETRY,                        ///< Inviscid symmetry boundary.
+  FARFIELD,                        ///< Farfield boundary.
   STATIC_MASS_FLOW_INLET_RIEMANN,  ///< Prescribed density and velocity supplied as an inlet Riemann state.
   PRESSURE_OUTLET_RIEMANN          ///< Prescribed static pressure supplied as an outlet Riemann state.
 };
@@ -210,6 +211,7 @@ MapTypeBCs =
 {
 	{ "PERIODIC",  ETypeBC::PERIODIC },
   { "SYMMETRY", ETypeBC::SYMMETRY },
+  { "FARFIELD", ETypeBC::FARFIELD },
   { "STATIC_MASS_FLOW_INLET_RIEMANN", ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN },
   { "PRESSURE_OUTLET_RIEMANN", ETypeBC::PRESSURE_OUTLET_RIEMANN }
 }; ///< Map for the type of boundary conditions.

@@ -546,16 +546,17 @@ void CPhysicalElement::ComputeElementProperties
 	mAvgNormIDir[0] = mAvgNormIDir[1] = C_ZERO;
 	for(std::size_t l=0; l<nInt1D; l++)
 	{
-		mAvgNormIDir[0] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(1,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(1,l) );
-		mAvgNormIDir[1] += w1D[l]*( mMetricIntIMin1D(0,l)*mMetricIntIMin1D(2,l) + mMetricIntIMax1D(0,l)*mMetricIntIMax1D(2,l) );
-		sumSurfaceAreaI += w1D[l]*( mMetricIntIMin1D(0,l)                       + mMetricIntIMax1D(0,l) );
-	}
+    // Align both outward normals with the positive local i-direction.
+    mAvgNormIDir[0] += w1D[l] * ( mMetricIntIMax1D(0,l) * mMetricIntIMax1D(1,l) - mMetricIntIMin1D(0,l) * mMetricIntIMin1D(1,l) );
+    mAvgNormIDir[1] += w1D[l] * ( mMetricIntIMax1D(0,l) * mMetricIntIMax1D(2,l) - mMetricIntIMin1D(0,l) * mMetricIntIMin1D(2,l) );
+    sumSurfaceAreaI += w1D[l] * ( mMetricIntIMin1D(0,l) + mMetricIntIMax1D(0,l) );
+  }
 
 	// Estimate the length scale in the i-direction.
-	mLengthScaleIDir = C_TWO*mVolumeElement/sumSurfaceAreaI;
+	mLengthScaleIDir = C_TWO * mVolumeElement / sumSurfaceAreaI;
 
-	// Normalize the average normal in the i-direction.
-	mAvgNormIDir[0] /= sumSurfaceAreaI;
+	// Divide by total surface area to obtain the area-weighted average.
+  mAvgNormIDir[0] /= sumSurfaceAreaI;
 	mAvgNormIDir[1] /= sumSurfaceAreaI;
 
 	/* * * 
@@ -569,16 +570,17 @@ void CPhysicalElement::ComputeElementProperties
 	mAvgNormJDir[0] = mAvgNormJDir[1] = C_ZERO;
 	for(std::size_t l=0; l<nInt1D; l++)
 	{
-		mAvgNormJDir[0] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(1,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(1,l) );
-		mAvgNormJDir[1] += w1D[l]*( mMetricIntJMin1D(0,l)*mMetricIntJMin1D(2,l) + mMetricIntJMax1D(0,l)*mMetricIntJMax1D(2,l) );
-		sumSurfaceAreaJ += w1D[l]*( mMetricIntJMin1D(0,l)                       + mMetricIntJMax1D(0,l) );
-	}
+    // Align both outward normals with the positive local j-direction.
+    mAvgNormJDir[0] += w1D[l] * ( mMetricIntJMax1D(0,l) * mMetricIntJMax1D(1,l) - mMetricIntJMin1D(0,l) * mMetricIntJMin1D(1,l) );
+    mAvgNormJDir[1] += w1D[l] * ( mMetricIntJMax1D(0,l) * mMetricIntJMax1D(2,l) - mMetricIntJMin1D(0,l) * mMetricIntJMin1D(2,l) );
+    sumSurfaceAreaJ += w1D[l] * ( mMetricIntJMin1D(0,l) + mMetricIntJMax1D(0,l) );
+  }
 
 	// Estimate the length scale in the j-direction.
-	mLengthScaleJDir = C_TWO*mVolumeElement/sumSurfaceAreaJ;
+	mLengthScaleJDir = C_TWO * mVolumeElement / sumSurfaceAreaJ;
 
-	// Normalize the average normal in the j-direction.
-	mAvgNormJDir[0] /= sumSurfaceAreaJ;
+	// Divide by total surface area to obtain the area-weighted average.
+  mAvgNormJDir[0] /= sumSurfaceAreaJ;
 	mAvgNormJDir[1] /= sumSurfaceAreaJ;
 }
 

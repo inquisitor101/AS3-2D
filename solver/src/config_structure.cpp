@@ -463,6 +463,11 @@ void CConfig::ExtractInfoBoundaryCondition
     return std::make_unique<CSymmetryParamMarker>(buffer[0]);
   });
 
+  readMarkers("MARKER_BC_FARFIELD", [](const auto &buffer)
+  {
+    return std::make_unique<CFarfieldParamMarker>(buffer);
+  });
+
   readMarkers("MARKER_BC_STATIC_MASS_FLOW_INLET_RIEMANN", [](const auto &buffer)
   {
     return std::make_unique<CStaticMassFlowInletRiemannParamMarker>(buffer);

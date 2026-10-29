@@ -350,7 +350,8 @@ as3double CDriver::ComputeTimeStep
 		as3double maxm2    = C_ZERO;
 
 		// Loop over each DOF and compute the stability time limit.
-		for(std::size_t l=0; l<nSol2D; l++)
+#pragma omp simd reduction(max:maxsrinv,maxm2)
+    for(std::size_t l=0; l<nSol2D; l++)
 		{
   		// Compute the primitive variables.
   		const as3double rho   = sol(0,l);

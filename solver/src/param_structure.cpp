@@ -100,3 +100,24 @@ CPressureOutletRiemannParamMarker::CPressureOutletRiemannParamMarker
   mPressure = ParseBoundaryValue(buffer[1], mName, "pressure");
 }
 
+//-----------------------------------------------------------------------------------
+
+CFarfieldParamMarker::CFarfieldParamMarker
+(
+ const as3vector1d<std::string> &buffer
+)
+ /*
+  * Constructor that reads the prescribed inlet density, velocity and pressure.
+  */
+{
+  if( buffer.size() != 5 )
+    ERROR("MARKER_BC_FARFIELD must specify (name, density, velocity_x, velocity_y, pressure).");
+
+  mName        = buffer[0];
+  mDensity     = ParseBoundaryValue(buffer[1], mName, "density");
+  mVelocity[0] = ParseBoundaryValue(buffer[2], mName, "velocity_x");
+  mVelocity[1] = ParseBoundaryValue(buffer[3], mName, "velocity_y");
+  mPressure    = ParseBoundaryValue(buffer[4], mName, "pressure");
+}
+
+

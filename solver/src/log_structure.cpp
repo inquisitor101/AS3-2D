@@ -140,15 +140,24 @@ void NLogger::DisplayBoundaryConditions
       {
         condition = "Static mass-flow inlet (Riemann)";
         const auto* inlet = static_cast<const CStaticMassFlowInletRiemannParamMarker*>(parameters);
-        brief << "density=" << inlet->mDensity
-              << ", velocity=(" << inlet->mVelocity[0] << ", " << inlet->mVelocity[1] << ')';
+        brief << "density = "   << inlet->mDensity     << ", " 
+              << "velocity = (" << inlet->mVelocity[0] << ", " << inlet->mVelocity[1] << ")";
         break;
       }
       case ETypeBC::PRESSURE_OUTLET_RIEMANN:
       {
         condition = "Pressure outlet (Riemann)";
         const auto* outlet = static_cast<const CPressureOutletRiemannParamMarker*>(parameters);
-        brief << "pressure=" << outlet->mPressure;
+        brief << "pressure = " << outlet->mPressure;
+        break;
+      }
+      case ETypeBC::FARFIELD:
+      {
+        condition = "Farfield";
+        const auto* farfield = static_cast<const CFarfieldParamMarker*>(parameters);
+        brief << "density = "   << farfield->mDensity     << ", "
+              << "velocity = (" << farfield->mVelocity[0] << ", " << farfield->mVelocity[1] << "), "
+              << "pressure = "  << farfield->mPressure;
         break;
       }
       default: ERROR("Unsupported physical boundary type for marker: " + name);
@@ -217,11 +226,11 @@ void NLogger::DisplayBoundaryConditions
 
 void NLogger::MonitorOutput
 (
- CConfig       *config_container,
- CMonitorData  *monitor_container,
- std::size_t  iter,
- as3double      time,
- as3double      step
+ CConfig      *config_container,
+ CMonitorData *monitor_container,
+ std::size_t   iter,
+ as3double     time,
+ as3double     step
 )
  /*
 	* Function that prints the monitoring header and current simulation values.
@@ -251,9 +260,9 @@ void NLogger::MonitorOutput
 	}
 
   // Extract the maximum Mach number.
-  const as3double Mmax  = monitor_container->mMachMax;
+  const as3double   Mmax = monitor_container->mMachMax;
 	// Extract the number of substeps per sync.
-	const std::size_t    nsub  = monitor_container->mNSyncSubStep;
+	const std::size_t nsub = monitor_container->mNSyncSubStep;
 	// Extract the min and max time steps, per sync step.
 	const as3double dtmin = monitor_container->mMinTimeStep;
 	const as3double dtmax = monitor_container->mMaxTimeStep;

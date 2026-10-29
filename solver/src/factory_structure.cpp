@@ -269,6 +269,16 @@ CGenericFactory::CreateBoundaryContainer
       break;
     }
 
+    case( ETypeBC::FARFIELD ):
+    {
+      return std::make_unique<CFarfieldBoundary>(config_container,
+                                                 zone_geometry,
+                                                 zone_solver,
+                                                 boundary_batch,
+                                                 param_bc);
+      break;
+    }
+
     case( ETypeBC::STATIC_MASS_FLOW_INLET_RIEMANN ):
     {
       return std::make_unique<CRiemannStaticMassInletBoundary>(config_container,

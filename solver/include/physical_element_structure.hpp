@@ -29,8 +29,8 @@ class CPhysicalElement
 		as3double             mLengthScaleVol;   ///< Length scale defined based on the volume of this element.
 		as3double             mLengthScaleIDir;  ///< Average length scale of the i-direction of this element.
 		as3double             mLengthScaleJDir;  ///< Average length scale of the j-direction of this element.
-		as3double             mAvgNormIDir[2];   ///< Average unit-normal in the i-direction. 
-		as3double             mAvgNormJDir[2];   ///< Average unit-normal in the j-direction. 		
+		as3double             mAvgNormIDir[2];   ///< Average (area-)weighted normal aligned with positive local i-direction. 
+		as3double             mAvgNormJDir[2];   ///< Average (area-)weighted normal aligned with positive local j-direction.	
 
 		CMatrixAS3<as3double> mSol2D;          ///< Solution on the physical element in 2D.
 		CMatrixAS3<as3double> mRes2D;          ///< Residual of the solution on the physical element in 2D.
