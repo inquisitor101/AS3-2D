@@ -103,7 +103,7 @@ void CIteration::AdvanceStage
  const ITemporal          *temporal_container,
  as3double                 localtime,
  as3double                 timestep,
- std::size_t            iStageRK
+ std::size_t               iStageRK
 )
  /*
   * Function that computes surface residuals, synchronizes, then assembles and updates each element.

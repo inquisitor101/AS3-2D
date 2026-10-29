@@ -53,7 +53,9 @@ class CPhysicalElement
 
 
 		// Each local face owns its contribution, independent of neighboring zone directions.
-		std::array<CMatrixAS3<as3double>, 4> mResSurface; ///< Each local face owns its contribution, independent of neighboring zone directions.
+		// TODO: can place this in an CMatrixAS3, such that all 4 residuals are contiguous and
+    //       hence efficient to accumulate later in the parent element residual?
+    std::array<CMatrixAS3<as3double>, 4> mResSurface; ///< Each local face owns its contribution, independent of neighboring zone directions.
 
     /*!
      * @brief Getter function which returns the residual buffer owned by the requested local face.

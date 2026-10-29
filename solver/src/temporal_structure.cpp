@@ -99,8 +99,8 @@ void CSSPRK3Temporal::UpdateTime
 
     // The iteration owns traversal, workspace, and synchronization for this stage.
     iteration_container->AdvanceStage(multizone_geometry_container,
-                                       multizone_solver_container,
-                                       this, localtime, timestep, iStageRK);
+                                      multizone_solver_container,
+                                      this, localtime, timestep, iStageRK);
 	}
 }
 
@@ -110,7 +110,7 @@ void CSSPRK3Temporal::UpdateElementSolution
 (
  CPhysicalElement *physical_element,
  as3double         timestep,
- std::size_t    iStageRK
+ std::size_t       iStageRK
 ) const
  /*
 	* Function that applies one SSP-RK3 stage formula to one element.
@@ -119,7 +119,7 @@ void CSSPRK3Temporal::UpdateElementSolution
 	// Local RK coefficients.
 	const as3double alpha = mRk3a[iStageRK];
 	const as3double beta  = mRk3b[iStageRK];
-	const as3double bdt   = beta*timestep;
+	const as3double bdt   = beta * timestep;
 
 	// Extract the solution, spatial residual, and temporal history.
 	auto& sol = physical_element->mSol2D;

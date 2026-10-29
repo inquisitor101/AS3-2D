@@ -290,7 +290,7 @@ void NResidualComputation::ComputeElementResidual
  ISolver                   *singlezone_solver_container,
  CPoolMatrixAS3<as3double> &workarray,
  as3double                  localtime,
- std::size_t                     iElem
+ std::size_t                iElem
 )
  /*
   * Function that assembles one element residual and applies its inverse mass matrix.

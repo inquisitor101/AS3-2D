@@ -84,10 +84,10 @@ namespace NResidualComputation
    *   to one thread.
    */
   void ComputeElementResidual(CSinglezoneGeometry       *singlezone_geometry_container,
-                               ISolver                   *singlezone_solver_container,
-                               CPoolMatrixAS3<as3double> &workarray,
-                               as3double                  localtime,
-                               std::size_t                     iElem);
+                              ISolver                   *singlezone_solver_container,
+                              CPoolMatrixAS3<as3double> &workarray,
+                              as3double                  localtime,
+                              std::size_t                iElem);
 
   /*!
    * @brief Function that checks collective entry from an OpenMP parallel region in assertion-enabled builds.

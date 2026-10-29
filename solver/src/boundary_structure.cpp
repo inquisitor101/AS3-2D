@@ -154,7 +154,7 @@ void IBoundary::ComputeBoundaryResidual
 
   // Get the respective number of integration points and weights on this face.
   const std::size_t nInt1D = standard_element->GetnInt1D();
-  auto&        wInt1D = standard_element->GetwInt1D();
+  auto&             wInt1D = standard_element->GetwInt1D();
   // Also the number of solution variables.
   const std::size_t nVar   = singlezone_solver_container->GetnVar();
 
