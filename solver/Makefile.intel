@@ -107,7 +107,9 @@ EXTRA_CPPFLAGS ?=
 EXTRA_CXXFLAGS ?=
 EXTRA_LDFLAGS  ?=
 
-PROJECT_CPPFLAGS := -Iinclude
+# Include the common solver headers and the quadrature subdirectory.
+INCLUDE_DIRS := include include/quadrature
+PROJECT_CPPFLAGS := $(addprefix -I,$(INCLUDE_DIRS))
 PROJECT_CXXFLAGS := -std=c++20 -Wall -Wextra -Wconversion
 PROJECT_LDFLAGS  :=
 

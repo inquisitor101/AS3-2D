@@ -84,10 +84,10 @@ produce multiple face batches. Their format and configuration syntax are
 unchanged. `InitializeGridTopology` now takes only the OpenMP container; face
 construction gets its marker information from the geometry.
 
-Run `bash tests/run_face_connectivity.sh` from the project root to check the
+Run `bash tests/regression/run_face_connectivity.sh` from the project root to check the
 connectivity independently of the full solver. The default input is
 `example/curved_p5/param.cfg`. Use
-`bash tests/run_face_connectivity.sh example/orthogonal_square_p5` for the
+`bash tests/regression/run_face_connectivity.sh example/orthogonal_square_p5` for the
 orthogonal grid.
 The test runner uses Homebrew Clang and libomp by default; `CXX` and `OMP_PREFIX`
 can select other installations on macOS. It builds a temporary executable with

@@ -317,6 +317,11 @@ bool CConfig::ReadSpatialDiscretizationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeDGMethod = GenericScalarMap(MapTypeDGMethod, buffer, "TYPE_DG_METHOD");
 
+  // This version of the code only supports DGSEM.
+  if( mTypeDGMethod != ETypeDGMethod::DG_SEM )
+  {
+    ERROR("This version of the code only supports a DG-SEM implementation.");
+  }
 
 	// Close file.
   paramfile.close();

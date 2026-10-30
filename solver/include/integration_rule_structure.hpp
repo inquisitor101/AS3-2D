@@ -15,8 +15,10 @@
 /*!
  * @brief Quadrature rule on [-1,+1], with tensor-product weights on [-1,+1]^2.
  *
- * @note Points and weights are generated together and cannot be modified
- *   through the public interface.
+ * @note Points and weights are loaded together from the tabulated rules when
+ *   available. Other point counts use CGaussJacobiQuadrature with a warning
+ *   that support is not guaranteed. Data cannot be modified through the
+ *   public interface.
  */
 class CIntegrationRule
 {

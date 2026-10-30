@@ -2,6 +2,10 @@
 
 #include "error_structure.hpp"
 #include "quadrature_structure.hpp"
+#include "quadrature/gauss_legendre.hpp"
+#include "quadrature/legendre_gauss_lobatto.hpp"
+
+#include <string>
 
 
 //-----------------------------------------------------------------------------------
@@ -132,6 +136,24 @@ void CIntegrationRule::InitializeGaussLegendre
 	mRInt1D.resize(nInt1D);
 	mWInt1D.resize(nInt1D);
 
+	// Use the precomputed reference rule when this point count is tabulated.
+	if( NGaussLegendre::IsAvailable(nInt1D) )
+	{
+		const auto points  = NGaussLegendre::GetPoints(nInt1D);
+		const auto weights = NGaussLegendre::GetWeights(nInt1D);
+		for(std::size_t i=0; i<nInt1D; i++)
+		{
+			mRInt1D[i] = points[i];
+			mWInt1D[i] = weights[i];
+		}
+		return;
+	}
+
+  // Issue a warning, in case the requested rules are not precompiled.
+	WARNING("Gauss-Legendre quadrature with " + std::to_string(nInt1D) +
+	        " points is not tabulated. Generating with CGaussJacobiQuadrature; "
+	        "this point count is not guaranteed to be supported.");
+
 	// Allocate memory for temporary vectors, since they are double-precision only in 
 	// the quadrature structure. NOTE, CGaussJacobiQuadrature must be refactored.
 	as3vector1d<double> rtmp(nInt1D);
@@ -172,6 +194,24 @@ void CIntegrationRule::InitializeLegendreGaussLobatto
 	mRInt1D.resize(nInt1D);
 	mWInt1D.resize(nInt1D);
 
+	// Use the precomputed reference rule when this point count is tabulated.
+	if( NLegendreGaussLobatto::IsAvailable(nInt1D) )
+	{
+		const auto points  = NLegendreGaussLobatto::GetPoints(nInt1D);
+		const auto weights = NLegendreGaussLobatto::GetWeights(nInt1D);
+		for(std::size_t i=0; i<nInt1D; i++)
+		{
+			mRInt1D[i] = points[i];
+			mWInt1D[i] = weights[i];
+		}
+		return;
+	}
+
+  // Issue a warning, in case the requested rules are not precompiled.
+	WARNING("Legendre-Gauss-Lobatto quadrature with " + std::to_string(nInt1D) +
+	        " points is not tabulated. Generating with CGaussJacobiQuadrature; "
+	        "this point count is not guaranteed to be supported.");
+
 	// Compute the endpoint weight in double precision.
 	const double n    = static_cast<double>(nInt1D);
 	const double wEnd = 2.0/(n*(n-1.0));
@@ -195,6 +235,7 @@ void CIntegrationRule::InitializeLegendreGaussLobatto
 
 	// Generate interior LGL points using Gauss-Jacobi quadrature
 	// with weight function (1-r)*(1+r) = 1-r*r.
+  // Note, CGaussJacobiQuadrature must be refactored.
 	CGaussJacobiQuadrature::GetQuadraturePoints(1.0, 1.0, -1.0, 1.0, rtmp, wtmp);
 
 	// Convert the weighted Jacobi rule to the unweighted LGL rule.

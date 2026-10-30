@@ -237,6 +237,9 @@ class CStandardElement
 
     /*!
      * @brief Function that computes the location of the DOFs in 1D.
+     * @note LGL nodes use the quadrature tables when available and otherwise
+     *   CIntegrationRule's numerical fallback. Equidistant nodes are generated.
+     *   A single solution node is placed at the midpoint for either distribution.
      *
      * @param[in] typeDOFs type of DOFs.
      * @param[in] nDOFs1D number of DOFs in 1D.

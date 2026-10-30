@@ -1,0 +1,125 @@
+{
+  "source": "AS3-2D/tests before test-suite reorganization",
+  "files": [
+    {
+      "source": "Makefile_GNU",
+      "preserved_as": "reference/Makefile_GNU",
+      "sha256": "9ed215135b7e6512aeadc077999e170e1b8ece28767270905c79bf087fe297ba"
+    },
+    {
+      "source": "Makefile_Intel",
+      "preserved_as": "reference/Makefile_Intel",
+      "sha256": "99012974ff53e2a5b8e14e57d68eded76d796f2ad02790e08b4f9b07784fa57e"
+    },
+    {
+      "source": "grid_AS3/zone_0.as3",
+      "preserved_as": "data/grid_AS3/zone_0.as3",
+      "sha256": "43184e677ccc00ac1eb7012234c6821ade85a87fcff6ac775b22af318a0941de"
+    },
+    {
+      "source": "grid_AS3/zone_1.as3",
+      "preserved_as": "data/grid_AS3/zone_1.as3",
+      "sha256": "e3c5f9757ea486a829feca65bb4081eb81c2e4ab4fdf615043bb5b241bdab9db"
+    },
+    {
+      "source": "grid_AS3/zone_2.as3",
+      "preserved_as": "data/grid_AS3/zone_2.as3",
+      "sha256": "b5e493e1db3079770d33b76a6d6310474f0274f8419c090a7e0638087bd06e73"
+    },
+    {
+      "source": "grid_AS3/zone_3.as3",
+      "preserved_as": "data/grid_AS3/zone_3.as3",
+      "sha256": "f1d35f6bbfa67e890f1a04d6d5b1154d3f280a41f8e84ed00459740ddd2b8d93"
+    },
+    {
+      "source": "grid_AS3/zone_4.as3",
+      "preserved_as": "data/grid_AS3/zone_4.as3",
+      "sha256": "32d6f6623dd525b45a150f9daf357283b750bd443ac1ffdf260b2b9ab08319e5"
+    },
+    {
+      "source": "grid_AS3/zone_5.as3",
+      "preserved_as": "data/grid_AS3/zone_5.as3",
+      "sha256": "ff96ac8af887dc745471750865581a72d8a3cdc4cef1695a37c0dcf7291ce297"
+    },
+    {
+      "source": "grid_AS3/zone_6.as3",
+      "preserved_as": "data/grid_AS3/zone_6.as3",
+      "sha256": "cbfcb99cfbfb43774a9fa3356e978dda279d265c824a12040b6d41d287cf16e9"
+    },
+    {
+      "source": "grid_AS3/zone_7.as3",
+      "preserved_as": "data/grid_AS3/zone_7.as3",
+      "sha256": "15777aa489d9043bbc74d173452a914bb1f2fde9824c7cfd748f063753e4ca9c"
+    },
+    {
+      "source": "grid_AS3/zone_8.as3",
+      "preserved_as": "data/grid_AS3/zone_8.as3",
+      "sha256": "8bb2c6ae3dfeb5f571a7e51b0349028beae13824b849d0c569ad90ca20599c3b"
+    },
+    {
+      "source": "include/test_linear_algebra.hpp",
+      "preserved_as": "reference/include/test_linear_algebra.hpp",
+      "sha256": "584b3b4f23c545b72a76885295f12e048a457c3b7486aae1889bf986432f54af"
+    },
+    {
+      "source": "include/test_standard_element.hpp",
+      "preserved_as": "reference/include/test_standard_element.hpp",
+      "sha256": "8c91d5ba76f839866cbf4b66a3049c27e6840231c0109b785ca835ce4524137e"
+    },
+    {
+      "source": "include/test_tensor_product.hpp",
+      "preserved_as": "reference/include/test_tensor_product.hpp",
+      "sha256": "5bd182e6fa876905eada21136514d97c4369bf6509e010043768421ef810082a"
+    },
+    {
+      "source": "include/test_unit_linear_algebra.hpp",
+      "preserved_as": "reference/include/test_unit_linear_algebra.hpp",
+      "sha256": "73a76a8f16f5b9f1726fc0e88e6694ee4196972a6bf5c5a18c3d16536c3f067d"
+    },
+    {
+      "source": "include/test_unit_standard_element.hpp",
+      "preserved_as": "reference/include/test_unit_standard_element.hpp",
+      "sha256": "1892bc984d9b7d357fdbbb10415b2f41001d12b45a1585db6c0474db00e69605"
+    },
+    {
+      "source": "include/test_unit_tensor_product.hpp",
+      "preserved_as": "reference/include/test_unit_tensor_product.hpp",
+      "sha256": "6f7d282a8f1ebd05669e23277ccc11700dcbe630d881f342aa8321d9c900bc89"
+    },
+    {
+      "source": "param_t1.cfg",
+      "preserved_as": "data/param_t1.cfg",
+      "sha256": "da9e5d6c40eb95bcea0665df9a7c3e1a500fab9b08fed49a70ca6fed13eb431d"
+    },
+    {
+      "source": "src/test_linear_algebra.cpp",
+      "preserved_as": "reference/src/test_linear_algebra.cpp",
+      "sha256": "fde4e8a9f14213feacdb7f366ecf3b12008cee1bcdc9ab97ab170d0aad344481"
+    },
+    {
+      "source": "src/test_standard_element.cpp",
+      "preserved_as": "reference/src/test_standard_element.cpp",
+      "sha256": "db075d0a7f881badf6c7b6739839053649b128875894829e9f248dcc72e8d697"
+    },
+    {
+      "source": "src/test_tensor_product.cpp",
+      "preserved_as": "reference/src/test_tensor_product.cpp",
+      "sha256": "15a97e828d0e93601f07da50867beb93f7616a488d1d1d6894b50403bffc4290"
+    },
+    {
+      "source": "src/test_unit_linear_algebra.cpp",
+      "preserved_as": "reference/src/test_unit_linear_algebra.cpp",
+      "sha256": "ed6da01052d25c1d222204c7d93e285fda135b9871aaa30eeb94b083bf9aa623"
+    },
+    {
+      "source": "src/test_unit_standard_element.cpp",
+      "preserved_as": "reference/src/test_unit_standard_element.cpp",
+      "sha256": "ddd78ed24611ce3417ddbd78f9d125316ff1fc31e17afba06233e084cc57cefd"
+    },
+    {
+      "source": "src/test_unit_tensor_product.cpp",
+      "preserved_as": "reference/src/test_unit_tensor_product.cpp",
+      "sha256": "5adafc2979716ea653b96f7178605b292ef342dfc087333daa198d47c9ca4963"
+    }
+  ]
+}
