@@ -31,7 +31,7 @@ cd "$example_dir"
 sed -E '/^[[:space:]]*(TYPE_DG_METHOD|TYPE_QUADRATURE|BONUS_QUADRATURE_FACTOR)[[:space:]]*=/d' \
   param.cfg > "$build_dir/periodic.cfg"
 cat >> "$build_dir/periodic.cfg" <<'EOF'
-TYPE_DG_METHOD = DG_SEM
+TYPE_DG_METHOD = NODAL_DG
 TYPE_QUADRATURE = LEGENDRE_GAUSS_LOBATTO
 BONUS_QUADRATURE_FACTOR = 0
 EOF
