@@ -5,6 +5,7 @@
 #include <cstddef>
 
 
+
 //-----------------------------------------------------------------------------------
 // CStandardElement member functions.
 //-----------------------------------------------------------------------------------
@@ -12,11 +13,11 @@
 
 CStandardElement::CStandardElement
 (
- ETypeDOF        typeSolutionDistribution,
- std::size_t     nPolySolution,
- std::size_t     nBonusQuadratureFactor,
- ETypeQuadrature typeQuadrature,
- ETypeDGMethod   typeDGMethod
+ ETypeNodalDistribution typeSolutionDistribution,
+ std::size_t            nPolySolution,
+ std::size_t            nBonusQuadratureFactor,
+ ETypeQuadrature        typeQuadrature,
+ ETypeDGMethod          typeDGMethod
 )
 	:
 		mTypeDOFsSol(typeSolutionDistribution), mNPolySol(nPolySolution)
@@ -35,7 +36,7 @@ CStandardElement::CStandardElement
 		case(ETypeDGMethod::DG_SEM):
 		{
 			if( nBonusQuadratureFactor   != 0 ||
-			    typeSolutionDistribution != ETypeDOF::LGL ||
+			    typeSolutionDistribution != ETypeNodalDistribution::LGL ||
 			    typeQuadrature           != ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO )
 			{
 				ERROR("DG-SEM requires zero bonus quadrature, LGL solution nodes and LGL quadrature.");
@@ -67,6 +68,11 @@ CStandardElement::CStandardElement
 	// Compute the solution DOFs in 1D and in parametric space.
 	ComputeLocationDOFs1D(mTypeDOFsSol, mNSol1D, mRSol1D);
 
+	// Collocation requires matching nodal distributions as well as matching point counts.
+	mIsCollocated = mTypeDOFsSol == mIntegrationRuleContainer->GetTypeNodalDistribution() &&
+	                mNSol1D == mIntegrationRuleContainer->GetnInt1D();
+
+
 
 	// Initialize the Vandermonde matrices in 1D. Note, the bases are the orthonormal Legendre polynomials.
 	NPolynomialUtility::OrthonormalLegendreBasis1D( mNSol1D, mRSol1D, mVandermondeSol1D ); // At solution    points.
@@ -92,6 +98,7 @@ CStandardElement::CStandardElement
 	NLinearAlgebra::TransposeAS3Matrix(mDerLagrangeInt1D, mDerLagrangeInt1DTrans);
 	// Compute the transpose of the derivative Lagrange polynomial at solution points in 1D.
 	NLinearAlgebra::TransposeAS3Matrix(mDerLagrangeSol1D, mDerLagrangeSol1DTrans);
+
 }
 
 //-----------------------------------------------------------------------------------
@@ -111,9 +118,9 @@ CStandardElement::~CStandardElement
 
 void CStandardElement::ComputeLocationDOFs1D
 (
- ETypeDOF               typeDOFs,
+ ETypeNodalDistribution typeDOFs,
  std::size_t            nDOFs1D,
- CMatrixAS3<as3double> &rDOFs1D
+ CMatrixAS3<as3double>  &rDOFs1D
 )
  /*
 	* Function that computes the requested reference nodes on [-1,+1].
@@ -131,7 +138,7 @@ void CStandardElement::ComputeLocationDOFs1D
 	switch( typeDOFs )
 	{
 		// Equidistant distribution.
-		case(ETypeDOF::EQD):
+		case(ETypeNodalDistribution::EQD):
 		{
 			// A single equidistant point is the midpoint; avoid division by zero.
 			if( nDOFs1D == 1 ) { rDOFs1D[0] = 0.0; break; }
@@ -152,7 +159,7 @@ void CStandardElement::ComputeLocationDOFs1D
 		}
 
 		// Legendre-Gauss-Lobatto distribution.
-		case(ETypeDOF::LGL):
+		case(ETypeNodalDistribution::LGL):
 		{
 			// Preserve the midpoint convention for a constant solution.
 			if( nDOFs1D == 1 ) { rDOFs1D[0] = 0.0; break; }
@@ -170,6 +177,13 @@ void CStandardElement::ComputeLocationDOFs1D
 				const auto &points = rule.GetrInt1D();
 				for(std::size_t i=0; i<nDOFs1D; i++) rDOFs1D[i] = points[i];
 			}
+			break;
+		}
+
+		// Gauss-Legendre solution nodes require face interpolation kernels.
+		case(ETypeNodalDistribution::GL):
+		{
+			ERROR("Gauss-Legendre solution nodes are not supported by the current face kernels.");
 			break;
 		}
 

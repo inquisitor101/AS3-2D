@@ -1,4 +1,4 @@
-#include "tensor_structure.hpp"
+#include "compute_kernels/tensor_structure.hpp"
 
 #include <cstddef>
 

@@ -131,14 +131,23 @@ NImportFile::NAS3BinaryFile::CAS3BinaryMetadata NImportFile::NAS3BinaryFile::Rea
     const auto id    = entry.first;
     const auto& name = entry.second;
 
-    const auto it = MapTypeDOF.find(name);
+    const auto it = MapTypeNodalDistribution.find(name);
 
-    if(it == MapTypeDOF.end()) ERROR(filename + ": unknown nodal distribution: " + name);
+    if(it == MapTypeNodalDistribution.end()) ERROR(filename + ": unknown nodal distribution: " + name);
 
     mappings.mNodalDistributions.emplace(id, it->second);
   }
 
-  if (mappings.mNodalDistributions.size() != MapTypeDOF.size())
+  // Existing mesh files contain the supported geometry distributions only.
+  // Quadrature-only distributions in the common enum need not appear in this mapping.
+  std::set<ETypeNodalDistribution> nodalDistributions;
+  for(const auto& entry : mappings.mNodalDistributions)
+  {
+    nodalDistributions.insert(entry.second);
+  }
+
+  if( nodalDistributions.find(ETypeNodalDistribution::LGL) == nodalDistributions.end() ||
+      nodalDistributions.find(ETypeNodalDistribution::EQD) == nodalDistributions.end() )
   {
     ERROR(filename + ": missing required nodal distribution mappings.");
   }
@@ -172,7 +181,7 @@ std::unique_ptr<CSinglezoneGeometry> NImportFile::NAS3BinaryFile::ReadAS3BinaryS
   const std::size_t input_nodal_distribution = ReadAS3UInt(file);
 
   // Deduce the type of nodal points.
-  ETypeDOF nodal_distribution = metadata.mMappings.mNodalDistributions.at( input_nodal_distribution );
+  ETypeNodalDistribution nodal_distribution = metadata.mMappings.mNodalDistributions.at( input_nodal_distribution );
 
   // Extract the current zone's meta data.
   const auto& zone_metadata = metadata.mZones.at(iZone);

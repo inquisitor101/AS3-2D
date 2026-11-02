@@ -203,7 +203,8 @@ std::unique_ptr<ITensorProduct>
 CGenericFactory::CreateTensorContainer
 (
  CStandardElement *standard_element,
- std::size_t    nVar
+ std::size_t       nVar,
+ ETypeDGMethod     typeDGMethod
 )
  /*
 	* Function that constructs a supported tensor specialization for the reference-element dimensions.
@@ -214,9 +215,32 @@ CGenericFactory::CreateTensorContainer
 	const std::size_t m = standard_element->GetnInt1D();
   const std::size_t n = nVar;
 
+	// Check nodal distributions as well as point counts before choosing a specialization.
+	const bool isCollocated = standard_element->GetIsCollocated();
+
+	switch( typeDGMethod )
+	{
+		case(ETypeDGMethod::DG_SEM):
+		{
+			if( !isCollocated ) ERROR("DG-SEM tensor products require collocated nodes.");
+			break;
+		}
+
+		case(ETypeDGMethod::NODAL_DG): break;
+
+		default: ERROR("Unknown DG method in tensor factory.");
+	}
+
+
 	// Macro which helps in readability for the compile-time specialized tensor classes.
 #define SPECIALIZED_TENSOR(K,M,N) if( (K==k) && (M==m) && (N==n) ) \
-	return std::make_unique< CTensorProduct<K,M,N> >(standard_element);
+	{ \
+		if constexpr( K == M ) \
+		{ \
+			if( isCollocated ) return std::make_unique< CCollocatedTensorProduct<K,N> >(standard_element); \
+		} \
+		return std::make_unique< CTensorProduct<K,M,N> >(standard_element); \
+	}
 
 	AS3_SUPPORTED_ELEMENT_SPECIALIZATIONS(SPECIALIZED_TENSOR)
 

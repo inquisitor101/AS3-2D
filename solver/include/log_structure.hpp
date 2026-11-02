@@ -72,6 +72,15 @@ namespace NLogger
 	void PrintInitSolver(CConfig *config_container);
 
 	/*!
+	 * @brief Function that displays the spatial discretization information over all zones.
+	 *
+	 * @param[in] config_container configuration/dictionary container.
+	 * @param[in] multizone_solver_container solvers containing the initialized standard elements.
+	 */
+	void DisplaySpatialDiscretization(const CConfig          *config_container,
+	                                  const CMultizoneSolver *multizone_solver_container);
+
+	/*!
 	 * @brief Function that displays the boundary condition information over all zones.
 	 *
 	 * @param[in] config_container configuration/dictionary container.

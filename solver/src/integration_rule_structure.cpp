@@ -24,19 +24,11 @@ CIntegrationRule::CIntegrationRule
 	* Constructor that initializes one-dimensional quadrature data.
 	*/
 {
+  // Select the type of quadrature method.
 	switch( mTypeQuadrature )
 	{
-		case(ETypeQuadrature::GAUSS_LEGENDRE):
-		{
-			InitializeGaussLegendre(nPolyIntegrand);
-			break;
-		}
-
-		case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO):
-		{
-			InitializeLegendreGaussLobatto(nPolyIntegrand);
-			break;
-		}
+		case(ETypeQuadrature::GAUSS_LEGENDRE):         { InitializeGaussLegendre(nPolyIntegrand);        break; }
+		case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): { InitializeLegendreGaussLobatto(nPolyIntegrand); break; }
 
 		default: ERROR("Unknown quadrature rule.");
 	}
@@ -132,6 +124,9 @@ void CIntegrationRule::InitializeGaussLegendre
     ERROR("Gauss-Legendre quadrature requires at least one point.");
   }
 
+  // Assign the nodal distribution.
+  mTypeNodalDistribution = ETypeNodalDistribution::GL;
+
 	// Allocate memory for the integration points and weights in 1D.
 	mRInt1D.resize(nInt1D);
 	mWInt1D.resize(nInt1D);
@@ -189,6 +184,9 @@ void CIntegrationRule::InitializeLegendreGaussLobatto
   {
 		ERROR("Legendre-Gauss-Lobatto quadrature requires at least two points.");
   }
+
+  // Assign the nodal distribution.
+  mTypeNodalDistribution = ETypeNodalDistribution::LGL;
 
 	// Allocate the complete quadrature data.
 	mRInt1D.resize(nInt1D);

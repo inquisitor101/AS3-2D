@@ -134,6 +134,9 @@ void CDriver::InitializeData
 	* Function that initializes element states, topology, interfaces and physical boundaries.
 	*/
 {
+	// Display the nodal distributions, integration rules and DG method over all zones.
+	NLogger::DisplaySpatialDiscretization( mConfigContainer.get(), mMultizoneSolverContainer.get() );
+
 	// Report output.
 	std::cout << "----------------------------------------------"
 							 "----------------------------------------------\n";

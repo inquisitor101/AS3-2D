@@ -34,11 +34,11 @@ class CStandardElement
 		 * @param[in] typeQuadrature quadrature rule on the reference interval.
 		 * @param[in] typeDGMethod DG formulation; DG-SEM requires zero bonus and LGL nodes/quadrature.
 		 */
-		CStandardElement(ETypeDOF        typeSolutionDistribution,
-				             std::size_t     nPolySolution,
-				             std::size_t     nBonusQuadratureFactor,
-                     ETypeQuadrature typeQuadrature,
-                     ETypeDGMethod   typeDGMethod);
+		CStandardElement(ETypeNodalDistribution typeSolutionDistribution,
+		                 std::size_t            nPolySolution,
+		                 std::size_t            nBonusQuadratureFactor,
+		                 ETypeQuadrature        typeQuadrature,
+		                 ETypeDGMethod          typeDGMethod);
 
 		/*!
 		 * @brief Destructor that releases the resources owned by this object.
@@ -60,6 +60,15 @@ class CStandardElement
 		 * @return number of 1D points supplied by the integration rule.
 		 */
 		std::size_t GetnInt1D(void) const {return mIntegrationRuleContainer->GetnInt1D();}
+
+		/*!
+		 * @brief Function that checks whether the solution and integration nodes are collocated.
+		 *
+		 * @return true if the nodal distributions and point counts match.
+		 * @note Matching counts alone do not imply matching nodal distributions.
+		 */
+		bool GetIsCollocated(void) const {return mIsCollocated;}
+
 
 		/*!
 		 * @brief Getter function which returns the number of solution points in one reference
@@ -159,7 +168,7 @@ class CStandardElement
 		 *
 		 * @return mTypeDOFsSol.
 		 */
-		ETypeDOF GetTypeDOFsSol(void) const {return mTypeDOFsSol;}
+		ETypeNodalDistribution GetTypeDOFsSol(void) const {return mTypeDOFsSol;}
 
 		/*!
 		 * @brief Getter function which returns the integration points in 1D, over the reference
@@ -195,10 +204,12 @@ class CStandardElement
 	protected:
 
 	private:
-		ETypeDOF      mTypeDOFsSol;  ///< Type of solution DOFs.
-		std::size_t   mNPolySol;     ///< Solution polynomial order.
-		std::size_t   mNSol1D;       ///< Number of solution nodes in 1D.
-		std::size_t   mNSol2D;       ///< Number of solution nodes in 2D.
+		bool mIsCollocated = false; ///< Whether solution and integration nodes have the same distribution and count.
+
+		ETypeNodalDistribution mTypeDOFsSol;  ///< Type of solution DOFs.
+		std::size_t            mNPolySol;     ///< Solution polynomial order.
+		std::size_t            mNSol1D;       ///< Number of solution nodes in 1D.
+		std::size_t            mNSol2D;       ///< Number of solution nodes in 2D.
 
 		std::unique_ptr<CIntegrationRule> mIntegrationRuleContainer; ///< Owned quadrature nodes and 1D/2D weights.
 
@@ -241,13 +252,13 @@ class CStandardElement
      *   CIntegrationRule's numerical fallback. Equidistant nodes are generated.
      *   A single solution node is placed at the midpoint for either distribution.
      *
-     * @param[in] typeDOFs type of DOFs.
+     * @param[in] typeDOFs distribution of the solution nodes.
      * @param[in] nDOFs1D number of DOFs in 1D.
      * @param[out] rDOFs1D vector of DOFs in 1D over a reference element.
      */
-    void ComputeLocationDOFs1D(ETypeDOF               typeDOFs,
-                               std::size_t           nDOFs1D,
-                               CMatrixAS3<as3double> &rDOFs1D);
+    void ComputeLocationDOFs1D(ETypeNodalDistribution typeDOFs,
+                               std::size_t            nDOFs1D,
+                               CMatrixAS3<as3double>  &rDOFs1D);
 
 		// Disable default constructor.
 		CStandardElement(void) = delete;

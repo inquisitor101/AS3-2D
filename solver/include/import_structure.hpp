@@ -87,9 +87,9 @@ namespace NImportFile
      */
     struct CAS3Mappings
     {
-      std::map<std::size_t, EFaceLocation>   mFaces;               ///< File face identifiers mapped to local edge locations.
-      std::map<std::size_t, ETypeZoneMarker> mBoundaries;          ///< File marker identifiers mapped to internal or external marker types.
-      std::map<std::size_t, ETypeDOF>        mNodalDistributions;  ///< File nodal-distribution identifiers mapped to solver enums.
+      std::map<std::size_t, EFaceLocation>        mFaces;               ///< File face identifiers mapped to local edge locations.
+      std::map<std::size_t, ETypeZoneMarker>      mBoundaries;          ///< File marker identifiers mapped to internal or external marker types.
+      std::map<std::size_t, ETypeNodalDistribution>mNodalDistributions;  ///< File nodal-distribution identifiers mapped to solver enums.
     };
 
     /*!

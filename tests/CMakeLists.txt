@@ -70,3 +70,9 @@ add_test(NAME Regression.IntegrationRuleTables COMMAND integration_rule_tables_r
 add_executable(element_dimensions_regression regression/element_dimensions_test.cpp)
 target_link_libraries(element_dimensions_regression PRIVATE as3_test_numerics)
 add_test(NAME Regression.ElementDimensions COMMAND element_dimensions_regression)
+
+# Exercise the collocated compile-time kernels alongside the general tensor tests.
+add_executable(collocated_tensor_regression "${AS3_SOLVER_DIR}/tests/collocated_tensor_test.cpp")
+target_link_libraries(collocated_tensor_regression PRIVATE as3_test_numerics)
+target_compile_definitions(collocated_tensor_regression PRIVATE DEBUG=1)
+add_test(NAME Regression.CollocatedTensor COMMAND collocated_tensor_regression)

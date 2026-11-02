@@ -61,6 +61,16 @@ class CIntegrationRule
 		}
 
 		/*!
+		 * @brief Getter function which returns the distribution of integration nodes.
+		 *
+		 * @return nodal distribution associated with the quadrature rule.
+		 */
+		ETypeNodalDistribution GetTypeNodalDistribution(void) const
+    {
+      return mTypeNodalDistribution;
+    }
+
+		/*!
 		 * @brief Getter function which returns the number of integration
 		 *   points in 1D.
 		 *
@@ -163,10 +173,11 @@ class CIntegrationRule
 
 	private:
 
-		ETypeQuadrature       mTypeQuadrature; ///< Quadrature rule.
-		CMatrixAS3<as3double> mRInt1D;         ///< Integration points in 1D.
-		CMatrixAS3<as3double> mWInt1D;         ///< Integration weights in 1D.
-    CMatrixAS3<as3double> mWInt2D;         ///< Integration weights in 2D.
+		ETypeQuadrature         mTypeQuadrature;        ///< Quadrature rule.
+		ETypeNodalDistribution  mTypeNodalDistribution; ///< Type of nodal distribution associated with the quadrature rule.
+    CMatrixAS3<as3double>   mRInt1D;                ///< Integration points in 1D.
+		CMatrixAS3<as3double>   mWInt1D;                ///< Integration weights in 1D.
+    CMatrixAS3<as3double>   mWInt2D;                ///< Integration weights in 2D.
 		
     /*!
 		 * @brief Function that initializes Gauss-Legendre points and weights.

@@ -200,7 +200,8 @@ ISolver::ISolver
                                                                      singlezone_geometry_container);
 
 	// Instantiate a tensor-product object.
-	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(), nVar);
+	mTensorProductContainer = CGenericFactory::CreateTensorContainer(mStandardElementContainer.get(),
+                                                                   nVar, config_container->GetTypeDGMethod());
 
 	// Instantiate a Riemann solver object.
 	mRiemannSolverContainer = CGenericFactory::CreateRiemannSolverContainer(config_container,

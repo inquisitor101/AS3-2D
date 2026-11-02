@@ -340,13 +340,13 @@ class CSinglezoneGeometry
      * @param[in] nodalDistribution distribution of the geometry nodes.
      * @param[in] isAffine whether the grid declares affine element mappings.
      */
-    CSinglezoneGeometry(const std::string &gridfile, 
-                        std::size_t        iZone, 
-                        std::size_t        nPoly, 
-                        std::size_t        niElem, 
-                        std::size_t        njElem, 
-                        ETypeDOF           nodalDistribution, 
-                        bool               isAffine);
+    CSinglezoneGeometry(const std::string      &gridfile,
+                        std::size_t            iZone,
+                        std::size_t            nPoly,
+                        std::size_t            niElem,
+                        std::size_t            njElem,
+                        ETypeNodalDistribution nodalDistribution,
+                        bool                   isAffine);
 
 
 		/*!
@@ -424,7 +424,7 @@ class CSinglezoneGeometry
      *
      * @return distribution of the geometry nodes.
      */
-    ETypeDOF GetTypeNodalDistribution(void) const {return mNodalDistribution;}
+    ETypeNodalDistribution GetTypeNodalDistribution(void) const {return mNodalDistribution;}
 
     /*!
      * @brief Function that returns zone-local element indices in increasing traversal order along a zone edge.
@@ -455,7 +455,7 @@ class CSinglezoneGeometry
     std::size_t mNjElem = 0;       ///< Number of elements in j-direction.	
     bool        mIsAffine = false; ///< Whether the imported grid declares affine element mappings.
 
-    ETypeDOF    mNodalDistribution;                                   ///< Distribution of geometry nodes within each element.
+    ETypeNodalDistribution mNodalDistribution;                                   ///< Distribution of geometry nodes within each element.
 		as3vector1d<std::unique_ptr<CElementGeometry>> mElementGeometry;  ///< Container with the element geometry.
 
 
