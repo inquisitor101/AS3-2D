@@ -11,7 +11,7 @@
 
 #include "vtk_structure.hpp"
 #include "solver_structure.hpp"
-#include "tensor_structure.hpp"
+#include "compute_kernels/tensor_structure.hpp"
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
@@ -125,11 +125,13 @@ class CGenericFactory
 		 *
 		 * @param[in] standard_element pointer to the relevant standard element container.
 		 * @param[in] nVar number of solution variables.
+		 * @param[in] typeDGMethod DG formulation; DG-SEM requires collocated nodes.
 		 *
 		 * @return unique pointer to specialized template tensor-product class.
 		 */
 		static std::unique_ptr<ITensorProduct> CreateTensorContainer(CStandardElement *standard_element,
-                                                                 std::size_t    nVar);
+                                                                 std::size_t    nVar,
+                                                                 ETypeDGMethod typeDGMethod = ETypeDGMethod::NODAL_DG);
 
 
 		/*!

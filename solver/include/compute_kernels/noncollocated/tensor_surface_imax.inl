@@ -156,7 +156,7 @@ void CTensorProduct<K, M, N>::CompileTimeSurfaceIMAX
 template<std::size_t K, std::size_t M, std::size_t N>
 void CTensorProduct<K, M, N>::PartialCompileTimeSurfaceIMAX
 (
- std::size_t           n,
+ std::size_t      n,
  const as3double *B,
  as3double       *C,
  as3double       *CDerR,

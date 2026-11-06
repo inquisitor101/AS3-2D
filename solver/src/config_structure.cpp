@@ -317,11 +317,6 @@ bool CConfig::ReadSpatialDiscretizationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeDGMethod = GenericScalarMap(MapTypeDGMethod, buffer, "TYPE_DG_METHOD");
 
-  // The main branch currently supports only standard nodal DG.
-  if( mTypeDGMethod != ETypeDGMethod::NODAL_DG )
-  {
-    ERROR("Only NODAL_DG is supported in this version. DG_SEM is still under development.");
-  }
 
 	// Close file.
   paramfile.close();

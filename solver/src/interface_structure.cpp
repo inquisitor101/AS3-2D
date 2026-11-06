@@ -80,8 +80,8 @@ CEEInterface::CEEInterface
 	const std::size_t j_nint = j_solver->GetStandardElement()->GetnInt1D();
 
 	// Extract the type of DOFs in each zone.
-	const ETypeDOF i_type_dof = i_solver->GetStandardElement()->GetTypeDOFsSol();
-	const ETypeDOF j_type_dof = j_solver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeNodalDistribution i_type_dof = i_solver->GetStandardElement()->GetTypeDOFsSol();
+	const ETypeNodalDistribution j_type_dof = j_solver->GetStandardElement()->GetTypeDOFsSol();
 
   // Extract the integration rule containers in each zone.
   const auto* i_integrationrule = i_solver->GetStandardElement()->GetIntegrationRule();

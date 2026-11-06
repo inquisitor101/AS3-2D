@@ -7,6 +7,7 @@
 
 
 #include <cstddef>
+#include <cmath>
 
 #include "option_structure.hpp"
 #include "standard_element_structure.hpp"
@@ -834,14 +835,383 @@ class CTensorProduct final: public ITensorProduct
 };
 
 // Definitions of the templated functions.
-#include "tensor/tensor_volume.inl"
-#include "tensor/tensor_surface_imin.inl"
-#include "tensor/tensor_surface_imax.inl"
-#include "tensor/tensor_surface_jmin.inl"
-#include "tensor/tensor_surface_jmax.inl"
-#include "tensor/tensor_residual_volume.inl"
-#include "tensor/tensor_residual_surface_imin.inl"
-#include "tensor/tensor_residual_surface_imax.inl"
-#include "tensor/tensor_residual_surface_jmin.inl"
-#include "tensor/tensor_residual_surface_jmax.inl"
-#include "tensor/tensor_apply_minv.inl"
+#include "noncollocated/tensor_volume.inl"
+#include "noncollocated/tensor_surface_imin.inl"
+#include "noncollocated/tensor_surface_imax.inl"
+#include "noncollocated/tensor_surface_jmin.inl"
+#include "noncollocated/tensor_surface_jmax.inl"
+#include "noncollocated/tensor_residual_volume.inl"
+#include "noncollocated/tensor_residual_surface_imin.inl"
+#include "noncollocated/tensor_residual_surface_imax.inl"
+#include "noncollocated/tensor_residual_surface_jmin.inl"
+#include "noncollocated/tensor_residual_surface_jmax.inl"
+#include "noncollocated/tensor_apply_minv.inl"
+
+/*!
+ * @brief Tensor-product operations specialized for K collocated points and N variables.
+ *
+ * @tparam K number of solution points in 1D.
+ * @tparam N number of variables.
+ *
+ * @note Arrays must not overlap. Residual inputs already include weights and metrics.
+ * @note The first and last nodes must coincide with the two reference endpoints.
+ */
+template<std::size_t K, std::size_t N>
+class CCollocatedTensorProduct final: public ITensorProduct
+{
+  private:
+
+    /*!
+     * @brief Compile-time dimensions associated with this tensor specialization.
+     */
+    static_assert(K >= 2 && N > 0, "Invalid collocated tensor dimensions.");
+
+    using CDimensions = CCompileTimeDimensions<K,K,N>;
+
+  public:
+
+
+		/*!
+		 * @brief Constructor which initializes this specialized tensor-product class.
+		 *
+		 * @param[in] standard_element pointer to the standard element of this specialization.
+		 */
+		explicit CCollocatedTensorProduct(CStandardElement *standard_element)
+		 /*
+			* Constructor that initializes the collocated reference differentiation operator.
+			*/
+		{
+			if( !standard_element ) ERROR("Missing standard element for collocated tensor.");
+			if( K != standard_element->GetnSol1D() ) ERROR("Mismatch in tensor K dimension.");
+			if( K != standard_element->GetnInt1D() ) ERROR("Mismatch in tensor K integration dimension.");
+			if( !standard_element->GetIsCollocated() ) ERROR("Collocated tensor requires matching solution and integration nodes.");
+
+			// Direct face gathers require the first and last nodes to be the reference endpoints.
+			const auto &rSol1D = standard_element->GetrSol1D();
+			constexpr as3double TOL = 1.0e-12;
+			if( !(std::abs(rSol1D[0] + C_ONE) <= TOL && std::abs(rSol1D[K-1] - C_ONE) <= TOL) )
+			{
+				ERROR("Collocated tensor requires solution nodes at both reference endpoints.");
+			}
+
+			// Store only the differentiation operator; interpolation is the identity.
+			mDerLagrangeInt1D = standard_element->GetDerLagrangeInt1D();
+		}
+
+		/*!
+		 * @brief Destructor that releases the resources owned by this object.
+		 */
+		~CCollocatedTensorProduct(void) override = default;
+
+    /*!
+     * @brief Getter function which returns the number of solution points in one reference direction.
+     *
+     * @return number of solution points in one reference direction.
+     */
+    std::size_t GetnSol1D(void) const override { return CDimensions::nSol1D; }
+
+    /*!
+     * @brief Getter function which returns the number of integration points in one reference direction.
+     *
+     * @return number of integration points in one reference direction.
+     */
+    std::size_t GetnInt1D(void) const override { return CDimensions::nInt1D; }
+
+    /*!
+     * @brief Getter function which returns the number of solution variables.
+     *
+     * @return number of solution variables.
+     */
+    std::size_t GetnVar(void)   const override { return CDimensions::nVar;   }
+
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   volume integration points.
+		 *
+		 * @param[in] n number of variables processed with the fixed K operators.
+		 * @param[in] B solution values [n][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [n][K*K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [n][K*K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [n][K*K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void PartialCompileTimeVolume(std::size_t      n,
+                                  const as3double *B,
+				                          as3double       *C,
+				                          as3double       *CDerR,
+				                          as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   IMIN surface integration points.
+		 *
+		 * @param[in] n number of variables processed with the fixed K operators.
+		 * @param[in] B solution values [n][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [n][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [n][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [n][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void PartialCompileTimeSurfaceIMIN(std::size_t      n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   IMAX surface integration points.
+		 *
+		 * @param[in] n number of variables processed with the fixed K operators.
+		 * @param[in] B solution values [n][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [n][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [n][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [n][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void PartialCompileTimeSurfaceIMAX(std::size_t      n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   JMIN surface integration points.
+		 *
+		 * @param[in] n number of variables processed with the fixed K operators.
+		 * @param[in] B solution values [n][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [n][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [n][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [n][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void PartialCompileTimeSurfaceJMIN(std::size_t      n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   JMAX surface integration points.
+		 *
+		 * @param[in] n number of variables processed with the fixed K operators.
+		 * @param[in] B solution values [n][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [n][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [n][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [n][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void PartialCompileTimeSurfaceJMAX(std::size_t      n,
+                                       const as3double *B,
+				                               as3double       *C,
+				                               as3double       *CDerR,
+				                               as3double       *CDerS) override;
+
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   volume integration points.
+		 *
+		 * @param[in] B solution values [N][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [N][K*K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [N][K*K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [N][K*K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeVolume(const as3double *B,
+								           as3double       *C,
+								           as3double       *CDerR,
+								           as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   IMIN surface integration points.
+		 *
+		 * @param[in] B solution values [N][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [N][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [N][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [N][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeSurfaceIMIN(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   IMAX surface integration points.
+		 *
+		 * @param[in] B solution values [N][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [N][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [N][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [N][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeSurfaceIMAX(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   JMIN surface integration points.
+		 *
+		 * @param[in] B solution values [N][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [N][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [N][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [N][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeSurfaceJMIN(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that interpolates the solution and optional parametric derivatives to the
+		 *   JMAX surface integration points.
+		 *
+		 * @param[in] B solution values [N][K*K], with i varying fastest.
+		 * @param[out] C optional interpolated values [N][K]; nullptr skips this output.
+		 * @param[out] CDerR optional derivative in the r-direction [N][K]; nullptr skips this output.
+		 * @param[out] CDerS optional derivative in the s-direction [N][K]; nullptr skips this output.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeSurfaceJMAX(const as3double *B,
+								                as3double       *C,
+								                as3double       *CDerR,
+								                as3double       *CDerS) override;
+
+		/*!
+		 * @brief Function that lifts weighted inputs from the volume integration points to the solution
+		 *   DOFs.
+		 *
+		 * @param[in] B optional weighted value contribution [N][K*K]; nullptr omits this contribution.
+		 * @param[in] BDerR optional weighted r-derivative contribution [N][K*K]; nullptr omits this
+		 *   contribution.
+		 * @param[in] BDerS optional weighted s-derivative contribution [N][K*K]; nullptr omits this
+		 *   contribution.
+		 * @param[out] C solution residual [N][K*K], overwritten by the volume contribution.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeResidualVolume(const as3double *B,
+												           const as3double *BDerR,
+												           const as3double *BDerS,
+												           as3double       *C) override;
+
+		/*!
+		 * @brief Function that lifts weighted inputs from the IMIN surface integration points to the
+		 *   solution DOFs.
+		 *
+		 * @param[in] B optional weighted value contribution [N][K]; nullptr omits this contribution.
+		 * @param[in] BDerR optional weighted r-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in] BDerS optional weighted s-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in,out] C solution residual [N][K*K], incremented by this face contribution.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeResidualSurfaceIMIN(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) override;
+
+		/*!
+		 * @brief Function that lifts weighted inputs from the IMAX surface integration points to the
+		 *   solution DOFs.
+		 *
+		 * @param[in] B optional weighted value contribution [N][K]; nullptr omits this contribution.
+		 * @param[in] BDerR optional weighted r-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in] BDerS optional weighted s-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in,out] C solution residual [N][K*K], incremented by this face contribution.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeResidualSurfaceIMAX(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) override;
+
+		/*!
+		 * @brief Function that lifts weighted inputs from the JMIN surface integration points to the
+		 *   solution DOFs.
+		 *
+		 * @param[in] B optional weighted value contribution [N][K]; nullptr omits this contribution.
+		 * @param[in] BDerR optional weighted r-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in] BDerS optional weighted s-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in,out] C solution residual [N][K*K], incremented by this face contribution.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeResidualSurfaceJMIN(const as3double *B,
+												                const as3double *BDerR,
+												                const as3double *BDerS,
+												                as3double       *C) override;
+
+		/*!
+		 * @brief Function that lifts weighted inputs from the JMAX surface integration points to the
+		 *   solution DOFs.
+		 *
+		 * @param[in] B optional weighted value contribution [N][K]; nullptr omits this contribution.
+		 * @param[in] BDerR optional weighted r-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in] BDerS optional weighted s-derivative contribution [N][K]; nullptr omits this
+		 *   contribution.
+		 * @param[in,out] C solution residual [N][K*K], incremented by this face contribution.
+		 *
+		 * @note Arrays are variable-major; the i-index varies fastest within a two-dimensional field.
+		 */
+		void CompileTimeResidualSurfaceJMAX(const as3double *B,
+                                        const as3double *BDerR,
+                                        const as3double *BDerS,
+                                        as3double       *C) override;
+
+    /*!
+     * @brief Function that replaces the element residual by its inverse-mass product.
+     *
+     * @param[in] minv diagonal inverse mass in row-major storage of size [K*K][K*K].
+     * @param[in,out] res element residual [N][K*K], replaced by its inverse-mass product.
+     * @param[out] tmp unused scratch pointer; nullptr is permitted.
+     *
+     * @note Only diagonal entries are read. The matrix must be the collocated quadrature inverse mass.
+     */
+    void CompileTimeApplyInverseMassMatrix(const as3double *minv,
+                                           as3double       *res,
+                                           as3double       *tmp) override;
+
+	private:
+		CMatrixAS3<as3double> mDerLagrangeInt1D; ///< 1D reference derivative at the collocated nodes.
+};
+
+// Definitions of the collocated templated functions.
+#include "collocated/tensor_volume.inl"
+#include "collocated/tensor_surface_imin.inl"
+#include "collocated/tensor_surface_imax.inl"
+#include "collocated/tensor_surface_jmin.inl"
+#include "collocated/tensor_surface_jmax.inl"
+#include "collocated/tensor_residual_volume.inl"
+#include "collocated/tensor_residual_surface_imin.inl"
+#include "collocated/tensor_residual_surface_imax.inl"
+#include "collocated/tensor_residual_surface_jmin.inl"
+#include "collocated/tensor_residual_surface_jmax.inl"
+#include "collocated/tensor_apply_minv.inl"

@@ -12,7 +12,7 @@
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
-#include "tensor_structure.hpp"
+#include "compute_kernels/tensor_structure.hpp"
 #include "factory_structure.hpp"
 #include "boundary_structure.hpp"
 #include "monitoring_structure.hpp"
@@ -131,6 +131,7 @@ class CMultizoneSolver
      * @return number of zones.
      */
     std::size_t GetnZone(void) const { return mNZone; }
+
 
     /*!
      * @brief Getter function which returns the interface-container index associated with the I-direction

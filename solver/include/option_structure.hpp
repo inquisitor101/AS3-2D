@@ -129,23 +129,30 @@ MapMeshFormat =
 //--------------------------------------
 
 /*!
- * @brief Enumerated type for the arrangement of the DOFs.
+ * @brief Enumerated type for the distribution of nodal points.
  */
-enum class ETypeDOF
+enum class ETypeNodalDistribution
 {
 	LGL,  ///< Legendre-Gauss-Lobatto nodes.
-	EQD   ///< Equidistant nodes.
+	EQD,  ///< Equidistant nodes.
+	GL    ///< Gauss-Legendre nodes.
 };
 
 /*!
- * @brief Map for the type of the DOFs.
+ * @brief Compatibility name for the previous solution-node distribution type.
  */
-inline const std::map<std::string, ETypeDOF>
-MapTypeDOF = 
+using ETypeDOF = ETypeNodalDistribution;
+
+/*!
+ * @brief Map for the distribution of nodal points.
+ */
+inline const std::map<std::string, ETypeNodalDistribution>
+MapTypeNodalDistribution =
 {
-	{ "LGL", ETypeDOF::LGL },
-	{ "EQD", ETypeDOF::EQD }
-}; ///< Map for the type of the DOFs.
+	{ "LGL", ETypeNodalDistribution::LGL },
+	{ "EQD", ETypeNodalDistribution::EQD },
+	{ "GL",  ETypeNodalDistribution::GL  }
+}; ///< Map for the distribution of nodal points.
 
 //--------------------------------------
 
@@ -155,7 +162,8 @@ MapTypeDOF =
 enum class ETypeQuadrature
 {
 	LEGENDRE_GAUSS_LOBATTO,  ///< Legendre-Gauss-Lobatto.
-	GAUSS_LEGENDRE           ///< Gauss-Legendre.
+	GAUSS_LEGENDRE,         ///< Gauss-Legendre.
+	NEWTON_COTES           ///< Equidistant, closed Newton-Cotes (midpoint for one point).
 };
 
 /*!
@@ -165,7 +173,8 @@ inline const std::map<std::string, ETypeQuadrature>
 MapTypeQuadrature = 
 {
 	{ "LEGENDRE_GAUSS_LOBATTO", ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO },
-	{ "GAUSS_LEGENDRE",         ETypeQuadrature::GAUSS_LEGENDRE }
+	{ "GAUSS_LEGENDRE",         ETypeQuadrature::GAUSS_LEGENDRE },
+	{ "NEWTON_COTES",           ETypeQuadrature::NEWTON_COTES }
 }; ///< Map for the type of the quadratures.
 
 //--------------------------------------

@@ -5,7 +5,7 @@
  * Dense two-dimensional contractions provide independent references for the
  * sum-factorized kernels. Inputs are deterministic and include all variables.
  */
-#include "tensor_structure.hpp"
+#include "compute_kernels/tensor_structure.hpp"
 
 #include <gtest/gtest.h>
 

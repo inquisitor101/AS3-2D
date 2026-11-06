@@ -9,6 +9,6 @@ trap 'rm -rf "$build_dir"' EXIT
 
 "$compiler" -std=c++20 -O1 -Wall -Wextra -Wconversion -Werror \
   -I"$solver_dir/include" "$project_dir/tests/regression/integration_rule_tables_test.cpp" \
-  -o "$build_dir/integration_rule_tables_test"
+  "$solver_dir/src/error_structure.cpp" -o "$build_dir/integration_rule_tables_test"
 
 "$build_dir/integration_rule_tables_test"

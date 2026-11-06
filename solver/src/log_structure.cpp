@@ -77,6 +77,91 @@ void NLogger::PrintInitSolver
 
 //-----------------------------------------------------------------------------------
 
+void NLogger::DisplaySpatialDiscretization
+(
+ const CConfig          *config_container,
+ const CMultizoneSolver *multizone_solver_container
+)
+ /*
+	* Function that prints the DG method, nodal distributions and quadrature rule in each zone.
+	*/
+{
+	// Define a temporary lambda that returns the name of a nodal distribution.
+	auto LPrintTypeNodalDistribution = [](ETypeNodalDistribution distribution) -> std::string
+	{
+		switch( distribution )
+		{
+			case(ETypeNodalDistribution::LGL): return "LGL";
+			case(ETypeNodalDistribution::EQD): return "EQD";
+			case(ETypeNodalDistribution::GL):  return "GL";
+
+			default: ERROR("Unknown nodal distribution.");
+		}
+
+		// To avoid a compiler warning.
+		return "UNKNOWN";
+	};
+
+	// Define a temporary lambda that returns the name of a quadrature rule.
+	auto LPrintTypeQuadrature = [](ETypeQuadrature quadrature) -> std::string
+	{
+		switch( quadrature )
+		{
+			case(ETypeQuadrature::GAUSS_LEGENDRE):         return "GAUSS_LEGENDRE";
+			case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): return "LEGENDRE_GAUSS_LOBATTO";
+			case(ETypeQuadrature::NEWTON_COTES):          return "NEWTON_COTES";
+
+			default: ERROR("Unknown quadrature rule.");
+		}
+
+		// To avoid a compiler warning.
+		return "UNKNOWN";
+	};
+
+	// Determine which DG formulation is used.
+	std::string typeDGMethod;
+	switch( config_container->GetTypeDGMethod() )
+	{
+		case(ETypeDGMethod::NODAL_DG): { typeDGMethod = "NODAL_DG"; break; }
+		case(ETypeDGMethod::DG_SEM):   { typeDGMethod = "DG_SEM";   break; }
+
+		default: ERROR("Unknown DG method.");
+	}
+
+	// Use a local stream so earlier scientific output does not affect the table.
+	std::ostringstream report;
+	report << std::string(123, '-') << "\nSpatial discretization:\n"
+	       << "  DG method: " << typeDGMethod << "\n"
+	       << "  Point counts and degree of exactness are per reference direction (1D).\n\n";
+
+	// Print one row for each initialized standard element.
+	report << "  " << std::left << std::setw(7)  << "Zone"
+	       << std::setw(14) << "Sol. nodes" << std::setw(14) << "Sol. points"
+	       << std::setw(14) << "Int. nodes" << std::setw(14) << "Int. points"
+	       << std::setw(26) << "Quadrature rule" << std::setw(22) << "Degree of exactness"
+	       << "Collocated\n";
+	report << "  " << std::string(121, '-') << '\n';
+	for(std::size_t iZone=0; iZone<multizone_solver_container->GetnZone(); iZone++)
+	{
+		// Extract the actual solution and integration properties in this zone.
+		const auto* standard_element = multizone_solver_container->GetSinglezoneSolver(iZone)->GetStandardElement();
+		const auto* integration_rule = standard_element->GetIntegrationRule();
+
+		report << "  " << std::setw(7) << iZone
+		       << std::setw(14) << LPrintTypeNodalDistribution(standard_element->GetTypeDOFsSol())
+		       << std::setw(14) << standard_element->GetnSol1D()
+		       << std::setw(14) << LPrintTypeNodalDistribution(integration_rule->GetTypeNodalDistribution())
+		       << std::setw(14) << integration_rule->GetnInt1D()
+		       << std::setw(26) << LPrintTypeQuadrature(integration_rule->GetTypeQuadrature())
+		       << std::setw(22) << integration_rule->GetnPolyExact1D()
+		       << (standard_element->GetIsCollocated() ? "yes" : "no") << '\n';
+	}
+
+	std::cout << report.str();
+}
+
+//-----------------------------------------------------------------------------------
+
 void NLogger::DisplayBoundaryConditions
 (
  const CConfig            *config_container,
@@ -89,7 +174,7 @@ void NLogger::DisplayBoundaryConditions
 {
   struct CBoundarySummary
   {
-    ETypeBC mType;
+    ETypeBC     mType;
     std::size_t mFaces;
   };
   std::map<std::string, CBoundarySummary> physical;
@@ -580,12 +665,13 @@ void NLogger::DisplayAS3BinaryMetadata
     return "UNKNOWN";
   });
 
-  lPrintMapping("Nodal distribution mapping", mappings.mNodalDistributions, [](ETypeDOF value) -> const char*
+  lPrintMapping("Nodal distribution mapping", mappings.mNodalDistributions, [](ETypeNodalDistribution value) -> const char*
   {
     switch (value)
     {
-      case ETypeDOF::EQD: return "ETypeDOF::EQD";
-      case ETypeDOF::LGL: return "ETypeDOF::LGL";
+      case ETypeNodalDistribution::EQD: return "ETypeNodalDistribution::EQD";
+      case ETypeNodalDistribution::LGL: return "ETypeNodalDistribution::LGL";
+      case ETypeNodalDistribution::GL:  return "ETypeNodalDistribution::GL";
     }
     return "UNKNOWN";
   });

@@ -12,7 +12,7 @@
 #include "option_structure.hpp"
 #include "config_structure.hpp"
 #include "geometry_structure.hpp"
-#include "tensor_structure.hpp"
+#include "compute_kernels/tensor_structure.hpp"
 
 #include <array>
 

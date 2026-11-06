@@ -60,11 +60,9 @@ expect_success "K=10 M=15" 9 1 LGL NODAL_DG
 expect_success "K=11 M=11" 10 0 GL NODAL_DG
 expect_success "K=2 M=17" 1 30 GL NODAL_DG
 
-# Check reference-element restrictions independently of the run-time method guard.
+# Preserve invalid DG-SEM restrictions and verify valid collocated construction.
 expect_failure "DG-SEM requires zero bonus" 5 1 LGL DG_SEM
 expect_failure "DG-SEM requires zero bonus" 5 0 GL DG_SEM
-# A collocated reference element can be constructed; configured DG_SEM runs
-# are rejected by CConfig on main.
 expect_success "K=6 M=6" 5 0 LGL DG_SEM
 
 printf '%s\n' "All element-dimension regression cases passed."

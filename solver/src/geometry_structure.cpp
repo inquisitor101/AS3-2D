@@ -312,13 +312,13 @@ void CMultizoneGeometry::InitializeGridTopology
 
 CSinglezoneGeometry::CSinglezoneGeometry
 (
-  const std::string &gridfile,
-  std::size_t        iZone,
-  std::size_t        nPoly,
-  std::size_t        niElem,
-  std::size_t        njElem,
-  ETypeDOF           nodalDistribution,
-  bool               isAffine
+  const std::string      &gridfile,
+  std::size_t            iZone,
+  std::size_t            nPoly,
+  std::size_t            niElem,
+  std::size_t            njElem,
+  ETypeNodalDistribution nodalDistribution,
+  bool                   isAffine
 )
   : mZoneID(iZone),
     mGridFile(gridfile),
@@ -334,6 +334,13 @@ CSinglezoneGeometry::CSinglezoneGeometry
   if( mNiElem == 0 || mNjElem == 0 )
   {
     ERROR("Invalid element dimensions: " + mGridFile);
+  }
+
+  // Geometry face operations currently require LGL or equidistant solution nodes.
+  if( mNodalDistribution != ETypeNodalDistribution::LGL &&
+      mNodalDistribution != ETypeNodalDistribution::EQD )
+  {
+    ERROR("Unsupported geometry nodal distribution: " + mGridFile);
   }
 
   const std::size_t nNode1D = std::size_t(mNPolyGrid) + 1;

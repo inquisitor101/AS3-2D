@@ -1,5 +1,5 @@
 CXX=/opt/homebrew/opt/llvm/bin/clang++
-CPPFLAGS=  -Iinclude -DNDEBUG -DHAVE_OPENMP -I/opt/homebrew/opt/libomp/include
+CPPFLAGS=  -Iinclude -Iinclude/quadrature -DNDEBUG -DHAVE_OPENMP -I/opt/homebrew/opt/libomp/include
 CXXFLAGS=  -std=c++20 -Wall -Wextra -Wconversion -O2 -fopenmp
 LDFLAGS=   -fopenmp -L/opt/homebrew/opt/libomp/lib -Wl,-rpath,/opt/homebrew/opt/libomp/lib
 LDLIBS=-llapack -lblas

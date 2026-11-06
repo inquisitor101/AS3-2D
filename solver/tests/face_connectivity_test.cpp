@@ -43,7 +43,7 @@ void CheckThinZones()
 {
   for (const auto dims : {std::array<std::size_t, 2>{1, 1}, {1, 4}, {4, 1}})
   {
-    CSinglezoneGeometry zone("test", 0, 1, dims[0], dims[1], ETypeDOF::LGL, true);
+    CSinglezoneGeometry zone("test", 0, 1, dims[0], dims[1], ETypeNodalDistribution::LGL, true);
     CInteriorFaceBatch iFaces(ETypeFace::IFACE, &zone);
     CInteriorFaceBatch jFaces(ETypeFace::JFACE, &zone);
     Require(iFaces.GetnFace() == dims[1] * (dims[0] - 1), "Thin-zone i-face count is wrong");
