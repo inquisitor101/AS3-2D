@@ -31,12 +31,12 @@ classes. SVG diagrams support zooming and panning.
 | --- | --- |
 | Simulation setup and execution | CDriver, CConfig |
 | Multizone grid geometry | CMultizoneGeometry, CSinglezoneGeometry |
-| Euler residuals and zone solvers | CMultizoneSolver, ISolver, CEESolver |
+| Euler residuals and zone solvers | CMultizoneSolver, ISinglezoneSolver, CEESinglezoneSolver |
 | Time integration | ITemporal, CSSPRK3Temporal, CIteration |
 | Boundary conditions and interfaces | IBoundary, IInterface |
 | Tensor operations | ITensorProduct, CTensorProduct |
 | Initial conditions | IInitialCondition |
-| Visualization output | IFileVTK, CLegacyBinaryVTK |
+| Visualization output | IFileVTK, CLegacyBinaryVTK, CXMLBinaryVTK |
 
 ## Project
 

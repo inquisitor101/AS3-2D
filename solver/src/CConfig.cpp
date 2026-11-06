@@ -1,0 +1,659 @@
+#include "CConfig.hpp"
+
+#include <cstddef>
+#include <cmath>
+#include <fstream>
+#include <ios>
+#include <iostream>
+#include <memory>
+#include <ostream>
+#include <sstream>
+#include <string>
+
+
+//-----------------------------------------------------------------------------------
+// CConfig member functions.
+//-----------------------------------------------------------------------------------
+
+
+CConfig::CConfig
+(
+ const char *filename
+)
+ /*
+	* Constructor that reads and validates the simulation configuration.
+	*/
+{
+	// Report output.
+	std::cout << "----------------------------------------------"
+							 "----------------------------------------------\n"
+						<< "Reading configuration file: " << filename << std::endl;
+
+	// Message stream.
+	std::ostringstream message;
+
+  // Check if file exists.
+  std::ifstream inputfile(filename);
+  if( !inputfile.good() ) ERROR("Configuration file could not be opened!");
+	
+	// Close the file, since it is being opened at each subsequent step.
+  inputfile.close();
+
+
+	// Read the zone configuration options.
+	if( !ReadZoneConfigurationOptions(filename) )
+	{
+		message << "Failed to extract zone configuration options from " << filename;
+		ERROR(message.str());
+	}
+
+	// Read the output options.
+	if( !ReadOutputOptions(filename) )
+	{
+		message << "Failed to extract output options from " << filename;
+		ERROR(message.str());
+	}
+	
+	// Read the temporal options.
+	if( !ReadTemporalOptions(filename) )
+	{
+		message << "Failed to extract temporal options from " << filename;
+		ERROR(message.str());
+	}
+
+	// Read the initial condition options.
+	if( !ReadInitialConditionOptions(filename) )
+	{
+		message << "Failed to extract initial condition options from " << filename;
+		ERROR(message.str());
+	}
+	
+	// Read the boundary condition options.
+	if( !ReadBoundaryConditionOptions(filename) )
+	{
+		message << "Failed to extract boundary condition options from " << filename;
+		ERROR(message.str());
+	}
+
+  // Read the specific spatial discretization options.
+  if( !ReadSpatialDiscretizationOptions(filename) )
+  {
+    message << "Failed to extract spatial discretization options from " << filename;
+    ERROR(message.str());
+  }
+
+
+	// Report output.
+	std::cout << "Done." << std::endl;
+}
+
+//-----------------------------------------------------------------------------------
+
+CConfig::~CConfig
+(
+ void
+)
+ /*
+	* Destructor for CConfig.
+	*/
+{
+
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadZoneConfigurationOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads and validates the zone configuration options.
+	*/
+{
+	// Report output.
+	std::cout << "  reading zone configurations............. ";
+
+  // Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffer for storing temporary strings.
+	std::string              buffer;
+	as3vector1d<std::string> buffervec;
+
+	// Read the total number of zones expected.
+	NInputUtility::AddScalarOption(paramfile, "NUMBER_ZONE", mNZone, true);
+ 
+	// Read the type of solver in each zone.
+	NInputUtility::AddVectorOption(paramfile, "TYPE_SOLVER", buffervec, true);
+  // Pad entries for the buffer vector.
+  PadEntriesVectorData(buffervec, "TYPE_SOLVER", mNZone, 1, 2);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeSolver = GenericVectorMap(MapTypeSolver, buffervec, "TYPE_SOLVER");
+
+	// Default buffer layer value is: none.
+	as3vector1d<std::string> dvalue = { "NONE" }; 
+	// Read the type of buffer zone in each zone. Default: none.
+	NInputUtility::AddVectorOption(paramfile, "TYPE_BUFFER_LAYER", buffervec, dvalue, true);
+  // Pad entries for the buffer vector.
+  PadEntriesVectorData(buffervec, "TYPE_BUFFER_LAYER", mNZone, 1, 2);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeBufferLayer = GenericVectorMap(MapTypeBufferLayer, buffervec, "TYPE_BUFFER_LAYER");
+
+	// Read the type of Riemann solver specified in each zone.
+	NInputUtility::AddVectorOption(paramfile, "RIEMANN_SOLVER", buffervec, true);
+	// Pad entries for the mTypeRiemannSolver vector.
+  PadEntriesVectorData(buffervec, "RIEMANN_SOLVER", mNZone, 1, 2);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeRiemannSolver = GenericVectorMap(MapTypeRiemannSolver, buffervec, "RIEMANN_SOLVER");
+
+	// Read the mesh format specified.
+	NInputUtility::AddScalarOption(paramfile, "MESH_FORMAT", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mMeshFormat = GenericScalarMap(MapMeshFormat, buffer, "MESH_FORMAT");
+
+	// Read the format of the input grid files.
+	NInputUtility::AddScalarOption(paramfile, "INPUT_GRID_FORMAT", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mInputGridFormat = GenericScalarMap(MapFormatFile, buffer, "INPUT_GRID_FORMAT");
+
+  // Read the grid directory.
+  NInputUtility::AddScalarOption(paramfile, "GRID_DIRECTORY", mGridDirectory, true);
+  // Add a backslash, in case there is none.
+  if(mGridDirectory.empty() || mGridDirectory.back() != '/') { mGridDirectory += '/'; }
+
+  // Close the file, since it will be opened later.
+	paramfile.close();
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadOutputOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads visualization formats, variables and output filenames.
+	*/
+{
+	// Report output.
+	std::cout << "  reading output information.............. ";
+
+  // Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffers for storing temporary strings.
+	std::string              buffer;
+	as3vector1d<std::string> buffervec;
+
+	// Read the output visualization format specified.
+	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FORMAT", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mOutputVisFormat = GenericScalarMap(MapVisualFormat, buffer, "OUTPUT_VIS_FORMAT");
+
+	// Read the optional output precision. Default: single precision.
+	const std::string defaultPrecision = "SINGLE";
+	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_PRECISION", buffer, defaultPrecision, true);
+	mOutputVisPrecision = GenericScalarMap(MapFloatingPointPrecision, buffer, "OUTPUT_VIS_PRECISION");
+
+	// Read the writing frequency of the visualization files.
+	NInputUtility::AddScalarOption(paramfile, "WRITE_VIS_FREQ", mWriteVisFreq, true);
+	// Ensure the writing frequency is not zero.
+  if( mWriteVisFreq == 0 ) ERROR("WRITE_VIS_FREQ must be greater than zero.");
+  // Read the output visualization filename.
+	NInputUtility::AddScalarOption(paramfile, "OUTPUT_VIS_FILENAME", mOutputVisFilename, true);
+	// Read the output solution filename.
+	NInputUtility::AddScalarOption(paramfile, "OUTPUT_SOL_FILENAME", mOutputSolFilename, true);
+
+	// Reada the output visualization variables written.
+	NInputUtility::AddVectorOption(paramfile, "WRITE_VIS_VARIABLE", buffervec, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mWriteVisVar = GenericVectorMap(MapWriteVariable, buffervec, "WRITE_VIS_VARIABLE");
+
+	// Close file.
+  paramfile.close();
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadTemporalOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the temporal method, time-step settings and CFL number.
+	*/
+{
+	// Report output.
+	std::cout << "  reading temporal information............ ";
+  
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffer for storing temporary strings.
+	std::string buffer;
+
+	// Read the temporal discretization specified.
+	NInputUtility::AddScalarOption(paramfile, "TEMPORAL_SCHEME", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTemporalScheme = GenericScalarMap(MapTemporalScheme, buffer, "TEMPORAL_SCHEME");
+
+	// Read the simulation starting time.
+	NInputUtility::AddScalarOption(paramfile, "START_TIME", mStartTime, true);
+	// Read the temporal step specified.
+	NInputUtility::AddScalarOption(paramfile, "TIME_STEP", mTimeStep, true);
+	// Read the maximum number of temporal iterations.
+	NInputUtility::AddScalarOption(paramfile, "MAX_ITER_TIME", mMaxIterTime, true);
+	// Read the CFL number for temporal stability.
+	NInputUtility::AddScalarOption(paramfile, "CFL_NUMBER", mCFL, true);
+
+	// Ensure the starting time is finite.
+	if( !std::isfinite(mStartTime) ) ERROR("START_TIME must be finite.");
+	// Ensure the synchronization time step can advance physical time.
+	if( !std::isfinite(mTimeStep) || mTimeStep <= C_ZERO )
+		ERROR("TIME_STEP must be finite and greater than zero.");
+	// Ensure the CFL number produces a positive stability step.
+	if( !std::isfinite(mCFL) || mCFL <= C_ZERO )
+		ERROR("CFL_NUMBER must be finite and greater than zero.");
+
+
+	// Close file.
+  paramfile.close();
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadSpatialDiscretizationOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the spatial discretization specification.
+	*/
+{
+	// Report output.
+  std::cout << "  reading spatial information............. ";
+
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffer for storing temporary strings.
+	std::string buffer;
+
+	// Read the quadrature method specified. Default: Gauss-Legendre.
+	std::string dvalue = "GAUSS_LEGENDRE";
+	NInputUtility::AddScalarOption(paramfile, "TYPE_QUADRATURE", buffer, dvalue, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeQuadrature = GenericScalarMap(MapTypeQuadrature, buffer, "TYPE_QUADRATURE");
+
+	// Read the bonus quadrature factor. Default: zero.
+	dvalue = "0";
+	NInputUtility::AddScalarOption(paramfile, "BONUS_QUADRATURE_FACTOR", buffer, dvalue, true);
+	// Parse a complete signed integer token before converting to unsigned storage.
+	std::ptrdiff_t nBonusQuadratureFactor;
+	std::istringstream bonusInput(buffer);
+	if( !(bonusInput >> nBonusQuadratureFactor) || nBonusQuadratureFactor < 0 )
+		ERROR("BONUS_QUADRATURE_FACTOR must be a non-negative integer.");
+	bonusInput >> std::ws;
+	if( !bonusInput.eof() ) ERROR("BONUS_QUADRATURE_FACTOR must be a non-negative integer.");
+	mBonusQuadratureFactor = static_cast<std::size_t>(nBonusQuadratureFactor);
+
+	// Read the DG method specified. Default: standard nodal DG.
+	dvalue = "NODAL_DG";
+	NInputUtility::AddScalarOption(paramfile, "TYPE_DG_METHOD", buffer, dvalue, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeDGMethod = GenericScalarMap(MapTypeDGMethod, buffer, "TYPE_DG_METHOD");
+
+
+	// Close file.
+  paramfile.close();
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadInitialConditionOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the selected initial condition and its parameters.
+	*/
+{
+	// Report output.
+	std::cout << "  reading initial condition information... ";
+  
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+  // Buffer for storing temporary strings.
+	std::string buffer;
+
+	// Read the type of initial condition specified.
+	NInputUtility::AddScalarOption(paramfile, "TYPE_IC", buffer, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeIC = GenericScalarMap(MapTypeIC, buffer, "TYPE_IC");
+
+	// Close the file, since it is being opened during the processing of the ICs.
+  paramfile.close();
+
+	// Check what else to extract, based on the type of IC.
+	switch(mTypeIC)
+	{
+		case(ETypeIC::GAUSSIAN_PRESSURE): { IC_GaussianPressure(filename); break; }
+		case(ETypeIC::ISENTROPIC_VORTEX): { IC_IsentropicVortex(filename); break; }
+		default: ERROR("Cannot extract additional information from the specified IC.");
+	}
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+bool CConfig::ReadBoundaryConditionOptions
+(
+ const char *filename
+)
+ /*
+	* Function that reads the configured physical and periodic boundary markers.
+	*/
+{
+	// Report output.
+  std::cout << "  reading boundary condition information.. ";
+	
+	// Check for and extract interface/periodic boundary condition information, if present.
+	ExtractInfoInterfaceBC(filename);
+
+	// Check for and extract interface/periodic boundary condition information, if present.
+	ExtractInfoBoundaryCondition(filename);
+
+
+	// Check that all the boundary + interface markers are indeed unique. 
+	if( mMarkerTag.size() )
+	{
+		// Ensure both interface and boundary markers are correct in size.
+		if( mMarkerTag.size() != (mBoundaryParamMarker.size() + 2*mPeriodicParamMarker.size()) )
+		{
+			ERROR("Markers are not consistent in size.");
+		}
+
+		// Ensure the markers are indeed unique.
+		for(std::size_t i=0; i<mMarkerTag.size(); i++)
+		{
+			for(std::size_t j=i+1; j<mMarkerTag.size(); j++)
+			{
+				if( mMarkerTag[i].first == mMarkerTag[j].first ) 
+				{
+					ERROR("Markers are not unique."); 
+				}
+			}
+		}
+	}
+	else
+	{
+		// No boundary information is detected, this is nonsense.
+		ERROR("Marker boundary/periodic conditions are missing.");
+	}
+
+	// Report output.
+	std::cout << " Done." << std::endl;
+
+  // Return happily.
+	return true;
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::ExtractInfoBoundaryCondition
+(
+ const char *filename
+)
+ /*
+	* Function that reads the parameters of the supported physical boundary conditions.
+	*/
+{
+  // Open input file.
+  std::ifstream paramfile(filename);
+  
+  // Share the scan and registration logic; each factory validates its own fields.
+  const auto readMarkers = [&](const char *keyword, auto makeMarker)
+  {
+    // The preceding scan reaches EOF. Restart for every boundary type.
+    paramfile.clear();
+    paramfile.seekg(0, std::ios::beg);
+
+    as3vector1d<std::string> buffervec;
+    while( true )
+    {
+      NInputUtility::AddVectorOption(paramfile, keyword,
+                                     buffervec, as3vector1d<std::string>{}, false);
+      if( buffervec.empty() ) break;
+
+      mBoundaryParamMarker.push_back( makeMarker(buffervec) );
+      mMarkerTag.push_back(
+          {mBoundaryParamMarker.back()->mName, mBoundaryParamMarker.back()->GetTypeBC()} );
+    }
+  };
+
+  readMarkers("MARKER_BC_SYMMETRY", [](const auto &buffer)
+  {
+    if( buffer.size() != 1 ) ERROR("Symmetry markers must only contain one boundary name.");
+    return std::make_unique<CSymmetryParamMarker>(buffer[0]);
+  });
+
+  readMarkers("MARKER_BC_FARFIELD", [](const auto &buffer)
+  {
+    return std::make_unique<CFarfieldParamMarker>(buffer);
+  });
+
+  readMarkers("MARKER_BC_STATIC_MASS_FLOW_INLET_RIEMANN", [](const auto &buffer)
+  {
+    return std::make_unique<CStaticMassFlowInletRiemannParamMarker>(buffer);
+  });
+
+  readMarkers("MARKER_BC_PRESSURE_OUTLET_RIEMANN", [](const auto &buffer)
+  {
+    return std::make_unique<CPressureOutletRiemannParamMarker>(buffer);
+  });
+  
+  // Close file.
+  paramfile.close();
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::ExtractInfoInterfaceBC
+(
+ const char *filename
+)
+ /*
+	* Function that reads periodic marker pairs and their translations.
+	*/
+{
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+	// Default value, needed to check if/when this BC is not found in the file.
+	as3vector1d<std::string> defval = { "ERROR404" };
+
+	// Condition for when to stop searching for periodic BCs.
+	bool condition = true;
+
+	// Loop over the file and search for any periodic BC markers.
+	while(condition)
+	{
+		// Buffers for storing temporary strings.
+		as3vector1d<std::string> buffer;
+		
+		// Read the information of the periodic marker, if specified.
+		NInputUtility::AddVectorOption(paramfile, "MARKER_BC_PERIODIC", buffer, defval, false);
+
+		// Check if any new values are found.
+		if( buffer != defval )
+		{
+			// Ensure the values specified are 4: iName, jName, rx, ry.
+			if( buffer.size() != 4 )
+			{
+				ERROR("Periodic BCs must specify two markers and a 2D translation vector.");
+			}
+
+			// Accumulate the information.
+			mPeriodicParamMarker.push_back( std::make_unique<CPeriodicParamMarker>(buffer) );
+		}
+		else
+		{
+			// Prepare to exit from this loop.
+			condition = false;
+		}
+	}
+
+	// Accumulate the marker tag information, if need be.
+	if( mPeriodicParamMarker.size() )
+	{
+		for( auto& periodic: mPeriodicParamMarker )
+		{
+			// Accumulate both pair of boundaries.
+			mMarkerTag.push_back( {periodic->mName,         periodic->GetTypeBC()} );
+			mMarkerTag.push_back( {periodic->mNameMatching, periodic->GetTypeBC()} );
+		}
+	}
+
+	// Close file.
+  paramfile.close();
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::IC_GaussianPressure
+(
+ const char *filename
+)
+ /*
+	* Function that reads the Gaussian pressure pulse and freestream parameters.
+	*/
+{
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+	// Values that store the respective information.
+	as3double vratio;
+	as3double vwidth;	
+	as3double vmach;
+	as3double vangle;
+	as3vector1d<as3double> vcenter;
+
+	// Read the pulse ratio specified.
+	NInputUtility::AddScalarOption(paramfile, "DISTURBANCE_RATIO", vratio, true);
+	// Read the pulse width specified.
+	NInputUtility::AddScalarOption(paramfile, "DISTURBANCE_WIDTH", vwidth, true);
+	
+	// Read the coordinates of the center of the pulse.
+	NInputUtility::AddVectorOption(paramfile, "DISTURBANCE_CENTER", vcenter, true);
+
+	// Read the freestream Mach number specified.
+	NInputUtility::AddScalarOption(paramfile, "FREESTREAM_MACH", vmach, true);
+	// Read the freestream flow angle specified.
+	NInputUtility::AddScalarOption(paramfile, "FREESTREAM_FLOW_ANGLE", vangle, true);
+
+	// Ensure the center provided is two-dimensional.
+	if( vcenter.size() != 2 ) ERROR("Pulse center must have x and y only.");
+
+	// Assemble the vector containing the IC data.
+	mDataIC.resize(6);
+
+	// Pack the data into the vector. Use the same convention to unpack.
+	mDataIC[0] = vratio;
+	mDataIC[1] = vwidth;
+	mDataIC[2] = vmach;
+	mDataIC[3] = vangle;
+	mDataIC[4] = vcenter[0];
+	mDataIC[5] = vcenter[1];
+
+	// Close file.
+  paramfile.close();
+}
+
+//-----------------------------------------------------------------------------------
+
+void CConfig::IC_IsentropicVortex
+(
+ const char *filename
+)
+ /*
+	* Function that reads the isentropic vortex and freestream parameters.
+	*/
+{
+	// Open input file.
+  std::ifstream paramfile(filename);
+
+	// Values that store the respective information.
+	as3double vratio;
+	as3double vwidth;	
+	as3double vmach;
+	as3double vangle;
+	as3vector1d<as3double> vcenter;
+
+	// Read the pulse ratio specified.
+	NInputUtility::AddScalarOption(paramfile, "DISTURBANCE_RATIO", vratio, true);
+	// Read the pulse width specified.
+	NInputUtility::AddScalarOption(paramfile, "DISTURBANCE_WIDTH", vwidth, true);
+	
+	// Read the coordinates of the center of the pulse.
+	NInputUtility::AddVectorOption(paramfile, "DISTURBANCE_CENTER", vcenter, true);
+
+	// Read the freestream Mach number specified.
+	NInputUtility::AddScalarOption(paramfile, "FREESTREAM_MACH", vmach, true);
+	// Read the freestream flow angle specified.
+	NInputUtility::AddScalarOption(paramfile, "FREESTREAM_FLOW_ANGLE", vangle, true);
+
+	// Ensure the center provided is two-dimensional.
+	if( vcenter.size() != 2 ) ERROR("Pulse center must have x and y only.");
+
+	// Assemble the vector containing the IC data.
+	mDataIC.resize(6);
+
+	// Pack the data into the vector. Use the same convention to unpack.
+	mDataIC[0] = vratio;
+	mDataIC[1] = vwidth;
+	mDataIC[2] = vmach;
+	mDataIC[3] = vangle;
+	mDataIC[4] = vcenter[0];
+	mDataIC[5] = vcenter[1];
+
+	// Close file.
+  paramfile.close();
+}
+
+//-----------------------------------------------------------------------------------
+
+
+
+
+
+

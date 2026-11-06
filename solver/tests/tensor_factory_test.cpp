@@ -3,7 +3,7 @@
  * @brief Regression checks for collocation detection and tensor factory selection.
  */
 
-#include "factory_structure.hpp"
+#include "CGenericFactory.hpp"
 
 #include <iostream>
 #include <stdexcept>

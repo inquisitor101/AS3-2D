@@ -6,8 +6,8 @@ build_dir="$(mktemp -d "${TMPDIR:-/tmp}/as3-newton-cotes-tests.XXXXXX")"
 compiler="${CXX:-/opt/homebrew/opt/llvm/bin/clang++}"
 trap 'rm -rf "$build_dir"' EXIT
 
-sources=(error_structure integration_rule_structure linear_algebra
-         polynomial_structure quadrature_structure standard_element_structure)
+sources=(NError quadrature/CIntegrationRule linear_algebra/NLinearAlgebra
+         NPolynomialUtility quadrature/CGaussJacobiQuadrature element/CStandardElement)
 for i in "${!sources[@]}"; do
   sources[$i]="$project_dir/src/${sources[$i]}.cpp"
 done

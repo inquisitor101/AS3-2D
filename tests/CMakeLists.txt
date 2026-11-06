@@ -33,13 +33,13 @@ find_package(LAPACK REQUIRED)
 
 set(AS3_SOLVER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../solver")
 add_library(as3_test_numerics STATIC
-  "${AS3_SOLVER_DIR}/src/error_structure.cpp"
-  "${AS3_SOLVER_DIR}/src/integration_rule_structure.cpp"
-  "${AS3_SOLVER_DIR}/src/linear_algebra.cpp"
-  "${AS3_SOLVER_DIR}/src/polynomial_structure.cpp"
-  "${AS3_SOLVER_DIR}/src/quadrature_structure.cpp"
-  "${AS3_SOLVER_DIR}/src/standard_element_structure.cpp"
-  "${AS3_SOLVER_DIR}/src/tensor_structure.cpp"
+  "${AS3_SOLVER_DIR}/src/NError.cpp"
+  "${AS3_SOLVER_DIR}/src/quadrature/CIntegrationRule.cpp"
+  "${AS3_SOLVER_DIR}/src/linear_algebra/NLinearAlgebra.cpp"
+  "${AS3_SOLVER_DIR}/src/NPolynomialUtility.cpp"
+  "${AS3_SOLVER_DIR}/src/quadrature/CGaussJacobiQuadrature.cpp"
+  "${AS3_SOLVER_DIR}/src/element/CStandardElement.cpp"
+  "${AS3_SOLVER_DIR}/src/TensorProducts.cpp"
 )
 target_include_directories(as3_test_numerics PUBLIC
   "${AS3_SOLVER_DIR}/include"

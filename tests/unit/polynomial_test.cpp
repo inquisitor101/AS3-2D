@@ -1,4 +1,4 @@
-#include "polynomial_structure.hpp"
+#include "NPolynomialUtility.hpp"
 #include "quadrature/legendre_gauss_lobatto.hpp"
 
 #include <gtest/gtest.h>

@@ -7,7 +7,7 @@
  * Each point count has its own named arrays, selected by the getter switches.
  * Counts range from 1 through 20; n is the number of points, not a degree.
  * Values follow CIntegrationRule's Gauss-Jacobi construction, using the
- * Jacobi recurrence and implicit QL algorithm in quadrature_structure.cpp.
+ * Jacobi recurrence and implicit QL algorithm in CGaussJacobiQuadrature.cpp.
  * Generated with 100-decimal-digit arithmetic, independently checked against
  * Legendre roots and weight formulas, and rounded to 25 significant digits.
  * Array entries use as3double. Unsuffixed literals are rounded to double
@@ -27,7 +27,7 @@
 #include <span>
 #include <stdexcept>
 
-#include "option_structure.hpp"
+#include "common/AS3Options.hpp"
 #include "quadrature/integration_rule_validation.hpp"
 
 namespace NGaussLegendre

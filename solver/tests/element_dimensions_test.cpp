@@ -3,9 +3,9 @@
  * @brief Regression checks for supported element dimensions and quadrature sizing.
  */
 
-#include "compile_time_dimensions.hpp"
-#include "integration_rule_structure.hpp"
-#include "standard_element_structure.hpp"
+#include "CSupportedElementDimensions.hpp"
+#include "quadrature/CIntegrationRule.hpp"
+#include "element/CStandardElement.hpp"
 
 #include <cmath>
 #include <iostream>

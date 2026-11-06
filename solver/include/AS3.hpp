@@ -6,7 +6,7 @@
  */
 
 
-#include "option_structure.hpp"
-#include "driver_structure.hpp"
+#include "common/AS3Options.hpp"
+#include "CDriver.hpp"
 
 

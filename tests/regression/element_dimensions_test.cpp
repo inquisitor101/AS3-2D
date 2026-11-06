@@ -3,9 +3,9 @@
  * @brief Regression checks for supported element dimensions and quadrature sizing.
  */
 
-#include "compile_time_dimensions.hpp"
-#include "integration_rule_structure.hpp"
-#include "standard_element_structure.hpp"
+#include "CSupportedElementDimensions.hpp"
+#include "quadrature/CIntegrationRule.hpp"
+#include "element/CStandardElement.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
 			                           ETypeQuadrature::GAUSS_LEGENDRE : ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO;
 			const auto typeDGMethod = std::string(argv[4]) == "NODAL_DG" ?
 			                         ETypeDGMethod::NODAL_DG : ETypeDGMethod::DG_SEM;
-			const CStandardElement element(ETypeDOF::LGL, nPoly, nBonus, typeQuadrature, typeDGMethod);
+			const CStandardElement element(ETypeNodalDistribution::LGL, nPoly, nBonus, typeQuadrature, typeDGMethod);
 			std::cout << "K=" << element.GetnSol1D() << " M=" << element.GetnInt1D() << std::endl;
 		}
 

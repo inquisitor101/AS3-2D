@@ -62,7 +62,8 @@ DEP_DIR    := $(BUILD_DIR)/dep
 EXE        := $(BIN_DIR)/$(BUILD_TAG)/AS3
 CONFIG     := $(BUILD_DIR)/flags.txt
 
-SRCS := $(sort $(wildcard $(SRC_DIR)/*.cpp))
+# Discover sources in each module and preserve their paths in obj/ and dep/.
+SRCS := $(sort $(shell find -H $(SRC_DIR) -type f -name '*.cpp'))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(OBJ_DIR)/%.o,$(SRCS))
 DEPS := $(patsubst $(SRC_DIR)/%.cpp,$(DEP_DIR)/%.d,$(SRCS))
 
@@ -78,8 +79,8 @@ EXTRA_CPPFLAGS ?=
 EXTRA_CXXFLAGS ?=
 EXTRA_LDFLAGS  ?=
 
-# Include the common solver headers and the quadrature subdirectory.
-INCLUDE_DIRS := include include/quadrature
+# Resolve project headers relative to the include directory.
+INCLUDE_DIRS := include
 PROJECT_CPPFLAGS := $(addprefix -I,$(INCLUDE_DIRS))
 PROJECT_CXXFLAGS := -std=c++20 -Wall -Wextra -Wconversion
 PROJECT_LDFLAGS  :=
@@ -161,7 +162,7 @@ $(CONFIG): FORCE
 # Dependency files include project headers and .inl files; -MP tolerates
 # headers that have been removed or renamed since the previous build.
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp $(CONFIG)
-	@mkdir -p $(OBJ_DIR) $(DEP_DIR)
+	@mkdir -p $(@D) $(dir $(DEP_DIR)/$*.d)
 	$(CXX) $(COMPILE_CPPFLAGS) $(COMPILE_CXXFLAGS) \
 	    -MMD -MP -MF $(DEP_DIR)/$*.d -MT $@ -c $< -o $@
 

@@ -54,6 +54,36 @@ The configuration selects the grid, polynomial order, initial condition, boundar
 conditions, time integration, and output settings. Visualization output uses the
 `vis/flow` prefix in this example. Edit `param.cfg` to change the run settings.
 
+## Binary visualization output
+
+Set `OUTPUT_VIS_FORMAT = VTK_XML_BINARY` to write `.vtu` snapshots for ParaView
+or VTK. The writer appends uncompressed binary arrays in the machine's byte
+order. It caches the fixed mesh in memory and reuses point-data buffers across
+snapshots. Each snapshot contains the mesh and the fields selected by
+`WRITE_VIS_VARIABLE`. `VTK_LEGACY_BINARY` still selects the `.vtk` writer.
+
+Both writers default to `OUTPUT_VIS_PRECISION = SINGLE` (32-bit coordinates and
+point fields). Set `OUTPUT_VIS_PRECISION = DOUBLE` to write 64-bit coordinates
+and point fields. This setting controls the file representation. The solver
+continues to compute in its usual precision.
+
+Both formats store the physical simulation time in seconds as a double-precision
+`TimeValue` field in each snapshot. Open `vis/flow.pvd` for XML output or
+`vis/flow.vtk.series` for legacy output in ParaView to animate at the recorded
+times. The index is updated after each snapshot and uses paths relative to its
+directory, so it can be moved together with the snapshots. See the
+[ParaView file-series documentation](https://docs.paraview.org/en/latest/UsersGuide/dataIngestion.html#handling-temporal-file-series).
+
+The XML writer uses 32-bit point indices and cell offsets with 64-bit byte
+offsets for appended arrays. Use a VTK-aware reader for the raw binary
+payload. See the [VTK XML format specification](https://docs.vtk.org/en/latest/vtk_file_formats/vtkxml_file_format.html).
+
+To compare both writers using ParaView's Python, run from the repository root:
+
+```sh
+pvpython --no-mpi solver/tests/vtk_output_test.py solver/bin/release-omp1-ltooff-native0/AS3
+```
+
 ## Build this documentation locally
 
 Install Doxygen and Graphviz, then run from the repository root:

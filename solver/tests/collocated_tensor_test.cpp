@@ -2,7 +2,8 @@
  * @file
  * @brief Compare collocated kernels with general tensors and polynomial/adjoint identities.
  */
-#include "compute_kernels/tensor_structure.hpp"
+#include "compute_kernels/TensorProducts.hpp"
+#include "data/CMatrixAS3.hpp"
 
 #include <algorithm>
 #include <cmath>

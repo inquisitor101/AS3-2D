@@ -78,7 +78,7 @@ def main(root):
     sections = {}
     inheritance = []
     families = {
-        "ISolver": "Zone solvers", "ITemporal": "Time integration",
+        "ISinglezoneSolver": "Zone solvers", "ITemporal": "Time integration",
         "IBoundary": "Boundary conditions", "IInterface": "Zone interfaces",
         "IRiemannSolver": "Riemann solvers", "ITensorProduct": "Tensor products",
         "IInitialCondition": "Initial conditions", "IFileVTK": "Visualization output",
@@ -98,7 +98,7 @@ def main(root):
     sections["INHERITANCE"] = "".join(markup for _, markup in sorted(inheritance))
 
     collaboration = []
-    for name in ("CDriver", "CEESolver", "CMultizoneGeometry"):
+    for name in ("CDriver", "CEESinglezoneSolver", "CMultizoneGeometry"):
         reference = class_links[name]
         graphs = [g for g in Page(root / reference).graphs if g["source"].endswith("__coll__graph.svg")]
         if not graphs:
@@ -108,9 +108,9 @@ def main(root):
 
     includes = []
     for name, suffix, title in (
-        ("driver_structure.hpp", "__incl.svg", "Driver: included headers"),
-        ("geometry_structure.hpp", "__dep__incl.svg", "Geometry: headers and sources that include it"),
-        ("solver_structure.hpp", "__incl.svg", "Solver: included headers"),
+        ("CDriver.hpp", "__incl.svg", "Driver: included headers"),
+        ("CMultizoneGeometry.hpp", "__dep__incl.svg", "Geometry: headers and sources that include it"),
+        ("CEESinglezoneSolver.hpp", "__incl.svg", "Solver: included headers"),
     ):
         reference = file_links[name]
         graphs = [g for g in Page(root / reference).graphs if g["source"].endswith(suffix) and (suffix != "__incl.svg" or "__dep__incl.svg" not in g["source"])]

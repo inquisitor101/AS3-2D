@@ -1,8 +1,8 @@
 # Face connectivity {#face_connectivity}
 
 The face data describe connectivity. Coordinates, normals, and metric terms live
-with the element geometry. `face_structure.hpp` keeps the existing project naming
-style while giving each level a specific meaning.
+with the element geometry. Under `geometry/face`, each face record lives with
+its batch. Collection indexing and directional connectivity have separate files.
 
 | Type | Responsibility |
 | --- | --- |

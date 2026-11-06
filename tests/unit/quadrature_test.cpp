@@ -1,7 +1,7 @@
 #include "quadrature/gauss_legendre.hpp"
 #include "quadrature/legendre_gauss_lobatto.hpp"
-#include "integration_rule_structure.hpp"
-#include "standard_element_structure.hpp"
+#include "quadrature/CIntegrationRule.hpp"
+#include "element/CStandardElement.hpp"
 
 #include <gtest/gtest.h>
 
@@ -80,7 +80,7 @@ namespace
     ASSERT_TRUE(NIntegrationRuleValidation::ValidateRule(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO, x, w));
 
     // Solution nodes must use these exact constants as well.
-    const CStandardElement element(ETypeDOF::LGL, n-1, 0,
+    const CStandardElement element(ETypeNodalDistribution::LGL, n-1, 0,
                                     ETypeQuadrature::GAUSS_LEGENDRE, ETypeDGMethod::NODAL_DG);
     ASSERT_EQ(element.GetrSol1D().size(), n);
     for(std::size_t i=0; i<n; i++) EXPECT_EQ(element.GetrSol1D()[i], x[i]);
@@ -100,7 +100,7 @@ namespace
 
   TEST(StandardElementNodes, SingleNodeIsTheMidpoint)
   {
-    for(const auto distribution : {ETypeDOF::LGL, ETypeDOF::EQD})
+    for(const auto distribution : {ETypeNodalDistribution::LGL, ETypeNodalDistribution::EQD})
     {
       const CStandardElement element(distribution, 0, 0,
                                       ETypeQuadrature::GAUSS_LEGENDRE, ETypeDGMethod::NODAL_DG);
@@ -114,7 +114,7 @@ namespace
     for(std::size_t n=2; n<=10; n++)
     {
       SCOPED_TRACE(n);
-      const CStandardElement element(ETypeDOF::EQD, n-1, 0,
+      const CStandardElement element(ETypeNodalDistribution::EQD, n-1, 0,
                                       ETypeQuadrature::GAUSS_LEGENDRE, ETypeDGMethod::NODAL_DG);
       const auto &points = element.GetrSol1D();
       ASSERT_EQ(points.size(), n);
@@ -138,7 +138,7 @@ namespace
     {
       SCOPED_TRACE(n);
       COutputCapture output;
-      const CStandardElement element(ETypeDOF::LGL, n-1, 0,
+      const CStandardElement element(ETypeNodalDistribution::LGL, n-1, 0,
                                       ETypeQuadrature::GAUSS_LEGENDRE, ETypeDGMethod::NODAL_DG);
       const auto warning = output.GetOutput();
       EXPECT_NE(warning.find("Legendre-Gauss-Lobatto quadrature with " + std::to_string(n) + " points"),

@@ -1,4 +1,4 @@
-#include "linear_algebra.hpp"
+#include "linear_algebra/NLinearAlgebra.hpp"
 
 #include <gtest/gtest.h>
 

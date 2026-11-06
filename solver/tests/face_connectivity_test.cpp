@@ -1,4 +1,7 @@
-#include "geometry_structure.hpp"
+#include "CConfig.hpp"
+#include "geometry/CMultizoneGeometry.hpp"
+#include "geometry/CSinglezoneGeometry.hpp"
+#include "parallel/COpenMP.hpp"
 
 #include <array>
 #include <iostream>

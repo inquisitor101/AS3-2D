@@ -7,11 +7,14 @@ build_dir="$project_dir/build/release-omp0-ltooff-native0"
 
 make -C "$project_dir" -f Makefile.clang OPENMP=0 CXX="$compiler" -j4
 objects=()
-for object in "$build_dir"/obj/*.o; do
-  if [[ "$(basename "$object")" != AS3.o ]]; then
-    objects+=("$object")
+# Follow the source tree so moved sources are linked from nested object directories
+# and stale objects from earlier builds are excluded.
+while IFS= read -r source; do
+  relative="${source#"$project_dir"/src/}"
+  if [[ "$relative" != AS3.cpp ]]; then
+    objects+=("$build_dir/obj/${relative%.cpp}.o")
   fi
-done
+done < <(find -H "$project_dir/src" -type f -name '*.cpp' | sort)
 "$compiler" -std=c++20 -O1 -g -Wall -Wextra -Wconversion \
   -I"$project_dir/include" "$project_dir/tests/tensor_factory_test.cpp" \
   "${objects[@]}" -llapack -lblas -o "$build_dir/tensor_factory_test"

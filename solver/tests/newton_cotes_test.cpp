@@ -3,10 +3,10 @@
  * @brief Regression checks for equidistant Newton-Cotes rules and their limits.
  */
 
-#include "integration_rule_structure.hpp"
+#include "quadrature/CIntegrationRule.hpp"
 #include "quadrature/legendre_gauss_lobatto.hpp"
 #include "quadrature/newton_cotes.hpp"
-#include "standard_element_structure.hpp"
+#include "element/CStandardElement.hpp"
 
 #include <array>
 #include <cmath>

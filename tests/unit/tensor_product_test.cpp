@@ -5,7 +5,8 @@
  * Dense two-dimensional contractions provide independent references for the
  * sum-factorized kernels. Inputs are deterministic and include all variables.
  */
-#include "compute_kernels/tensor_structure.hpp"
+#include "CSupportedElementDimensions.hpp"
+#include "compute_kernels/TensorProducts.hpp"
 
 #include <gtest/gtest.h>
 
@@ -220,7 +221,7 @@ namespace
     // Match the existing factory catalogue without relying on the old config API.
     constexpr bool lobatto = K == 6 && M == 7;
     constexpr std::size_t bonus = M == K || lobatto ? 0 : (K == 2 ? 2 : 1);
-    CStandardElement element(ETypeDOF::LGL, K-1, bonus,
+    CStandardElement element(ETypeNodalDistribution::LGL, K-1, bonus,
       lobatto ? ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO : ETypeQuadrature::GAUSS_LEGENDRE,
       ETypeDGMethod::NODAL_DG);
     ASSERT_EQ(element.GetnInt1D(), M);

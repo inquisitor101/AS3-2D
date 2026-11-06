@@ -10,7 +10,7 @@ geometry and solver data, advances the solution, and coordinates output.
 2. **Construct the geometry.** CMultizoneGeometry owns the zone geometries and
    connectivity. CSinglezoneGeometry describes one zone.
 3. **Create the solvers.** CMultizoneSolver owns zone solvers, physical boundary
-   conditions, and interfaces. CEESolver implements ISolver for the Euler equations.
+   conditions, and interfaces. CEESinglezoneSolver implements ISinglezoneSolver for the Euler equations.
 4. **Advance in time.** ITemporal defines time integration. CSSPRK3Temporal
    orchestrates SSP-RK3 stages; CIteration computes spatial residuals and advances
    elements within a stage.
@@ -26,14 +26,14 @@ These interfaces are useful starting points:
 
 | Interface | Implementations |
 | --- | --- |
-| ISolver | CEESolver |
+| ISinglezoneSolver | CEESinglezoneSolver |
 | ITemporal | CSSPRK3Temporal |
 | IRiemannSolver | CRoeRiemannSolver |
 | ITensorProduct | CTensorProduct |
 | IBoundary | CSymmetryBoundary, CRiemannStaticMassInletBoundary, CRiemannPressureOutletBoundary |
 | IInterface | CEEInterface |
 | IInitialCondition | CGaussianPressureIC, CIsentropicVortexIC |
-| IFileVTK | CLegacyBinaryVTK |
+| IFileVTK | CLegacyBinaryVTK, CXMLBinaryVTK |
 
 Follow a class link to view its methods, source, and available diagrams.
 Inheritance diagrams show base and derived classes. Collaboration diagrams also

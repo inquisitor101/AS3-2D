@@ -25,7 +25,7 @@
 #include <cstddef>
 #include <span>
 
-#include "option_structure.hpp"
+#include "common/AS3Options.hpp"
 #include "quadrature/integration_rule_validation.hpp"
 
 namespace NNewtonCotes

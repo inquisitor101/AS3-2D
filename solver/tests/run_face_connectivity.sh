@@ -7,9 +7,12 @@ compiler="${CXX:-/opt/homebrew/opt/llvm/bin/clang++}"
 omp_prefix="${OMP_PREFIX:-/opt/homebrew/opt/libomp}"
 
 # Geometry and mesh import only; the full solver is tested separately.
-sources=(config_structure error_structure face_structure geometry_structure
-         import_structure input_structure log_structure marker_structure
-         openmp_structure load_balance_faces param_structure option_structure)
+sources=(CConfig NError geometry/face/CInteriorFaceBatch
+         geometry/face/CBoundaryFaceBatch geometry/face/CInterfaceFaceBatch
+         geometry/face/CDirectionalFaceConnectivity geometry/CMultizoneGeometry
+         geometry/CSinglezoneGeometry geometry/CElementGeometry
+         io/NImport io/NInputUtility NLogger MarkerFamilies
+         parallel/COpenMP geometry/face/CLoadBalancedFacePermutation BoundaryParameters)
 for i in "${!sources[@]}"; do
   sources[$i]="$project_dir/src/${sources[$i]}.cpp"
 done

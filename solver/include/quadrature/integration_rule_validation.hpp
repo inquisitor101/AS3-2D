@@ -9,7 +9,7 @@
 #include <limits>
 #include <span>
 
-#include "option_structure.hpp"
+#include "common/AS3Options.hpp"
 
 namespace NIntegrationRuleValidation
 {
