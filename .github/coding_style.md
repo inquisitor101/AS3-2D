@@ -6,7 +6,7 @@ The general rule we follow is:
 1. Global variables are written in capital, e.g. `GAS_CONSTANT`.
 2. Vector containers are aliased for readability, e.g. `std::vector<std::vector<T>>` is written as `as3vector2d<T>`. 
 3. The working precision of the solution is typdef'd into `as3double`, by default it uses `double-precision`.
-4. Classes (or structures) can be two types: interfaces or regular classes. Interfaces start with `I` and regular classes with `C`, followed by their name. For instance, the solver class has an interface class `ISolver` and an implementation of type `CEESolver`.
+4. Classes (or structures) can be two types: interfaces or regular classes. Interfaces start with `I` and regular classes with `C`, followed by their name. For instance, the solver class has an interface class `ISinglezoneSolver` and an implementation of type `CEESinglezoneSolver`.
 5. Namespaces always start with `N`, followed by their name. For instance, a linear algebra namespace is: `NLinearAlgebra`.
 6. Global functionalities should be defined inside namespaces or classes. If they require no member variables, it's probably better to define them inside namespaces. Otherwise, define them as static member functions in classes, e.g. see `CGenericFactory`.
 7. Functions should always start with a capital letter, using the *pascal case* style. For instance, `ComputeResidual`.
@@ -14,7 +14,7 @@ The general rule we follow is:
 9. Addition of user-defined features in the code require adjusting the `.cfg` file. Thus, ensure your addition is well-commented and placed in its relevant section in the `.cfg` file.
 10. For core functionalities, please include approriate tests. These are located in `tests/` and utilize *Google Test* (gtest).
 11. Header files use the extension `.hpp` while template implementations use `.inl`. Both are placed in the directory `include/`.
-12. Source files use the extension `.cpp` and are situated in the directory `src/`.
+12. Source files use the extension `.cpp` and are situated in the directory `src/`. Name each file after its class or namespace. Use PascalCase for files that group related implementations.
 13. Header files are documented in line with doxygen-supported comments (see below).
 14. Functions in source files are documented between their input arguments and the implementation (i.e. between `)` and `{`). See below.
 15. Pay close attention to the vertical alignment of the input arguments to functions, as it will complicate readability. 
@@ -23,31 +23,31 @@ The general rule we follow is:
 
 ### Example header file.
 
-``solver_structure.hpp``
+`solver/include/solver/CEESinglezoneSolver.hpp`
 
 ```C++
 /*!
  * @brief A class for a solver specification based on the (non-linear) Euler equations. 
  */
-class CEESolver : public ISolver
+class CEESinglezoneSolver : public ISinglezoneSolver
 {
   public:
   
     /*!
-     * @brief Constructor of CEESolver, which initializes an Euler equations solver.
+     * @brief Constructor of CEESinglezoneSolver, which initializes an Euler equations solver.
      *
      * @param[in] config_container configuration/dictionary container.
      * @param[in] geometry_container input geometry container.
      * @param[in] iZone zone ID of this container.
      */
-    CEESolver(CConfig       *config_container,
+    CEESinglezoneSolver(CConfig       *config_container,
               CGeometry     *geometry_container,
               unsigned short iZone);
     
     /*!
      * @brief Destructor, which frees any allocated memory.
      */
-    ~CEESolver(void) override;
+    ~CEESinglezoneSolver(void) override;
     
     /*!
      * @brief Function that initializes the physical elements.
@@ -88,18 +88,18 @@ class CEESolver : public ISolver
 
 ### Example source file.
 
-``solver_structure.cpp``
+`solver/src/solver/ISinglezoneSolver.cpp`
 
 ```C++
-#include "solver_structure.hpp"
+#include "solver/ISinglezoneSolver.hpp"
 
 
 //-----------------------------------------------------------------------------------
-// ISolver member functions.
+// ISinglezoneSolver member functions.
 //-----------------------------------------------------------------------------------
 
 
-ISolver::ISolver
+ISinglezoneSolver::ISinglezoneSolver
 (
  CConfig       *config_container,
  CGeometry     *geometry_container,
@@ -116,7 +116,7 @@ ISolver::ISolver
 
 //-----------------------------------------------------------------------------------
 
-ISolver::~ISolver
+ISinglezoneSolver::~ISinglezoneSolver
 (
  void
 )
@@ -127,20 +127,27 @@ ISolver::~ISolver
 
 }
 
+```
+
+`solver/src/solver/CEESinglezoneSolver.cpp`
+
+```C++
+#include "solver/CEESinglezoneSolver.hpp"
+
 
 //-----------------------------------------------------------------------------------
-// CEESolver member functions.
+// CEESinglezoneSolver member functions.
 //-----------------------------------------------------------------------------------
 
 
-CEESolver::CEESolver
+CEESinglezoneSolver::CEESinglezoneSolver
 (
  CConfig       *config_container,
  CGeometry     *geometry_container,
  unsigned short iZone
 )
   :
-    ISolver(config_container, geometry_container, iZone)
+    ISinglezoneSolver(config_container, geometry_container, iZone)
  /*
   * Constructor for the (non-linear) Euler equations class.
   */
@@ -150,7 +157,7 @@ CEESolver::CEESolver
 
 //-----------------------------------------------------------------------------------
 
-CEESolver::~CEESolver
+CEESinglezoneSolver::~CEESinglezoneSolver
 (
  void
 )
@@ -163,7 +170,7 @@ CEESolver::~CEESolver
 
 //-----------------------------------------------------------------------------------
 
-void CEESolver::InitPhysicalElements
+void CEESinglezoneSolver::InitPhysicalElements
 (
  CConfig   *config_container,
  CGeometry *geometry_container
@@ -177,7 +184,7 @@ void CEESolver::InitPhysicalElements
 
 //-----------------------------------------------------------------------------------
 
-void CEESolver::ComputeVolumeResidual
+void CEESinglezoneSolver::ComputeVolumeResidual
 (
  size_t                     iElem,
  as3double                  localtime,

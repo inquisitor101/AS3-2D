@@ -7,9 +7,9 @@ the discovered cases. The solver's GNU, Intel and Clang Makefiles remain separat
 ```text
 solver/
   include/quadrature/
-    gauss_legendre.hpp
-    legendre_gauss_lobatto.hpp
-    integration_rule_validation.hpp
+    NGaussLegendre.hpp
+    NLegendreGaussLobatto.hpp
+    NIntegrationRuleValidation.hpp
 tests/
   CMakeLists.txt
   unit/

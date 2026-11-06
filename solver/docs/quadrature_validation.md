@@ -1,8 +1,8 @@
 # Quadrature table validation
 
-`include/quadrature/gauss_legendre.hpp` and
-`include/quadrature/legendre_gauss_lobatto.hpp`, together with
-`include/quadrature/newton_cotes.hpp`, store the reference rules
+`include/quadrature/NGaussLegendre.hpp` and
+`include/quadrature/NLegendreGaussLobatto.hpp`, together with
+`include/quadrature/NNewtonCotes.hpp`, store the reference rules
 using `as3double`. Their `GetPoints(n)` and `GetWeights(n)` functions return
 `std::span<const as3double>` views. The existing decimal literals and alignment
 are preserved.
@@ -65,7 +65,7 @@ included. A failed check prevents compilation. The same checks can be requested
 explicitly with `NGaussLegendre::Validate()` or
 `NLegendreGaussLobatto::Validate()` or `NNewtonCotes::Validate()`.
 
-The shared checker in `include/quadrature/integration_rule_validation.hpp` verifies:
+The shared checker in `include/quadrature/NIntegrationRuleValidation.hpp` verifies:
 
 - Matching, nonempty point and weight arrays and the minimum rule size.
 - Finite, strictly increasing points in the reference interval, with endpoints

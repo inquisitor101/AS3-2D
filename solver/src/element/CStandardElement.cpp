@@ -1,6 +1,6 @@
 #include "element/CStandardElement.hpp"
 #include "data/CMatrixAS3.hpp"
-#include "quadrature/legendre_gauss_lobatto.hpp"
+#include "quadrature/NLegendreGaussLobatto.hpp"
 
 #include <cmath>
 #include <cstddef>

@@ -1,5 +1,5 @@
-#include "quadrature/gauss_legendre.hpp"
-#include "quadrature/legendre_gauss_lobatto.hpp"
+#include "quadrature/NGaussLegendre.hpp"
+#include "quadrature/NLegendreGaussLobatto.hpp"
 #include "quadrature/CIntegrationRule.hpp"
 #include "element/CStandardElement.hpp"
 

@@ -3,8 +3,8 @@
  * @brief Check all stored quadrature rules and rejection of invalid data.
  */
 
-#include "quadrature/gauss_legendre.hpp"
-#include "quadrature/legendre_gauss_lobatto.hpp"
+#include "quadrature/NGaussLegendre.hpp"
+#include "quadrature/NLegendreGaussLobatto.hpp"
 
 #include <array>
 #include <iostream>

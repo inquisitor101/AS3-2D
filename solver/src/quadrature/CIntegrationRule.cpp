@@ -2,9 +2,9 @@
 
 #include "NError.hpp"
 #include "quadrature/CGaussJacobiQuadrature.hpp"
-#include "quadrature/gauss_legendre.hpp"
-#include "quadrature/legendre_gauss_lobatto.hpp"
-#include "quadrature/newton_cotes.hpp"
+#include "quadrature/NGaussLegendre.hpp"
+#include "quadrature/NLegendreGaussLobatto.hpp"
+#include "quadrature/NNewtonCotes.hpp"
 
 #include <string>
 

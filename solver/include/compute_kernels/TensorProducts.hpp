@@ -836,17 +836,17 @@ class CTensorProduct final: public ITensorProduct
 };
 
 // Definitions of the templated functions.
-#include "noncollocated/tensor_volume.inl"
-#include "noncollocated/tensor_surface_imin.inl"
-#include "noncollocated/tensor_surface_imax.inl"
-#include "noncollocated/tensor_surface_jmin.inl"
-#include "noncollocated/tensor_surface_jmax.inl"
-#include "noncollocated/tensor_residual_volume.inl"
-#include "noncollocated/tensor_residual_surface_imin.inl"
-#include "noncollocated/tensor_residual_surface_imax.inl"
-#include "noncollocated/tensor_residual_surface_jmin.inl"
-#include "noncollocated/tensor_residual_surface_jmax.inl"
-#include "noncollocated/tensor_apply_minv.inl"
+#include "noncollocated/TensorVolume.inl"
+#include "noncollocated/TensorSurfaceIMIN.inl"
+#include "noncollocated/TensorSurfaceIMAX.inl"
+#include "noncollocated/TensorSurfaceJMIN.inl"
+#include "noncollocated/TensorSurfaceJMAX.inl"
+#include "noncollocated/TensorResidualVolume.inl"
+#include "noncollocated/TensorResidualSurfaceIMIN.inl"
+#include "noncollocated/TensorResidualSurfaceIMAX.inl"
+#include "noncollocated/TensorResidualSurfaceJMIN.inl"
+#include "noncollocated/TensorResidualSurfaceJMAX.inl"
+#include "noncollocated/TensorApplyInverseMassMatrix.inl"
 
 /*!
  * @brief Tensor-product operations specialized for K collocated points and N variables.
@@ -1205,14 +1205,14 @@ class CCollocatedTensorProduct final: public ITensorProduct
 };
 
 // Definitions of the collocated templated functions.
-#include "collocated/tensor_volume.inl"
-#include "collocated/tensor_surface_imin.inl"
-#include "collocated/tensor_surface_imax.inl"
-#include "collocated/tensor_surface_jmin.inl"
-#include "collocated/tensor_surface_jmax.inl"
-#include "collocated/tensor_residual_volume.inl"
-#include "collocated/tensor_residual_surface_imin.inl"
-#include "collocated/tensor_residual_surface_imax.inl"
-#include "collocated/tensor_residual_surface_jmin.inl"
-#include "collocated/tensor_residual_surface_jmax.inl"
-#include "collocated/tensor_apply_minv.inl"
+#include "collocated/TensorVolume.inl"
+#include "collocated/TensorSurfaceIMIN.inl"
+#include "collocated/TensorSurfaceIMAX.inl"
+#include "collocated/TensorSurfaceJMIN.inl"
+#include "collocated/TensorSurfaceJMAX.inl"
+#include "collocated/TensorResidualVolume.inl"
+#include "collocated/TensorResidualSurfaceIMIN.inl"
+#include "collocated/TensorResidualSurfaceIMAX.inl"
+#include "collocated/TensorResidualSurfaceJMIN.inl"
+#include "collocated/TensorResidualSurfaceJMAX.inl"
+#include "collocated/TensorApplyInverseMassMatrix.inl"

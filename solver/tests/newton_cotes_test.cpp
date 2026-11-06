@@ -4,8 +4,8 @@
  */
 
 #include "quadrature/CIntegrationRule.hpp"
-#include "quadrature/legendre_gauss_lobatto.hpp"
-#include "quadrature/newton_cotes.hpp"
+#include "quadrature/NLegendreGaussLobatto.hpp"
+#include "quadrature/NNewtonCotes.hpp"
 #include "element/CStandardElement.hpp"
 
 #include <array>
