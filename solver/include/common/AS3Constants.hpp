@@ -6,7 +6,9 @@
  */
 
 
+#include <algorithm>
 #include <cstdint>
+#include <limits>
 
 #include "common/AS3ScalarTypes.hpp"
 
@@ -26,6 +28,10 @@ inline constexpr as3double C_HALF  = static_cast<as3double>( 0.5 );             
 inline constexpr as3double C_ONE   = static_cast<as3double>( 1.0 );                     ///< Value of 1.
 inline constexpr as3double C_TWO   = static_cast<as3double>( 2.0 );                     ///< Value of 2.
 inline constexpr as3double C_180   = static_cast<as3double>( 180.0 );                   ///< Value of 180.
+
+// Precision and absolute tolerance for dimensionless reference-element checks.
+inline constexpr as3double C_EPS            = std::numeric_limits<as3double>::epsilon();         ///< Floating-point spacing just above one.
+inline constexpr as3double C_REFERENCE_ATOL = std::max(static_cast<as3double>(1.0e-10), C_EPS);  ///< Absolute floor for reference-element checks.
 
 
 // Abbreviation for constant physical values.

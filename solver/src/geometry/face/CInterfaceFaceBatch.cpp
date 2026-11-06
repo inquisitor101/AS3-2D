@@ -1,7 +1,5 @@
 #include "geometry/face/CInterfaceFaceBatch.hpp"
 
-#include <algorithm>
-#include <cmath>
 #include <cstddef>
 #include <string>
 
@@ -177,21 +175,6 @@ void CInterfaceFaceBatch::CheckConformity
   const std::size_t jn0 = mIsReversed ? jvec_inode.back()  : jvec_inode.front();
   const std::size_t jn1 = mIsReversed ? jvec_inode.front() : jvec_inode.back();
 
-  // Relative tolerance value.
-  const as3double rtol = static_cast<as3double>( 1.0e-8 );
-
-  // Absolute tolerance value, in grid coordinate units.
-  const as3double atol = static_cast<as3double>( 1.0e-10 );
-
-  // Compare a translated i coordinate with its matching j coordinate.
-  auto lCoordinatesMatch = [rtol, atol](as3double xi, as3double xj)
-  {
-    const as3double difference = std::abs( xi - xj );
-    const as3double tolerance = atol + rtol * std::max( std::abs(xi), std::abs(xj) );
-
-    return difference <= tolerance;
-  };
-
 
   // Loop over every element on this interface.
   for( const auto& interface : mFaces )
@@ -204,9 +187,9 @@ void CInterfaceFaceBatch::CheckConformity
     const auto& icoor = igrid->GetElementGeometry( ie )->GetCoordSolDOFs();
     const auto& jcoor = jgrid->GetElementGeometry( je )->GetCoordSolDOFs();
 
-    // Extract the endpoint coordinates for the current element edge, apply the translation.
-    const as3double xi0 = icoor( 0, in0 ) + tx, xi1 = icoor( 0, in1 ) + tx;
-    const as3double yi0 = icoor( 1, in0 ) + ty, yi1 = icoor( 1, in1 ) + ty;
+    // Extract the endpoint coordinates for the current element edge.
+    const as3double xi0 = icoor( 0, in0 ), xi1 = icoor( 0, in1 );
+    const as3double yi0 = icoor( 1, in0 ), yi1 = icoor( 1, in1 );
 
     // Extract coordinates for the matching marker.
     // For the reversed case, jn0 and jn1 already select the opposite endpoints.
@@ -214,8 +197,10 @@ void CInterfaceFaceBatch::CheckConformity
     const as3double yj0 = jcoor( 1, jn0 ), yj1 = jcoor( 1, jn1 );
 
     // If either endpoint does not match, report error.
-    if( !lCoordinatesMatch(xi0, xj0) || !lCoordinatesMatch(yi0, yj0) ||
-        !lCoordinatesMatch(xi1, xj1) || !lCoordinatesMatch(yi1, yj1) )
+    if( !CElementGeometry::CoordinatesMatch(xi0, xj0, tx) ||
+        !CElementGeometry::CoordinatesMatch(yi0, yj0, ty) ||
+        !CElementGeometry::CoordinatesMatch(xi1, xj1, tx) ||
+        !CElementGeometry::CoordinatesMatch(yi1, yj1, ty) )
     {
       ERROR( "Interface does not match with "
              " iZone: " + std::to_string(iZone) + ","

@@ -1,7 +1,9 @@
 #include "element/CStandardElement.hpp"
+#include "common/AS3Constants.hpp"
 #include "data/CMatrixAS3.hpp"
 #include "quadrature/NLegendreGaussLobatto.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
 
@@ -132,9 +134,6 @@ void CStandardElement::ComputeLocationDOFs1D
 	// Allocate memory for the nodes.
 	rDOFs1D.resize(nDOFs1D);
 
-	// Relative tolerance.
-	const as3double TOL = 1.0e-10;
-
 	// Determine what type of distribution the DOFs obey.
 	switch( typeDOFs )
 	{
@@ -194,7 +193,9 @@ void CStandardElement::ComputeLocationDOFs1D
 	// Make sure the DOFs are correct.
 	as3double tmp = 0.0;
 	for(std::size_t i=0; i<nDOFs1D; i++) tmp += rDOFs1D[i];
-	if( fabs(tmp) > TOL ) ERROR("Precision errors in nodal point computation.");
+	const as3double roundoff  = static_cast<as3double>(nDOFs1D)*C_EPS;
+	const as3double tolerance = std::max(C_REFERENCE_ATOL, roundoff);
+	if( !(std::abs(tmp) <= tolerance) ) ERROR("Precision errors in nodal point computation.");
 }
 
 

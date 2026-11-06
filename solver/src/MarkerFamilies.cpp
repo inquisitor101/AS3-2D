@@ -1,8 +1,6 @@
 #include "MarkerFamilies.hpp"
 
-#include <algorithm>
 #include <array>
-#include <cmath>
 #include <cstddef>
 
 #include "geometry/CElementGeometry.hpp"
@@ -40,21 +38,6 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
 
   // Reserve the necessary number of markers.
   mMarkers.reserve( nMarkers );
-
-  // Relative tolerance value.
-  const as3double rtol = static_cast<as3double>( 1.0e-8 );
-
-  // Absolute tolerance value, in grid coordinate units.
-  const as3double atol = static_cast<as3double>( 1.0e-10 );
-
-  // Compare a translated i coordinate with its matching j coordinate.
-  auto lCoordinatesMatch = [rtol, atol](as3double xi, as3double xj)
-  {
-    const as3double difference = std::abs( xi - xj );
-    const as3double tolerance = atol + rtol * std::max( std::abs(xi), std::abs(xj) );
-
-    return difference <= tolerance;
-  };
 
   // Track jmarkers already matched with a previous imarker on this boundary.
   as3vector1d<bool> jmatched( nMarkers, false );
@@ -120,9 +103,9 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
           const auto& icoor = igrid->GetElementGeometry( ie )->GetCoordSolDOFs();
           const auto& jcoor = jgrid->GetElementGeometry( je )->GetCoordSolDOFs();
 
-          // Extract the endpoint coordinates for the current element edge, apply the translation.
-          const as3double xi0 = icoor( 0, in0 ) + translation[0], xi1 = icoor( 0, in1 ) + translation[0];
-          const as3double yi0 = icoor( 1, in0 ) + translation[1], yi1 = icoor( 1, in1 ) + translation[1];
+          // Extract the endpoint coordinates for the current element edge.
+          const as3double xi0 = icoor( 0, in0 ), xi1 = icoor( 0, in1 );
+          const as3double yi0 = icoor( 1, in0 ), yi1 = icoor( 1, in1 );
 
           // Extract coordinates for the matching marker.
           // For the reversed case, jn0 and jn1 already select the opposite endpoints.
@@ -130,8 +113,10 @@ CPeriodicFamilyMarker::CPeriodicFamilyMarker
           const as3double yj0 = jcoor( 1, jn0 ), yj1 = jcoor( 1, jn1 );
 
           // Reject this candidate if either endpoint does not match.
-          if( !lCoordinatesMatch(xi0, xj0) || !lCoordinatesMatch(yi0, yj0) ||
-              !lCoordinatesMatch(xi1, xj1) || !lCoordinatesMatch(yi1, yj1) )
+          if( !CElementGeometry::CoordinatesMatch(xi0, xj0, translation[0]) ||
+              !CElementGeometry::CoordinatesMatch(yi0, yj0, translation[1]) ||
+              !CElementGeometry::CoordinatesMatch(xi1, xj1, translation[0]) ||
+              !CElementGeometry::CoordinatesMatch(yi1, yj1, translation[1]) )
           {
             return false;
           }

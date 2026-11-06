@@ -8,25 +8,53 @@
 
 
 /*!
- * @brief Function prototypes for the Lapack routines used.
+ * @brief Function prototypes for the single- and double-precision BLAS and LAPACK routines.
  */
 extern "C"
 {
-	// LU decomoposition of a general matrix (double-precision).
-  void dgetrf_(int*, int *, double*, int*, int*, int*);
+  // LU decomposition of a general matrix.
+  void sgetrf_(int*, int*, float*,  int*, int*, int*);
+  void dgetrf_(int*, int*, double*, int*, int*, int*);
 
-  // Generate inverse of a matrix given its LU decomposition (double-precision).
+  // Generate the inverse of a matrix given its LU decomposition.
+  void sgetri_(int*, float*,  int*, int*, float*,  int*, int*);
   void dgetri_(int*, double*, int*, int*, double*, int*, int*);
 
-	// Compute a generalized matrix-matrix multiplication (double-precision).
-	void dgemm_(char*, char*, int*, int*, int*, double*, double*, 
-			       int*, double*, int*, double*, double*, int*);
+  // Compute a generalized matrix-matrix multiplication.
+  void sgemm_(char*, char*, int*, int*, int*, float*,  float*,
+              int*, float*,  int*, float*,  float*,  int*);
+  void dgemm_(char*, char*, int*, int*, int*, double*, double*,
+              int*, double*, int*, double*, double*, int*);
 }
 
 
 
 namespace
 {
+  /*!
+   * @brief Select the BLAS and LAPACK routines for the solver scalar at compile time.
+   */
+  template<typename T>
+  struct CLinearAlgebraRoutines;
+
+  template<>
+  struct CLinearAlgebraRoutines<float>
+  {
+    static constexpr auto Factorize = sgetrf_;
+    static constexpr auto Invert    = sgetri_;
+    static constexpr auto Multiply  = sgemm_;
+  };
+
+  template<>
+  struct CLinearAlgebraRoutines<double>
+  {
+    static constexpr auto Factorize = dgetrf_;
+    static constexpr auto Invert    = dgetri_;
+    static constexpr auto Multiply  = dgemm_;
+  };
+
+  using CWorkingRoutines = CLinearAlgebraRoutines<as3double>;
+
   int LapackDimension(std::size_t value)
    /*
     * Function that checks and converts a matrix dimension to the LAPACK integer type.
@@ -48,7 +76,7 @@ void NLinearAlgebra::InverseMatrix
  CMatrixAS3<as3double> &A
 )
  /*
-	* Function that replaces a dense matrix by its double-precision LAPACK inverse.
+	* Function that replaces a dense matrix by its LAPACK inverse in the solver precision.
 	*/
 {
 	// Check the matrix is indeed a square matrix.
@@ -75,11 +103,10 @@ void NLinearAlgebra::InverseMatrix
   NError::CLibraryFloatingPointScope libraryScope;
 #endif
 
-	// Note, this assumes double-precision.
-  dgetrf_(&n, &n, AA, &n, ipiv, &ierr);
+  CWorkingRoutines::Factorize(&n, &n, AA, &n, ipiv, &ierr);
   if(ierr != 0) ERROR("Matrix is singular");
 
-  dgetri_(&n, AA, &n, ipiv, work, &n, &ierr);
+  CWorkingRoutines::Invert(&n, AA, &n, ipiv, work, &n, &ierr);
   if(ierr != 0) ERROR("Matrix inversion failed");
 #ifdef ENABLE_NAN_CHECK
   // Ensure every entry returned by the inversion is finite.
@@ -96,12 +123,12 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
  CMatrixAS3<as3double> &matB
 )
  /*
-	* Function that computes a double-precision matrix product through BLAS.
+	* Function that computes a matrix product through BLAS in the solver precision.
 	*/
 {
 	// Note, the GEMM BLAS routine assumes column-major, since the implementation is in Fortran.
 	// The CMatrixAS3 uses row-major, in line with the C++ data structure format. To avoid this 
-	// issue, notice no transpose is computed in the DGEMM function, but the matrices have been
+	// issue, notice no transpose is computed in the GEMM function, but the matrices have been
 	// switched, given the fact: C^T = B^T * A^T. 
 	// Here, the returned matrix C^T is in column-major, which is equivalent to C, since we use
 	// row-major. For simplicity, the dimensions of the matrices are:
@@ -124,8 +151,8 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
 	char tA = 'N';
 	char tB = 'N';
 
-	double one  = 1.0;
-	double zero = 0.0;
+	as3double one  = C_ONE;
+	as3double zero = C_ZERO;
 
 	int m = LapackDimension(matB.col()); // rows of  left-matrix, i.e.: B^T.
 	int n = LapackDimension(matA.row()); // cols of right-matrix, i.e.: A^T.
@@ -138,12 +165,12 @@ CMatrixAS3<as3double> NLinearAlgebra::BLAS_GEMM
 	as3double *B = matA.data(); // switched to A.
 	as3double *C = matC.data();
 
-	// Call the generalized matrix-matrix routine (double-precision).
+	// Call the generalized matrix-matrix routine.
 #ifdef ENABLE_NAN_CHECK
 	// Preserve the caller's floating-point environment around the library call.
 	NError::CLibraryFloatingPointScope libraryScope;
 #endif
-	dgemm_(&tA, &tB, &m, &n, &c, &one, A, &m, B, &c, &zero, C, &m);
+	CWorkingRoutines::Multiply(&tA, &tB, &m, &n, &c, &one, A, &m, B, &c, &zero, C, &m);
 #ifdef ENABLE_NAN_CHECK
 	// Ensure every entry returned by the multiplication is finite.
 	for(std::size_t i=0; i<matC.size(); ++i)

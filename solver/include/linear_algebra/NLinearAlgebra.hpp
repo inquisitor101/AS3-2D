@@ -19,14 +19,14 @@ namespace NLinearAlgebra
 {
 
 	/*!
-	 * @brief Function that computes the inverse of the given matrix (double-precision).
+	 * @brief Function that computes the inverse of the given matrix in the solver precision.
 	 *
 	 * @param[in,out] A inverse of the matrix A (over-written).
 	 */
 	void InverseMatrix(CMatrixAS3<as3double> &A);
 
 	/*!
-	 * @brief Function that computes a generalized matrix-matrix multiplication via BLAS (double-precision).
+	 * @brief Function that computes a generalized matrix-matrix multiplication via BLAS in the solver precision.
 	 *
 	 * @param[in] matA matrix A.
 	 * @param[in] matB matrix B.

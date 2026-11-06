@@ -180,9 +180,10 @@ print:
 	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
 	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
-# Remove only GCC outputs. Legacy obj/, dep/ and bin/AS3 are left alone.
+# Remove GCC configuration directories and legacy object and dependency files.
 clean:
 	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)
+	$(RM) obj/*.o dep/*.d
 
 FORCE:
 

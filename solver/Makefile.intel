@@ -216,9 +216,10 @@ print:
 	    'LDFLAGS: $(LINK_FLAGS)' 'LDLIBS: $(LDLIBS)' \
 	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
-# Remove only Intel outputs, preserving GCC and Clang configurations.
+# Remove Intel configuration directories and legacy object and dependency files.
 clean:
 	$(RM) -r $(BUILD_ROOT) $(BIN_DIR)
+	$(RM) obj/*.o dep/*.d
 
 FORCE:
 

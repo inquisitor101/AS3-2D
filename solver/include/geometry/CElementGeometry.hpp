@@ -39,6 +39,18 @@ class CElementGeometry
 		 */
 		CMatrixAS3<as3double> &GetCoordSolDOFs(void) {return mCoordSolDOFs;}
 
+		/*!
+		 * @brief Function that compares matching coordinates across a translated interface.
+		 *
+		 * @param[in] xi coordinate on the side to be translated.
+		 * @param[in] xj matching coordinate on the other side.
+		 * @param[in] translation displacement from the i side to the j side.
+		 * @return whether the coordinates agree within the geometric tolerance and roundoff.
+		 */
+		static bool CoordinatesMatch(as3double xi,
+		                             as3double xj,
+		                             as3double translation);
+
 	protected:
 
 	private:

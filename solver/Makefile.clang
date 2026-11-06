@@ -176,12 +176,13 @@ print:
 	    'Sources: $(SRCS)' 'Objects: $(OBJS)' 'Dependencies: $(DEPS)'
 
 # Match Clang configuration directories, preserving build/gnu and build/intel.
-# Old obj/ and dep/ directories from the previous Makefile are left alone.
+# Remove legacy object and dependency files from the previous flat layout.
 clean:
 	$(RM) -r $(BUILD_ROOT)/debug-omp*-lto*-native* \
 	    $(BUILD_ROOT)/release-omp*-lto*-native* \
 	    $(BIN_DIR)/debug-omp*-lto*-native* \
 	    $(BIN_DIR)/release-omp*-lto*-native*
+	$(RM) obj/*.o dep/*.d
 
 FORCE:
 

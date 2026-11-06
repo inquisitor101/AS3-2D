@@ -1,8 +1,39 @@
 #include "NPolynomialUtility.hpp"
+#include "common/AS3Constants.hpp"
 #include "data/CMatrixAS3.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <cstddef>
+
+
+namespace
+{
+	void CheckBasisSum
+	(
+	 const as3double *values,
+	 std::size_t      n,
+	 as3double        expected,
+	 const char      *message
+	)
+	 /*
+		* Function that checks a basis sum with a roundoff allowance based on its coefficients.
+		*/
+	{
+		as3double sum       = C_ZERO;
+		as3double magnitude = C_ZERO;
+		for(std::size_t i=0; i<n; i++)
+		{
+			sum += values[i];
+			magnitude += std::abs(values[i]);
+		}
+
+		constexpr as3double roundoffFactor = static_cast<as3double>(8)*C_EPS;
+		const as3double roundoff  = roundoffFactor*static_cast<as3double>(n)*magnitude;
+		const as3double tolerance = std::max(C_REFERENCE_ATOL, roundoff);
+		if( !std::isfinite(magnitude) || !(std::abs(sum - expected) <= tolerance) ) ERROR(message);
+	}
+}
 
 
 //-----------------------------------------------------------------------------------
@@ -40,13 +71,8 @@ void NPolynomialUtility::LagrangeBasis1D
 	if( (L1D.row() != nRow) || (L1D.col() != nCol) ) ERROR("Result of Lagrange basis is incorrect.");
 
 	// Check that the Lagrange basis functions are correct, by ensuring the sum of each row is unity.
-	as3double one = 1.0;	
 	for(std::size_t i=0; i<nRow; i++)
-	{
-		as3double tmp = 0.0;
-		for(std::size_t j=0; j<nCol; j++)  tmp += L1D(i,j);
-		if( fabs(tmp-one) > 1.0e-10 ) ERROR("Results of the Lagrange interpolation function are incorrect.");
-	}
+		CheckBasisSum(L1D.data() + i*nCol, nCol, C_ONE, "Results of the Lagrange interpolation function are incorrect.");
 }
 
 //-----------------------------------------------------------------------------------
@@ -82,11 +108,7 @@ void NPolynomialUtility::DerivativeLagrangeBasis1D
 
 	// Check that the differentiation matrix is correct, by ensuring the sum of each row is zero.
 	for(std::size_t i=0; i<nRow; i++)
-	{
-		as3double tmp = 0.0;
-		for(std::size_t j=0; j<nCol; j++) tmp += dL1D(i,j);
-		if( fabs(tmp) > 1.0e-10 ) ERROR("Results of the Lagrange differentiation matrix are incorrect.");
-	}
+		CheckBasisSum(dL1D.data() + i*nCol, nCol, C_ZERO, "Results of the Lagrange differentiation matrix are incorrect.");
 }
 
 //-----------------------------------------------------------------------------------
@@ -119,17 +141,8 @@ void NPolynomialUtility::DerivativeLagrangeBasisFace1D
 	}
 
 	// Check that the differentiation coefficients are correct, by ensuring the sum of each is zero.
-	as3double min = 0.0, max = 0.0;
-	for(std::size_t i=0; i<n; i++)
-	{
-		min += dLmin[i];
-		max += dLmax[i];
-	}
-
-	// Relative error tolerance.
-	const as3double tol = 1.0e-10;
-	if( (fabs(min) > tol) || (fabs(max) > tol) ) 
-		ERROR("Results of the Lagrange differentiation at face are incorrect.");
+	CheckBasisSum(dLmin.data(), n, C_ZERO, "Results of the Lagrange differentiation at face are incorrect.");
+	CheckBasisSum(dLmax.data(), n, C_ZERO, "Results of the Lagrange differentiation at face are incorrect.");
 }
 
 //-----------------------------------------------------------------------------------

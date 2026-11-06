@@ -69,7 +69,7 @@ namespace NIntegrationRuleValidation
     }
 
     // Conservative allowance for summing n rounded scalar values.
-    const as3double tolerance = 64.0 * std::numeric_limits<as3double>::epsilon()
+    const as3double tolerance = 64.0 * C_EPS
                                     * static_cast<as3double>(n);
     as3double pointSum  = 0.0;
     as3double weightSum = 0.0;
