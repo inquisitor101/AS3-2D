@@ -4,6 +4,7 @@
 #include "quadrature_structure.hpp"
 #include "quadrature/gauss_legendre.hpp"
 #include "quadrature/legendre_gauss_lobatto.hpp"
+#include "quadrature/newton_cotes.hpp"
 
 #include <string>
 
@@ -29,6 +30,7 @@ CIntegrationRule::CIntegrationRule
 	{
 		case(ETypeQuadrature::GAUSS_LEGENDRE):         { InitializeGaussLegendre(nPolyIntegrand);        break; }
 		case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): { InitializeLegendreGaussLobatto(nPolyIntegrand); break; }
+		case(ETypeQuadrature::NEWTON_COTES):           { InitializeNewtonCotes(nPolyIntegrand);          break; }
 
 		default: ERROR("Unknown quadrature rule.");
 	}
@@ -76,6 +78,7 @@ std::size_t CIntegrationRule::GetnPolyExact1D
 	{
 		case(ETypeQuadrature::GAUSS_LEGENDRE):         return 2*nInt1D - 1;
 		case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): return 2*nInt1D - 3;
+		case(ETypeQuadrature::NEWTON_COTES):           return nInt1D - 1 + nInt1D%2;
 
 		default: ERROR("Unknown quadrature rule.");
 	}
@@ -99,8 +102,51 @@ std::size_t CIntegrationRule::ComputePointCount1D
 	{
 		case(ETypeQuadrature::GAUSS_LEGENDRE):         return nPolyIntegrand/2 + 1;
 		case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): return nPolyIntegrand/2 + 2;
+		case(ETypeQuadrature::NEWTON_COTES):
+		{
+			// Odd point counts integrate through degree n; even counts through n-1.
+			// Stop before the first negative-weight rule, which has nine points.
+			if( nPolyIntegrand > 7 )
+			{
+				ERROR("Newton-Cotes quadrature supports polynomial degrees 0 through 7 "
+				      "using 1 through 8 points with positive weights. "
+				      "The 9-point rule has negative weights; higher counts are not supported.");
+			}
+			return 2*(nPolyIntegrand/2) + 1;
+		}
 
 		default: ERROR("Unknown quadrature rule.");
+	}
+}
+
+//-----------------------------------------------------------------------------------
+
+void CIntegrationRule::InitializeNewtonCotes
+(
+ std::size_t nPolyIntegrand
+)
+ /*
+	* Function that initializes equidistant Newton-Cotes points and weights
+	* on [-1,+1], with the midpoint convention for a single point.
+	*/
+{
+	// Validate the degree before allocating or reading the reference rule.
+	const std::size_t nInt1D = ComputePointCount1D(ETypeQuadrature::NEWTON_COTES, nPolyIntegrand);
+
+	// Assign the nodal distribution.
+	mTypeNodalDistribution = ETypeNodalDistribution::EQD;
+
+	// Allocate the complete quadrature data.
+	mRInt1D.resize(nInt1D);
+	mWInt1D.resize(nInt1D);
+
+	// Load the precomputed rule; unsupported counts terminate with ERROR.
+	const auto points  = NNewtonCotes::GetPoints(nInt1D);
+	const auto weights = NNewtonCotes::GetWeights(nInt1D);
+	for(std::size_t i=0; i<nInt1D; i++)
+	{
+		mRInt1D[i] = points[i];
+		mWInt1D[i] = weights[i];
 	}
 }
 

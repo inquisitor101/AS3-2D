@@ -162,7 +162,8 @@ MapTypeNodalDistribution =
 enum class ETypeQuadrature
 {
 	LEGENDRE_GAUSS_LOBATTO,  ///< Legendre-Gauss-Lobatto.
-	GAUSS_LEGENDRE           ///< Gauss-Legendre.
+	GAUSS_LEGENDRE,         ///< Gauss-Legendre.
+	NEWTON_COTES           ///< Equidistant, closed Newton-Cotes (midpoint for one point).
 };
 
 /*!
@@ -172,7 +173,8 @@ inline const std::map<std::string, ETypeQuadrature>
 MapTypeQuadrature = 
 {
 	{ "LEGENDRE_GAUSS_LOBATTO", ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO },
-	{ "GAUSS_LEGENDRE",         ETypeQuadrature::GAUSS_LEGENDRE }
+	{ "GAUSS_LEGENDRE",         ETypeQuadrature::GAUSS_LEGENDRE },
+	{ "NEWTON_COTES",           ETypeQuadrature::NEWTON_COTES }
 }; ///< Map for the type of the quadratures.
 
 //--------------------------------------

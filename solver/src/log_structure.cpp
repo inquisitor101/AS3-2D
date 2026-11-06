@@ -109,6 +109,7 @@ void NLogger::DisplaySpatialDiscretization
 		{
 			case(ETypeQuadrature::GAUSS_LEGENDRE):         return "GAUSS_LEGENDRE";
 			case(ETypeQuadrature::LEGENDRE_GAUSS_LOBATTO): return "LEGENDRE_GAUSS_LOBATTO";
+			case(ETypeQuadrature::NEWTON_COTES):          return "NEWTON_COTES";
 
 			default: ERROR("Unknown quadrature rule.");
 		}

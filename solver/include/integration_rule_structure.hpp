@@ -16,9 +16,11 @@
  * @brief Quadrature rule on [-1,+1], with tensor-product weights on [-1,+1]^2.
  *
  * @note Points and weights are loaded together from the tabulated rules when
- *   available. Other point counts use CGaussJacobiQuadrature with a warning
- *   that support is not guaranteed. Data cannot be modified through the
- *   public interface.
+ *   available. Untabulated GL/LGL point counts use CGaussJacobiQuadrature
+ *   with a warning that support is not guaranteed. Equidistant Newton-Cotes
+ *   rules are restricted to 1 through 8 points with positive weights; requests
+ *   beyond degree 7 terminate with ERROR. Data cannot be modified through
+ *   the public interface.
  */
 class CIntegrationRule
 {
@@ -46,6 +48,8 @@ class CIntegrationRule
 		 * @param[in] nPolyIntegrand minimum polynomial degree to integrate exactly in 1D.
 		 *
 		 * @return required number of integration points in 1D, without allocating quadrature data.
+		 * @note Newton-Cotes selects the smallest supported rule with sufficient
+		 *   exactness and issues ERROR for degrees greater than 7.
 		 */
 		static std::size_t ComputePointCount1D(ETypeQuadrature typeQuadrature,
 		                                       std::size_t     nPolyIntegrand);
@@ -193,6 +197,16 @@ class CIntegrationRule
 		 * @param[in] nPolyIntegrand minimum polynomial degree to integrate exactly in 1D.
 		 */
 		void InitializeLegendreGaussLobatto(std::size_t nPolyIntegrand);
+
+		/*!
+		 * @brief Function that initializes equidistant Newton-Cotes points and
+		 *   weights, including both endpoints for two or more points.
+		 *
+		 * @param[in] nPolyIntegrand minimum polynomial degree to integrate exactly in 1D.
+		 * @note The one-point rule is the midpoint rule. Degrees greater than 7
+		 *   issue ERROR rather than generating rules beyond the positive-weight range.
+		 */
+		void InitializeNewtonCotes(std::size_t nPolyIntegrand);
 
 
 		// Disable default constructor.

@@ -2,7 +2,7 @@
 
 /*!
  * @file
- * @brief Constant-evaluable checks for reference GL and LGL quadrature data.
+ * @brief Constant-evaluable checks for reference GL, LGL and Newton-Cotes data.
  */
 
 #include <cstddef>
@@ -22,7 +22,7 @@ namespace NIntegrationRuleValidation
   /*!
    * @brief Verify dimensions, bounds, ordering, symmetry and polynomial moments.
    *
-   * @param[in] typeQuadrature GL or LGL on [-1,+1] with unit integration weight.
+   * @param[in] typeQuadrature GL, LGL or Newton-Cotes on [-1,+1] with unit weight.
    * @param[in] points ascending reference points.
    * @param[in] weights corresponding quadrature weights.
    *
@@ -53,6 +53,18 @@ namespace NIntegrationRuleValidation
         degreeExact = 2*n - 3;
         break;
       }
+      case(ETypeQuadrature::NEWTON_COTES):
+      {
+        // The contiguous positive-weight range ends before the 9-point rule.
+        if( n > 8 ) return false;
+        if( n == 1 )
+        {
+          if( points.front() != 0.0 ) return false;
+        }
+        else if( points.front() != -1.0 || points.back() != 1.0 ) return false;
+        degreeExact = n - 1 + n%2;
+        break;
+      }
       default: return false;
     }
 
@@ -72,6 +84,12 @@ namespace NIntegrationRuleValidation
       if( i > 0 && !(points[i-1] < x) ) return false;
       if( Absolute(x + points[n-1-i]) > tolerance ) return false;
       if( Absolute(w - weights[n-1-i]) > tolerance ) return false;
+      if( typeQuadrature == ETypeQuadrature::NEWTON_COTES && n > 1 )
+      {
+        const as3double expected = -1.0 + 2.0*static_cast<as3double>(i)
+                                           /static_cast<as3double>(n - 1);
+        if( Absolute(x - expected) > tolerance ) return false;
+      }
 
       pointSum  += x;
       weightSum += w;
