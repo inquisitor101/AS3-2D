@@ -85,7 +85,7 @@ example, points `{-0.5, 0.5}` with weights `{1, 1}` satisfy both sums but fail t
 integrate `x^2`. The regression test checks rejection of this case, along with
 invalid bounds, ordering, weights, dimensions and nonfinite values.
 
-The absolute tolerance is `64*n*std::numeric_limits<as3double>::epsilon()` to
+The absolute tolerance is `64*n*C_EPS` to
 allow rounding in arithmetic and accumulation. These checks validate the stored
 scalar values; they do not certify all 25 significant digits in the source text.
 Unsuffixed floating literals are rounded to `double` before conversion to

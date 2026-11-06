@@ -889,8 +889,8 @@ class CCollocatedTensorProduct final: public ITensorProduct
 
 			// Direct face gathers require the first and last nodes to be the reference endpoints.
 			const auto &rSol1D = standard_element->GetrSol1D();
-			constexpr as3double TOL = 1.0e-12;
-			if( !(std::abs(rSol1D[0] + C_ONE) <= TOL && std::abs(rSol1D[K-1] - C_ONE) <= TOL) )
+			if( !(std::abs(rSol1D[0]   + C_ONE) <= C_ABS_TOL &&
+			      std::abs(rSol1D[K-1] - C_ONE) <= C_ABS_TOL) )
 			{
 				ERROR("Collocated tensor requires solution nodes at both reference endpoints.");
 			}

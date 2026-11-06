@@ -194,7 +194,7 @@ void CStandardElement::ComputeLocationDOFs1D
 	as3double tmp = 0.0;
 	for(std::size_t i=0; i<nDOFs1D; i++) tmp += rDOFs1D[i];
 	const as3double roundoff  = static_cast<as3double>(nDOFs1D)*C_EPS;
-	const as3double tolerance = std::max(C_REFERENCE_ATOL, roundoff);
+	const as3double tolerance = std::max(C_ABS_TOL, roundoff);
 	if( !(std::abs(tmp) <= tolerance) ) ERROR("Precision errors in nodal point computation.");
 }
 

@@ -30,7 +30,7 @@ namespace
 
 		constexpr as3double roundoffFactor = static_cast<as3double>(8)*C_EPS;
 		const as3double roundoff  = roundoffFactor*static_cast<as3double>(n)*magnitude;
-		const as3double tolerance = std::max(C_REFERENCE_ATOL, roundoff);
+		const as3double tolerance = std::max(C_ABS_TOL, roundoff);
 		if( !std::isfinite(magnitude) || !(std::abs(sum - expected) <= tolerance) ) ERROR(message);
 	}
 }

@@ -47,13 +47,14 @@ bool CElementGeometry::CoordinatesMatch
 	* Function that allows for roundoff in the coordinates and their translation.
 	*/
 {
-	constexpr as3double atol           = static_cast<as3double>(1.0e-10);
-	constexpr as3double rtol           = static_cast<as3double>(1.0e-8);
+	// Allow for discrepancies in the imported mesh in addition to arithmetic roundoff.
+	constexpr as3double absTolerance   = std::max(static_cast<as3double>(1.0e-10), C_ABS_TOL);
+	constexpr as3double relTolerance   = std::max(static_cast<as3double>(1.0e-8),  C_REL_TOL);
 	constexpr as3double roundoffFactor = static_cast<as3double>(4)*C_EPS;
 
 	const as3double translated = xi + translation;
 	const as3double difference = std::abs(translated - xj);
-	const as3double tolerance  = atol + rtol*std::max(std::abs(translated), std::abs(xj));
+	const as3double tolerance  = absTolerance + relTolerance*std::max(std::abs(translated), std::abs(xj));
 
 	// Use the original coordinate and displacement scales in case the sum cancels.
 	const as3double scale    = std::max({std::abs(xi), std::abs(xj), std::abs(translation)});

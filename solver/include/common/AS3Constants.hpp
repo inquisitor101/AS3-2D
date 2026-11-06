@@ -6,7 +6,6 @@
  */
 
 
-#include <algorithm>
 #include <cstdint>
 #include <limits>
 
@@ -29,9 +28,10 @@ inline constexpr as3double C_ONE   = static_cast<as3double>( 1.0 );             
 inline constexpr as3double C_TWO   = static_cast<as3double>( 2.0 );                     ///< Value of 2.
 inline constexpr as3double C_180   = static_cast<as3double>( 180.0 );                   ///< Value of 180.
 
-// Precision and absolute tolerance for dimensionless reference-element checks.
-inline constexpr as3double C_EPS            = std::numeric_limits<as3double>::epsilon();         ///< Floating-point spacing just above one.
-inline constexpr as3double C_REFERENCE_ATOL = std::max(static_cast<as3double>(1.0e-10), C_EPS);  ///< Absolute floor for reference-element checks.
+// Working precision and default comparison tolerances.
+inline constexpr as3double C_EPS     = std::numeric_limits<as3double>::epsilon();  ///< Floating-point spacing just above one.
+inline constexpr as3double C_ABS_TOL = C_EPS;                                    ///< Absolute roundoff floor for unit-scale calculations.
+inline constexpr as3double C_REL_TOL = C_EPS;                                    ///< Relative tolerance multiplied by the comparison scale.
 
 
 // Abbreviation for constant physical values.
