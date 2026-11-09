@@ -119,6 +119,27 @@ MapTypeDGMethod =
 //--------------------------------------
 
 /*!
+ * @brief Enumerated type for the weak and strong DG formulations.
+ */
+enum class ETypeDGFormulation
+{
+	WEAK_FORM,  ///< Weak volume operator and numerical face fluxes.
+	STRONG_FORM ///< Strong volume operator, local physical face fluxes and numerical face fluxes.
+};
+
+/*!
+ * @brief Map for the type of DG formulation.
+ */
+inline const std::map<std::string, ETypeDGFormulation>
+MapTypeDGFormulation =
+{
+	{ "WEAK_FORM",   ETypeDGFormulation::WEAK_FORM },
+	{ "STRONG_FORM", ETypeDGFormulation::STRONG_FORM }
+}; ///< Map for the type of DG formulation.
+
+//--------------------------------------
+
+/*!
  * @brief Enumerated type for the available BCs.
  */
 enum class ETypeBC

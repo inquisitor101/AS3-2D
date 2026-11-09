@@ -13,7 +13,7 @@
 
 
 //-----------------------------------------------------------------------------------
-// Local surface residual functions.
+// Directional coupled-face residual functions.
 //-----------------------------------------------------------------------------------
 
 static void ComputeIFaceResidualsCollective
@@ -62,7 +62,7 @@ static void ComputeIFaceResidualsCollective
 				const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 				// Compute the internal face residual.
-				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeSurfaceResidualIDir(grid, workarray, localtime, iElemL);
+				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeElementCoupledResidualIDir(grid, workarray, localtime, iElemL);
 
 				break;
 			}
@@ -165,7 +165,7 @@ static void ComputeJFaceResidualsCollective
         const auto* grid = multizone_geometry_container->GetSinglezoneGeometry(iZone);
 
 				// Compute the internal face residual. 
-				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeSurfaceResidualJDir(grid, workarray, localtime, iElemB);
+				multizone_solver_container->GetSinglezoneSolver(iZone)->ComputeElementCoupledResidualJDir(grid, workarray, localtime, iElemB);
 
 				break;
 			}
@@ -221,7 +221,7 @@ static void ComputeJFaceResidualsCollective
 // NResidualComputation namespace functions.
 //-----------------------------------------------------------------------------------
 
-void NResidualComputation::ComputeSurfaceResidualsCollectiveNowait
+void NResidualComputation::ComputeElementCoupledResidualsCollectiveNowait
 (
  const CMultizoneGeometry  *multizone_geometry_container,
  CMultizoneSolver          *multizone_solver_container,
@@ -229,7 +229,7 @@ void NResidualComputation::ComputeSurfaceResidualsCollectiveNowait
  as3double                  localtime
 )
  /*
-  * Function that collectively computes both directional surface sweeps without an end barrier.
+  * Function that collectively computes both directional coupled-face sweeps without an end barrier.
   */
 {
   // Ensure this is an OpenMP parallel region, in case we're running in parallel.
@@ -308,20 +308,26 @@ void NResidualComputation::ComputeElementResidual
   // Extract the relevant physical element.
   auto* element = singlezone_solver_container->GetPhysicalElement(iElem);
 
-  // Compute the volume terms first, which also initializes the element residual.
-  singlezone_solver_container->ComputeVolumeResidual(singlezone_geometry_container, workarray, localtime, iElem);
+  // Compute the local volume and physical face terms, which also initialize the element residual.
+  singlezone_solver_container->ComputeElementLocalResidual(singlezone_geometry_container, workarray, localtime, iElem);
 
-  // Accumulate the temporary surface residuals into the element residual.
+  // Accumulate the coupled numerical face fluxes into the element residual.
   auto& residual = element->mRes2D;
   for(const auto& surface : element->mResSurface)
     for(std::size_t l=0; l<residual.size(); l++) residual[l] += surface[l];
 
-  // Borrow the workspace after the volume temporaries have been released.
-  auto tmp = workarray.GetWorkMatrixAS3( 1, workarray.size() );
-
   const as3double *minv = element->mInvMassMatrix.data();
   as3double        *res = element->mRes2D.data();
 
+  // Collocated inverse mass is a packed diagonal and needs no scratch storage.
+  if( singlezone_solver_container->GetStandardElement()->GetIsCollocated() )
+  {
+    singlezone_solver_container->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, nullptr);
+    return;
+  }
+
+  // Borrow scratch storage for the dense non-collocated matrix-vector product.
+  auto tmp = workarray.GetWorkMatrixAS3( 1, workarray.size() );
   singlezone_solver_container->GetTensorProduct()->CompileTimeApplyInverseMassMatrix(minv, res, tmp.data());
 }
 

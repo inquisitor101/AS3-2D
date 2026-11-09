@@ -54,6 +54,54 @@ The configuration selects the grid, polynomial order, initial condition, boundar
 conditions, time integration, and output settings. Visualization output uses the
 `vis/flow` prefix in this example. Edit `param.cfg` to change the run settings.
 
+## Weak and strong DG formulations
+
+`TYPE_DG_FORMULATION` selects `WEAK_FORM` (the default) or `STRONG_FORM`,
+independently of `TYPE_DG_METHOD`. Existing configurations without this option
+continue to use weak form. The selected formulation is included in the startup
+spatial-discretization report.
+
+Strong form supports both collocated and non-collocated quadrature. For the
+supplied LGL grids, select collocated strong DG-SEM with:
+
+```text
+TYPE_DG_METHOD = DG_SEM
+TYPE_QUADRATURE = LEGENDRE_GAUSS_LOBATTO
+BONUS_QUADRATURE_FACTOR = 0
+TYPE_DG_FORMULATION = STRONG_FORM
+```
+
+The collocated strong local operation uses 1D row/column differentiation of the
+Cartesian fluxes and combines them with the Cartesian metrics, then adds outward physical fluxes
+on all four faces. The coupled operation adds the Riemann numerical flux
+contributions. See \ref architecture for the assembly
+and metric conventions.
+
+Run the formulation regressions with:
+
+```sh
+bash solver/tests/run_dg_formulation.sh
+```
+
+These use a debug OpenMP build with address and undefined-behavior sanitizers.
+They check Cartesian differentiation matrices, strong residuals against an
+independent chain-rule reference, conservation, free-stream preservation,
+SSP-RK3 updates and configuration errors, with one and four threads.
+Synthetic skew and curved elements cover orders 1 through 9. The imported curved
+example has an existing constant-state residual of approximately `1.5e-8` in both
+forms; the test bounds this fixture error separately from the tight weak/strong
+constant-state comparison and the near-roundoff synthetic-element checks.
+
+For non-collocated strong form, use `TYPE_DG_METHOD = NODAL_DG` with GL or
+LGL quadrature and `TYPE_DG_FORMULATION = STRONG_FORM`. The Cartesian flux
+polynomials are defined by Euler flux values at solution nodes. Dense rectangular
+derivatives evaluate their divergence at quadrature points, followed by weighted
+value lifting into the solution basis. Local face terms trace the same flux
+polynomials. Coupled Riemann terms still use interpolated solution traces.
+Increasing quadrature integrates these nodal flux polynomials more accurately;
+it does not evaluate the nonlinear volume flux afresh at the extra quadrature
+points, as the existing weak implementation does.
+
 ## Binary visualization output
 
 Set `OUTPUT_VIS_FORMAT = VTK_XML_BINARY` to write `.vtu` snapshots for ParaView

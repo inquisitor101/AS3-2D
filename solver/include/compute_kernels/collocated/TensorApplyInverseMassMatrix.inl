@@ -18,7 +18,7 @@
  * @tparam K number of solution points in 1D.
  * @tparam N number of variables.
  *
- * @param[in] minv diagonal inverse mass in row-major storage [K*K][K*K]; only its diagonal is read.
+ * @param[in] minv packed inverse-mass diagonal [K*K].
  * @param[in,out] res element residual [N][K*K], replaced by its inverse-mass product.
  * @param[out] tmp unused scratch pointer; nullptr is permitted.
  *
@@ -48,7 +48,7 @@ void CCollocatedTensorProduct<K, N>::CompileTimeApplyInverseMassMatrix
 #pragma omp simd
 		for(std::size_t iRow=0; iRow<nDOFs; iRow++)
 		{
-			output[iRow] *= minv[iRow*(nDOFs+1)];
+			output[iRow] *= minv[iRow];
 		}
 	}
 }

@@ -2,7 +2,7 @@
 
 /*!
  * @file
- * @brief Collective OpenMP surface sweeps and element-local residual assembly.
+ * @brief Collective OpenMP coupled-face sweeps and element-local residual assembly.
  */
 
 
@@ -26,7 +26,7 @@ class ISinglezoneSolver;
 
 
 /*!
- * @brief Surface and element residual assembly with explicit OpenMP synchronization contracts.
+ * @brief Coupled-face and element residual assembly with explicit OpenMP synchronization contracts.
  *
  * @note With OpenMP enabled, collective calls are encountered by every thread in the same enclosing team, in
  *   the same order.
@@ -37,7 +37,7 @@ namespace NResidualComputation
 {
 
   /*!
-   * @brief Function that computes both directional surface residual sweeps without an end barrier.
+   * @brief Function that computes both directional coupled-face residual sweeps without an end barrier.
    *
    * @param[in] multizone_geometry_container geometry of all grid zones.
    * @param[in,out] multizone_solver_container solvers and residual storage for all zones.
@@ -50,14 +50,14 @@ namespace NResidualComputation
    *   updating the solution.
    */
   
-  void ComputeSurfaceResidualsCollectiveNowait(const CMultizoneGeometry  *multizone_geometry_container,
+  void ComputeElementCoupledResidualsCollectiveNowait(const CMultizoneGeometry  *multizone_geometry_container,
                                                CMultizoneSolver          *multizone_solver_container,
                                                CPoolMatrixAS3<as3double> &workarray,
                                                as3double                  localtime);
   
 
   /*!
-   * @brief Function that collectively computes volume residuals, gathers surface contributions and applies
+   * @brief Function that collectively computes local residuals, gathers coupled contributions and applies
    *   inverse mass matrices.
    *
    * @param[in] multizone_geometry_container geometry of all grid zones.
@@ -75,7 +75,7 @@ namespace NResidualComputation
                                          as3double                  localtime);
 
   /*!
-   * @brief Function that computes one element volume residual, gathers its four surface residuals and applies
+   * @brief Function that computes one element-local residual, gathers its four coupled residuals and applies
    *   its inverse mass matrix.
    *
    * @param[in] singlezone_geometry_container geometry of the current zone.

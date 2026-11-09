@@ -251,11 +251,18 @@ class CConfig
 		ETypeQuadrature GetTypeQuadrature(void) const {return mTypeQuadrature;}
 
 		/*!
-		 * @brief Getter function which returns the configured DG formulation.
+		 * @brief Getter function which returns the configured DG method.
 		 *
 		 * @return mTypeDGMethod; defaults to standard nodal DG.
 		 */
 		ETypeDGMethod GetTypeDGMethod(void) const {return mTypeDGMethod;}
+
+		/*!
+		 * @brief Getter function which returns the weak or strong DG formulation.
+		 *
+		 * @return mTypeDGFormulation; defaults to weak form.
+		 */
+		ETypeDGFormulation GetTypeDGFormulation(void) const {return mTypeDGFormulation;}
 
 	protected:
 
@@ -280,9 +287,10 @@ class CConfig
     as3vector1d<ETypeBufferLayer>   mTypeBufferLayer;    ///< Type of buffer layer in each zone.
 		as3vector1d<ETypeRiemannSolver> mTypeRiemannSolver;  ///< Type of Riemann solver per each zone.
 
-		std::size_t     mBonusQuadratureFactor; ///< Non-negative nb in the nodal-DG target degree (2 + nb)*p.
-		ETypeQuadrature mTypeQuadrature;        ///< Quadrature rule on the reference interval.
-		ETypeDGMethod   mTypeDGMethod;          ///< DG formulation.
+		std::size_t        mBonusQuadratureFactor; ///< Non-negative nb in the nodal-DG target degree (2 + nb)*p.
+		ETypeQuadrature    mTypeQuadrature;        ///< Quadrature rule on the reference interval.
+		ETypeDGMethod      mTypeDGMethod;          ///< DG method.
+		ETypeDGFormulation mTypeDGFormulation;   ///< Weak or strong DG formulation.
 
     std::string mGridDirectory;                          ///< Directory containing the configured AS3 grid file.
 		as3vector1d<std::pair<std::string, ETypeBC>>        mMarkerTag;            ///< Vector of marker names and boundary conditions.

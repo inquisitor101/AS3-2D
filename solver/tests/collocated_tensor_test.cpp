@@ -106,15 +106,16 @@ void Run()
   a.CompileTimeVolume(polynomial.data(), value.data(), dr.data(), ds.data());
   Check(value,polynomial); Check(dr,expectedR); Check(ds,expectedS);
 
-  Vec minv(K*K*K*K, 0.), residual(N*K*K, 2.), expected=residual, scratch(K*K);
+  Vec diagonal(K*K), minv(K*K*K*K, 0.), residual(N*K*K, 2.), expected=residual, scratch(K*K);
   for(std::size_t q=0; q<K*K; q++)
   {
-    minv[q*(K*K+1)]=1./element.GetwInt2D()[q];
+    diagonal[q]=1./element.GetwInt2D()[q];
+    minv[q*(K*K+1)]=diagonal[q];
     for(std::size_t v=0; v<N; v++) expected[v*K*K+q]*=minv[q*(K*K+1)];
   }
   Vec reference(N*K*K, 2.);
   b.CompileTimeApplyInverseMassMatrix(minv.data(), reference.data(), scratch.data());
-  a.CompileTimeApplyInverseMassMatrix(minv.data(), residual.data(), nullptr);
+  a.CompileTimeApplyInverseMassMatrix(diagonal.data(), residual.data(), nullptr);
   Check(residual,reference); Check(residual,expected);
   std::cout << "Passed K=" << K << " N=" << N << '\n';
 }

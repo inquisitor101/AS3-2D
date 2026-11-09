@@ -321,6 +321,12 @@ bool CConfig::ReadSpatialDiscretizationOptions
 	// Deduce the type from the buffer, based on the mapping.
 	mTypeDGMethod = GenericScalarMap(MapTypeDGMethod, buffer, "TYPE_DG_METHOD");
 
+	// Read the DG formulation specified. Default: weak form.
+	dvalue = "WEAK_FORM";
+	NInputUtility::AddScalarOption(paramfile, "TYPE_DG_FORMULATION", buffer, dvalue, true);
+	// Deduce the type from the buffer, based on the mapping.
+	mTypeDGFormulation = GenericScalarMap(MapTypeDGFormulation, buffer, "TYPE_DG_FORMULATION");
+
 
 	// Close file.
   paramfile.close();

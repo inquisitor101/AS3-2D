@@ -130,7 +130,7 @@ void NLogger::DisplaySpatialDiscretization
 		return "UNKNOWN";
 	};
 
-	// Determine which DG formulation is used.
+	// Determine which DG method is used.
 	std::string typeDGMethod;
 	switch( config_container->GetTypeDGMethod() )
 	{
@@ -140,10 +140,21 @@ void NLogger::DisplaySpatialDiscretization
 		default: ERROR("Unknown DG method.");
 	}
 
+	// Determine whether the local operator uses weak or strong form.
+	std::string typeDGFormulation;
+	switch( config_container->GetTypeDGFormulation() )
+	{
+		case(ETypeDGFormulation::WEAK_FORM):   { typeDGFormulation = "WEAK_FORM";   break; }
+		case(ETypeDGFormulation::STRONG_FORM): { typeDGFormulation = "STRONG_FORM"; break; }
+
+		default: ERROR("Unknown DG formulation.");
+	}
+
 	// Use a local stream so earlier scientific output does not affect the table.
 	std::ostringstream report;
 	report << std::string(123, '-') << "\nSpatial discretization:\n"
 	       << "  DG method: " << typeDGMethod << "\n"
+	       << "  DG formulation: " << typeDGFormulation << "\n"
 	       << "  Point counts and degree of exactness are per reference direction (1D).\n\n";
 
 	// Print one row for each initialized standard element.

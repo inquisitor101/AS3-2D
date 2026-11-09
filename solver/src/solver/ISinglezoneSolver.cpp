@@ -23,7 +23,8 @@ ISinglezoneSolver::ISinglezoneSolver
  std::size_t                nVar
 )
 	:
-		mZoneID( singlezone_geometry_container->GetZoneID() )
+		mZoneID( singlezone_geometry_container->GetZoneID() ),
+		mTypeDGFormulation( config_container->GetTypeDGFormulation() )
  /*
 	* Constructor that creates the zone reference element, tensor and Riemann solvers.
 	*/

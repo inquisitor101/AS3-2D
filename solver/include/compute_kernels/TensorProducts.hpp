@@ -465,9 +465,9 @@ class ITensorProduct
     /*!
      * @brief Function that replaces the element residual by its inverse-mass product.
      *
-     * @param[in] minv row-major inverse mass matrix of size [K*K][K*K].
+     * @param[in] minv dense row-major inverse mass [K*K][K*K], or packed diagonal [K*K] for collocated tensors.
      * @param[in,out] res element residual [N][K*K], replaced by its inverse-mass product.
-     * @param[out] tmp scratch storage for at least K*K entries, separate from the residual.
+     * @param[out] tmp scratch storage for at least K*K entries; unused and optionally nullptr for collocated tensors.
      *
      * @note The scratch buffer must not overlap the residual or inverse mass matrix.
      */
@@ -1190,11 +1190,11 @@ class CCollocatedTensorProduct final: public ITensorProduct
     /*!
      * @brief Function that replaces the element residual by its inverse-mass product.
      *
-     * @param[in] minv diagonal inverse mass in row-major storage of size [K*K][K*K].
+     * @param[in] minv packed inverse-mass diagonal of size [K*K].
      * @param[in,out] res element residual [N][K*K], replaced by its inverse-mass product.
      * @param[out] tmp unused scratch pointer; nullptr is permitted.
      *
-     * @note Only diagonal entries are read. The matrix must be the collocated quadrature inverse mass.
+     * @note The vector contains reciprocals of the collocated quadrature mass diagonal.
      */
     void CompileTimeApplyInverseMassMatrix(const as3double *minv,
                                            as3double       *res,

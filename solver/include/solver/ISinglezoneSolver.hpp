@@ -64,17 +64,18 @@ class ISinglezoneSolver
 				                              const CMultizoneGeometry *multizone_geometry_container) = 0;
 
 		/*!
-		 * @brief Pure virtual function that computes the volume terms for a given element.
+		 * @brief Pure virtual function that computes the element-local volume and physical face terms.
 		 *
 		 * @param[in] singlezone_container geometry of the current grid zone.
 		 * @param[in,out] workarray memory for the working array.
 		 * @param[in] localtime current physical time.
 		 * @param[in] iElem current element index.
 		 *
-		 * @note Overwrites the element volume residual. Surface gathering and inverse mass application
-		 *   are performed by the element residual operation.
+		 * @note Overwrites the local residual. Weak form includes only volume terms; strong form also
+		 *   includes the four physical face fluxes. Coupled gathering and inverse mass application are
+		 *   performed by the element residual operation.
 		 */
-		virtual void ComputeVolumeResidual(CSinglezoneGeometry       *singlezone_container,
+		virtual void ComputeElementLocalResidual(CSinglezoneGeometry       *singlezone_container,
 																			 CPoolMatrixAS3<as3double> &workarray,
 																			 as3double                  localtime,
 																			 std::size_t                     iElem) = 0;
@@ -88,7 +89,7 @@ class ISinglezoneSolver
 		 * @param[in] localtime physical time at which the residual is evaluated.
 		 * @param[in] iElemL zone-local minus-side element adjacent to the I-face.
 		 */
-		virtual void ComputeSurfaceResidualIDir(const CSinglezoneGeometry *singlezone_container,
+		virtual void ComputeElementCoupledResidualIDir(const CSinglezoneGeometry *singlezone_container,
 				                                    CPoolMatrixAS3<as3double> &workarray,
 																					  as3double                  localtime,
 																					  std::size_t                     iElemL) = 0;
@@ -103,7 +104,7 @@ class ISinglezoneSolver
      * @param[in] localtime physical time at which the residual is evaluated.
      * @param[in] iElemB zone-local minus-side element adjacent to the J-face.
      */
-    virtual void ComputeSurfaceResidualJDir(const CSinglezoneGeometry *singlezone_container,
+    virtual void ComputeElementCoupledResidualJDir(const CSinglezoneGeometry *singlezone_container,
 				                                    CPoolMatrixAS3<as3double> &workarray,
 																					  as3double                  localtime,
 																					  std::size_t                     iElemB) = 0;
@@ -163,6 +164,7 @@ class ISinglezoneSolver
 
 	protected:
 		const std::size_t                              mZoneID;                    ///< Zone ID of this container.
+		const ETypeDGFormulation                       mTypeDGFormulation;         ///< Weak or strong local residual operator.
 		std::unique_ptr<ITensorProduct>                mTensorProductContainer;    ///< Tensor product container.
 		std::unique_ptr<IRiemannSolver>                mRiemannSolverContainer;    ///< Riemann solver container.
 		std::unique_ptr<CStandardElement>              mStandardElementContainer;  ///< Standard element container.	

@@ -46,6 +46,12 @@ CPhysicalElement::CPhysicalElement
 	// Compute the metrics at the volume integration points.
 	ComputeMetricsIntVolume(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
 
+	// Precompute the Cartesian derivative operators when strong form is requested.
+	if( config_container->GetTypeDGFormulation() == ETypeDGFormulation::STRONG_FORM )
+	{
+		ComputeDifferentiationMatricesIntVolume(standard_element);
+	}
+
 	// Compute the metrics at the integration points of the four surfaces of the quadrilateral element.
 	ComputeMetricsIntSurfIMIN(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
 	ComputeMetricsIntSurfIMAX(standard_element, tensor_container, element_geometry->GetCoordSolDOFs());
@@ -75,6 +81,69 @@ CPhysicalElement::~CPhysicalElement
 	*/
 {
 
+}
+
+//-----------------------------------------------------------------------------------
+
+void CPhysicalElement::ComputeDifferentiationMatricesIntVolume
+(
+ CStandardElement *standard_element
+)
+ /*
+	* Function that computes dL/dx and dL/dy at each volume integration point.
+	*/
+{
+	// Extract the integration-point counts and solution-basis counts separately.
+	const std::size_t nInt1D = standard_element->GetnInt1D();
+	const std::size_t nInt2D = standard_element->GetnInt2D();
+	const std::size_t nSol1D = standard_element->GetnSol1D();
+	const std::size_t nSol2D = standard_element->GetnSol2D();
+
+	// Each one-dimensional matrix has integration points as rows and solution basis functions as columns.
+	//   L1D(i,ii) = L_ii(r_i), while dL1D(i,ii) = L_ii'(r_i).
+	// Note, the same matrices apply in the s-direction, since both directions use the same reference nodes.
+	const auto& L1D  = standard_element->GetLagrangeInt1D();
+	const auto& dL1D = standard_element->GetDerLagrangeInt1D();
+
+	// Rows are evaluation points; columns are the two-dimensional basis functions.
+	mDerLagrangeInt2Dx.resize(nInt2D, nSol2D);
+	mDerLagrangeInt2Dy.resize(nInt2D, nSol2D);
+
+	// Loop over the evaluation point (r_i, s_j), with i varying fastest in the flattened index.
+	for(std::size_t j=0; j<nInt1D; j++)
+	{
+		for(std::size_t i=0; i<nInt1D; i++)
+		{
+      // Integration point index in 2D.
+			const std::size_t q = j * nInt1D + i;
+
+			// Extract the inverse mapping metrics at this evaluation point.
+			const as3double drdx = mMetricInt2D(1, q);
+			const as3double drdy = mMetricInt2D(2, q);
+			const as3double dsdx = mMetricInt2D(3, q);
+			const as3double dsdy = mMetricInt2D(4, q);
+
+			// Loop over the tensor-product basis: L_(ii,jj)(r,s) = L_ii(r)*L_jj(s).
+			for(std::size_t jj=0; jj<nSol1D; jj++)
+			{
+				for(std::size_t ii=0; ii<nSol1D; ii++)
+				{
+					// Basis function index in 2D.
+          const std::size_t p = jj * nSol1D + ii;
+
+					// Differentiate one factor of the tensor-product basis and evaluate the other:
+					//   dL/dr = L_ii'(r_i)*L_jj(s_j), and dL/ds = L_ii(r_i)*L_jj'(s_j).
+					// ... under collocation, L1D becomes the identity (up to roundoff), recovering the deltas.
+					const as3double dLDr = dL1D(i,ii) *  L1D(j,jj);
+					const as3double dLDs =  L1D(i,ii) * dL1D(j,jj);
+
+					// Apply the Cartesian chain rule.
+					mDerLagrangeInt2Dx(q, p) = dLDr * drdx + dLDs * dsdx;
+					mDerLagrangeInt2Dy(q, p) = dLDr * drdy + dLDs * dsdy;
+				}
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------------
@@ -479,7 +548,26 @@ void CPhysicalElement::ComputeInverseMassMatrix
 	const std::size_t nInt2D = standard_element->GetnInt2D();
 
 	// Extract the quadrature weights in 2D.
-	CMatrixAS3<as3double> w2D = standard_element->GetwInt2D();
+	const auto& w2D = standard_element->GetwInt2D();
+
+	// Collocation makes the quadrature mass matrix diagonal, even when J varies over a curved element.
+	const bool isCollocated = standard_element->GetIsCollocated();
+	if( isCollocated )
+	{
+		// Store only the diagonal. The collocated kernel applies this vector by pointwise multiplication.
+		mInvMassMatrix.resize(nSol2D, 1);
+		for(std::size_t q=0; q<nSol2D; q++)
+		{
+			// M(q,q) = J(q)*w2D(q), since each basis function is one at its own quadrature node and zero elsewhere.
+			const as3double massDiagonal = mMetricInt2D(0,q)*w2D[q];
+			mInvMassMatrix[q] = C_ONE/massDiagonal;
+		}
+
+		// No interpolation products or general matrix inversion are needed in the collocated case.
+		return;
+	}
+
+	// Non-collocated quadrature requires assembling and inverting the full mass matrix.
 	// Extract the Lagrange interpolation matrix at the integration points in 1D.
 	CMatrixAS3<as3double> L1D = standard_element->GetLagrangeInt1D();
 

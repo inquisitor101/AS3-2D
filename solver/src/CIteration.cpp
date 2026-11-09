@@ -37,15 +37,18 @@ CIteration::CIteration
 		{
 			case(ETypeSolver::EE):
 			{
-				const std::size_t nItem2D = 3;  // volume  terms needed.
-				const std::size_t nItem1D = 2;  // surface terms needed.
+				const std::size_t nItem2D = 3;  // weak solution and two gradients; non-collocated strong form also needs a volume temporary.
+				const std::size_t nItem1D = 3;  // coupled minus state, plus state and numerical flux.
 				
 				const std::size_t nVar    = solver_container->GetnVar();
 				const std::size_t nInt1D  = solver_container->GetStandardElement()->GetnInt1D();
 				const std::size_t nInt2D  = solver_container->GetStandardElement()->GetnInt2D();
 
 				// Compute the total number of required volume and surface terms in the work array.
-				const std::size_t nVol  = nItem2D*nInt2D*nVar;
+				const std::size_t nSol2D = solver_container->GetStandardElement()->GetnSol2D();
+				// Non-collocated strong form keeps two nodal fluxes and borrows either a volume or two face arrays.
+				const std::size_t nStrong = nVar*(2*nSol2D + std::max(nInt2D, 2*nInt1D));
+				const std::size_t nVol = std::max(nItem2D*nInt2D*nVar, nStrong);
 				const std::size_t nSurf = nItem1D*nInt1D*nVar;
 
 				// Take the maximum storage between the volume and surface terms.
@@ -87,15 +90,15 @@ void CIteration::ComputeResiduals
  as3double                  localtime
 )
  /*
-	* Function that collectively computes surface and element residuals for all zones.
+	* Function that collectively computes coupled and local residuals for all zones.
 	*/
 {
-  // First, compute the surface residuals into their local face buffers.
-  NResidualComputation::ComputeSurfaceResidualsCollectiveNowait(multizone_geometry_container,
+  // First, compute the coupled numerical fluxes into their local face buffers.
+  NResidualComputation::ComputeElementCoupledResidualsCollectiveNowait(multizone_geometry_container,
                                                                multizone_solver_container,
                                                                workarray, localtime);
 
-  // Then, compute the volume terms, gather the surfaces, and apply the inverse mass matrix per element.
+  // Then, compute the local terms, gather the coupled contributions, and apply the inverse mass matrix.
   NResidualComputation::ComputeElementResidualsCollective(multizone_geometry_container,
                                                           multizone_solver_container,
                                                           workarray, localtime);
@@ -113,18 +116,18 @@ void CIteration::AdvanceStage
  std::size_t               iStageRK
 )
  /*
-  * Function that computes surface residuals, synchronizes, then assembles and updates each element.
+  * Function that computes coupled residuals, synchronizes, then assembles and updates each element.
   */
 {
 #ifdef HAVE_OPENMP
 #pragma omp parallel
 #endif
   {
-    // Each thread owns its workspace for both surface and volume computations.
+    // Each thread owns its workspace for both coupled and local computations.
     CPoolMatrixAS3<as3double> workarray(mNWorkData);
 
-    // Compute the surface residuals into their local face buffers.
-    NResidualComputation::ComputeSurfaceResidualsCollectiveNowait(multizone_geometry_container,
+    // Compute the coupled numerical fluxes into their local face buffers.
+    NResidualComputation::ComputeElementCoupledResidualsCollectiveNowait(multizone_geometry_container,
                                                                  multizone_solver_container,
                                                                  workarray, localtime);
 
@@ -151,7 +154,7 @@ void CIteration::AdvanceStage
       auto* grid    = multizone_geometry_container->GetSinglezoneGeometry(iZone);
       auto* element = solver->GetPhysicalElement(iElem);
 
-      // Compute the volume terms, accumulate the surfaces, and apply the inverse mass matrix.
+      // Compute the local terms, accumulate the coupled contributions, and apply the inverse mass matrix.
       NResidualComputation::ComputeElementResidual(grid, solver, workarray, localtime, iElem);
 
       // The temporal method supplies the update formula for this element.

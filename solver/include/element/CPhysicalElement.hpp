@@ -38,7 +38,9 @@ class CPhysicalElement
 		CMatrixAS3<as3double> mSol2D;          ///< Solution on the physical element in 2D.
 		CMatrixAS3<as3double> mRes2D;          ///< Residual of the solution on the physical element in 2D.
 		CMatrixAS3<as3double> mSolOld2D;       ///< Tentative (previous) solution on the physical element in 2D.
-		CMatrixAS3<as3double> mInvMassMatrix;  ///< Inverse of the mass matrix.
+		CMatrixAS3<as3double> mInvMassMatrix;  ///< Inverse mass: [nSol2D][1] diagonal vector if collocated, otherwise dense [nSol2D][nSol2D].
+		CMatrixAS3<as3double> mDerLagrangeInt2Dx; ///< Cartesian x-derivative. Rows: evaluation points; columns: basis functions.
+		CMatrixAS3<as3double> mDerLagrangeInt2Dy; ///< Cartesian y-derivative. Allocated only when strong form is requested.
 		
 		CMatrixAS3<as3double> mMetricSol2D;     ///< Metrics at the volume solution points in 2D. Rows: 
 																				    ///< [0]: |J|, [1]: drdx, [2]: drdy, [3]: dsdx, [4]: dsdy.
@@ -178,6 +180,15 @@ class CPhysicalElement
 
 	private:
 	
+
+		/*!
+		 * @brief Function that evaluates Cartesian basis derivatives at volume integration points.
+		 *
+		 * @note Matrices have nInt2D rows and nSol2D columns; collocation is not required.
+		 *
+		 * @param[in] standard_element standard element container.
+		 */
+		void ComputeDifferentiationMatricesIntVolume(CStandardElement *standard_element);
 
 		/*!
 		 * @brief Function that computes the volume metrics at the solution points.
